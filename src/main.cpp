@@ -1,6 +1,10 @@
 #include <iostream>
 
+#include "psx/core.h"
+
 int main(int argc, char *argv[]) {
-    std::cout << "Hi" << std::endl;
+    PSX::Core core;
+    core.step();
+
     return 0;
 }
