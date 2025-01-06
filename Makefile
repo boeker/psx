@@ -15,7 +15,7 @@ OBJ := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 CXX := g++
 CPPFLAGS := -Iinclude -I$(SRC_DIR) -MMD -MP
-CXXFLAGS := -g -Wall
+CXXFLAGS := -std=c++20 -g -Wall
 LDFLAGS :=
 LDLIBS := -lglfw
 
