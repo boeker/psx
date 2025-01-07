@@ -6,7 +6,9 @@ int main(int argc, char *argv[]) {
     PSX::Core core;
     core.readBIOS("BIOS/SCPH1001.BIN");
 
-    core.step();
+    while (true) {
+        core.step();
+    }
 
     return 0;
 }

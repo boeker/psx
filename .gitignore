@@ -41,8 +41,8 @@ BIOS
 *.i*86
 *.x86_64
 *.hex
-main
-psx
+/main
+/psx
 
 # Debug files
 *.dSYM/
