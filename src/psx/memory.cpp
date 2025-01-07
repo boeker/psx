@@ -48,7 +48,21 @@ uint32_t Memory::readWord(uint32_t address) {
     return *memory;
 }
 
+void Memory::writeWord(uint32_t address, uint32_t word) {
+    uint32_t *memory = (uint32_t*)resolveAddress(address); // PSX is little endian, so is x86
+    *memory = word;
+}
+
 void* Memory::resolveAddress(uint32_t address) {
+    if (address < MAIN_RAM_SIZE) {
+        return mainRAM + address;
+    }
+    if ((address >= 0x80000000) && (address < 0x80000000 + MAIN_RAM_SIZE)) {
+        return mainRAM + (address - 0x80000000);
+    }
+    if ((address >= 0x9FC00000) && (address < 0x9FC00000 + BIOS_SIZE)) {
+        return bios + (address - 0x9FC00000);
+    }
     if ((address >= 0xA0000000) && (address < 0xA0000000 + MAIN_RAM_SIZE)) {
         return mainRAM + (address - 0xA0000000);
     }

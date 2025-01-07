@@ -36,6 +36,8 @@ public:
     uint8_t readByte(uint32_t address);
     uint32_t readWord(uint32_t address);
 
+    void writeWord(uint32_t address, uint32_t word);
+
 private:
     void* resolveAddress(uint32_t address);
 };

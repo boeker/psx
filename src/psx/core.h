@@ -22,6 +22,8 @@ private:
     static const Opcode opcodes[];
     void UNK();
     void LUI();
+    void ORI();
+    void SW();
 
 public:
     void readBIOS(const std::string &file);
