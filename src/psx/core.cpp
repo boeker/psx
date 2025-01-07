@@ -50,10 +50,11 @@ void Core::LUI() {
     // Load Upper Immediate
     // GPR[rt] <- immediate || 0^{16}
     uint8_t rt = 0b11111 & (instruction >> 16);
-    uint32_t immediate = 0xFF & instruction;
+    uint32_t immediate = 0xFFFF & instruction;
     std::cerr << "LUI " << (uint32_t)rt << "," << immediate << std::endl;
 
     cpu.setRegister(rt, immediate << 16);
+    std::cout << std::format("{:x}", cpu.getRegister(rt)) << std::endl;
 }
 
 void Core::ORI() {
@@ -61,7 +62,7 @@ void Core::ORI() {
     // T: GPR[rt] <- GPR[rs]_{31...36} || (immedate or GPR[rs]_{15...0})
     uint8_t rs = 0b11111 & (instruction >> 21);
     uint8_t rt = 0b11111 & (instruction >> 16);
-    uint32_t immediate = 0xFF & instruction;
+    uint32_t immediate = 0xFFFF & instruction;
     std::cerr << "ORI " << (uint32_t)rt << "," << (uint32_t)rs << "," << immediate << std::endl;
 
     cpu.setRegister(rt, cpu.getRegister(rs) | immediate);
@@ -75,10 +76,10 @@ void Core::SW() {
     // StoreMemory(uncached, WORD, data, pAddr, vAddr, DATA)
     uint8_t base = 0b11111 & (instruction >> 21);
     uint8_t rt = 0b11111 & (instruction >> 16);
-    uint32_t offset = 0xFF & instruction;
+    uint32_t offset = 0xFFFF & instruction;
     std::cerr << "SW " << (uint32_t)rt << "," << offset << "(" << (uint32_t)base << ")" << std::endl;
 
-    uint32_t vAddr = (((offset >> 15) ? 0xFF00 : 0x0000) | offset) + cpu.getRegister(base);
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + cpu.getRegister(base);
     uint32_t data = cpu.getRegister(rt);
     memory.writeWord(vAddr, data);
     // TODO Address Error Exception if the two least-significat bits of effective address are non-zero
