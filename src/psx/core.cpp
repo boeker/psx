@@ -51,10 +51,9 @@ void Core::LUI() {
     // GPR[rt] <- immediate || 0^{16}
     uint8_t rt = 0b11111 & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    std::cerr << "LUI " << (uint32_t)rt << "," << immediate << std::endl;
+    std::cerr << std::format("0x{:x}", cpu.getPC()) << ": LUI " << (uint32_t)rt << "," << std::format("0x{:x}", immediate) << std::endl;
 
     cpu.setRegister(rt, immediate << 16);
-    std::cout << std::format("{:x}", cpu.getRegister(rt)) << std::endl;
 }
 
 void Core::ORI() {
@@ -63,7 +62,7 @@ void Core::ORI() {
     uint8_t rs = 0b11111 & (instruction >> 21);
     uint8_t rt = 0b11111 & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    std::cerr << "ORI " << (uint32_t)rt << "," << (uint32_t)rs << "," << immediate << std::endl;
+    std::cerr << std::format("0x{:x}", cpu.getPC()) << ": ORI " << (uint32_t)rt << "," << (uint32_t)rs << "," << std::format("0x{:x}", immediate) << std::endl;
 
     cpu.setRegister(rt, cpu.getRegister(rs) | immediate);
 }
@@ -77,7 +76,7 @@ void Core::SW() {
     uint8_t base = 0b11111 & (instruction >> 21);
     uint8_t rt = 0b11111 & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
-    std::cerr << "SW " << (uint32_t)rt << "," << offset << "(" << (uint32_t)base << ")" << std::endl;
+    std::cerr << std::format("0x{:x}", cpu.getPC()) << ": SW " << (uint32_t)rt << "," << std::format("0x{:x}", offset) << "(" << (uint32_t)base << ")" << std::endl;
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + cpu.getRegister(base);
     uint32_t data = cpu.getRegister(rt);
@@ -94,11 +93,12 @@ void Core::step() {
     instruction = memory.readWord(cpu.getPC());
     opcode = instruction >> 26;
 
-    //increase program counter
-    cpu.setPC(cpu.getPC() + 4);
-    
     // execute instruction
     assert (opcode <= 0b111111);
     (this->*opcodes[opcode])();
+
+    //increase program counter
+    cpu.setPC(cpu.getPC() + 4);
+    
 }
 }
