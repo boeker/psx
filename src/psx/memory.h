@@ -17,6 +17,7 @@ KUSEG     KSEG0     KSEG1
 */
 
 #define MAIN_RAM_SIZE (2048 * 1024)
+#define IO_PORTS_SIZE (8 * 1024)
 #define BIOS_SIZE (512 * 1024)
 
 namespace PSX {
@@ -24,6 +25,7 @@ namespace PSX {
 class Memory {
 private:
     uint8_t* mainRAM;
+    uint8_t* ioPorts;
     uint8_t* bios;
 
 public:

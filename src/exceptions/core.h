@@ -14,6 +14,14 @@ public:
     explicit UnknownOpcodeError(const char *what)
         : std::runtime_error(what) {}
 };
+
+class UnknownFunctionError : public std::runtime_error {
+public:
+    explicit UnknownFunctionError(const std::string &what)
+        : std::runtime_error(what) {}
+    explicit UnknownFunctionError(const char *what)
+        : std::runtime_error(what) {}
+};
 }
 
 #endif

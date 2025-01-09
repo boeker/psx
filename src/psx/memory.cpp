@@ -10,6 +10,7 @@
 namespace PSX {
 Memory::Memory() {
     mainRAM = new uint8_t[MAIN_RAM_SIZE];
+    ioPorts = new uint8_t[IO_PORTS_SIZE];
     bios = new uint8_t[BIOS_SIZE];
 
     reset();
@@ -22,6 +23,7 @@ Memory::~Memory() {
 
 void Memory::reset() {
     std::memset(mainRAM, 0, MAIN_RAM_SIZE);
+    std::memset(ioPorts, 0, IO_PORTS_SIZE);
     std::memset(bios, 0, BIOS_SIZE);
 }
 
@@ -56,6 +58,9 @@ void Memory::writeWord(uint32_t address, uint32_t word) {
 void* Memory::resolveAddress(uint32_t address) {
     if (address < MAIN_RAM_SIZE) {
         return mainRAM + address;
+    }
+    if ((address >= 0x1F801000) && (address < 0x1F801000 + IO_PORTS_SIZE)) {
+        return ioPorts + (address - 0x1F801000);
     }
     if ((address >= 0x80000000) && (address < 0x80000000 + MAIN_RAM_SIZE)) {
         return mainRAM + (address - 0x80000000);
