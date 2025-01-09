@@ -40,6 +40,7 @@ private:
     static const Opcode functions[];
     void UNKFUNCT();
     void SLL();
+    void OR();
 
 public:
     Core();

@@ -63,7 +63,7 @@ const Core::Opcode Core::functions[] = {
     // 0b100000
     &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
     // 0b100100
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKFUNCT, &Core::OR,       &Core::UNKFUNCT, &Core::UNKFUNCT,
     // 0b101000
     &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
     // 0b101100
@@ -79,13 +79,13 @@ const Core::Opcode Core::functions[] = {
 };
 
 void Core::UNK() {
-    throw exceptions::UnknownOpcodeError(std::format("{:06b}", opcode));
+    throw exceptions::UnknownOpcodeError(std::format("{:x}", instructionPC) + ": " + std::format("0b{:06b}", opcode));
 }
 
 void Core::SPECIAL() {
     // SPECIAL
     // Operation depends on function field
-    funct = 0x1F & instruction;
+    funct = 0x3F & instruction;
     
     (this->*functions[funct])();
 }
@@ -120,9 +120,9 @@ void Core::SW() {
     uint8_t base = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
-    std::cerr << std::format("0x{:x}", instructionPC) << ": SW " << (uint32_t)rt << "," << std::format("0x{:x}", offset) << "(" << (uint32_t)base << ")" << std::endl;
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + cpu.getRegister(base);
+    std::cerr << std::format("0x{:x}", instructionPC) << ": SW " << (uint32_t)rt << "," << std::format("0x{:x}", offset) << "(" << (uint32_t)base << ")" << std::format("(->0x{:x})", vAddr)<< std::endl;
     uint32_t data = cpu.getRegister(rt);
     memory.writeWord(vAddr, data);
     // TODO Address Error Exception if the two least-significat bits of effective address are non-zero
@@ -147,13 +147,13 @@ void Core::J() {
     // T: temp <- target
     // T+1: pc <- pc_{31...28} || temp || 0^2
     uint32_t target = 0x3FFFFFF & instruction;
-    std::cerr << std::format("0x{:x}", instructionPC) << ": J " << std::format("0x{:x}", target) << std::endl;
+    std::cerr << std::format("0x{:x}", instructionPC) << ": J " << std::format("0x{:x}", target) << std::format(" (->0x{:x})", (cpu.getPC() & 0xF0000000) | (target << 2)) << std::endl;
 
     cpu.setPC((cpu.getPC() & 0xF0000000) | (target << 2));
 }
 
 void Core::UNKFUNCT() {
-    throw exceptions::UnknownFunctionError(std::format("{:06b}", funct));
+    throw exceptions::UnknownFunctionError(std::format("{:x}", instructionPC) + ": " + std::format("0b{:06b}", funct));
 }
 
 void Core::SLL() {
@@ -165,6 +165,17 @@ void Core::SLL() {
     std::cerr << std::format("0x{:x}", instructionPC) << ": SLL " << (uint32_t)rd << "," << (uint32_t)rt << "," << (uint32_t)sa << std::endl;
 
     cpu.setRegister(rd, cpu.getRegister(rt) << sa);
+}
+
+void Core::OR() {
+    // Or
+    // T: GPR[rd] <- GPR[rs] or GPR[rt]
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+    std::cerr << std::format("0x{:x}", instructionPC) << ": OR " << (uint32_t)rd << "," << (uint32_t)rs << "," << (uint32_t)rt << std::endl;
+
+    cpu.setRegister(rd, cpu.getRegister(rs) | cpu.getRegister(rt));
 }
 
 Core::Core() {
