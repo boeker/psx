@@ -25,6 +25,7 @@ void Memory::reset() {
     std::memset(mainRAM, 0, MAIN_RAM_SIZE);
     std::memset(ioPorts, 0, IO_PORTS_SIZE);
     std::memset(bios, 0, BIOS_SIZE);
+    std::memset(&cacheControlRegister, 0, 4);
 }
 
 void Memory::readBIOS(const std::string &file) {
@@ -73,6 +74,9 @@ void* Memory::resolveAddress(uint32_t address) {
     }
     if ((address >= 0xBFC00000) && (address < 0xBFC00000 + BIOS_SIZE)) {
         return bios + (address - 0xBFC00000);
+    }
+    if (address == 0xFFFE0130) {
+        return &cacheControlRegister;
     }
     
     throw exceptions::AddressOutOfBounds(std::format("{:x}", address));

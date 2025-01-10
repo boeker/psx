@@ -27,6 +27,7 @@ private:
     uint8_t* mainRAM;
     uint8_t* ioPorts;
     uint8_t* bios;
+    uint8_t cacheControlRegister[4];
 
 public:
     Memory();

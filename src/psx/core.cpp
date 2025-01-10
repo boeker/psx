@@ -8,6 +8,10 @@
 
 namespace PSX {
 
+void Core::log(const std::string &message) {
+    std::cerr << message;
+}
+
 const Core::Opcode Core::opcodes[] = {
     // 0b000000
     &Core::SPECIAL,  &Core::UNK,      &Core::J,        &Core::UNK,
@@ -95,7 +99,7 @@ void Core::LUI() {
     // GPR[rt] <- immediate || 0^{16}
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    std::cerr << std::format("0x{:x}", instructionPC) << ": LUI " << (uint32_t)rt << "," << std::format("0x{:x}", immediate) << std::endl;
+    log(std::format("LUI {:d},0x{:x}", rt, immediate));
 
     cpu.setRegister(rt, immediate << 16);
 }
@@ -106,7 +110,7 @@ void Core::ORI() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    std::cerr << std::format("0x{:x}", instructionPC) << ": ORI " << (uint32_t)rt << "," << (uint32_t)rs << "," << std::format("0x{:x}", immediate) << std::endl;
+    log(std::format("ORI {:d},{:d},0x{:x}", rt, rs, immediate));
 
     cpu.setRegister(rt, cpu.getRegister(rs) | immediate);
 }
@@ -122,8 +126,8 @@ void Core::SW() {
     uint32_t offset = 0xFFFF & instruction;
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + cpu.getRegister(base);
-    std::cerr << std::format("0x{:x}", instructionPC) << ": SW " << (uint32_t)rt << "," << std::format("0x{:x}", offset) << "(" << (uint32_t)base << ")" << std::format("(->0x{:x})", vAddr)<< std::endl;
     uint32_t data = cpu.getRegister(rt);
+    log(std::format("SW {:d},0x{:x}({:d}) (0x{:x} -> 0x{:x})", rt, offset, base, data, vAddr));
     memory.writeWord(vAddr, data);
     // TODO Address Error Exception if the two least-significat bits of effective address are non-zero
 }
@@ -138,6 +142,7 @@ void Core::ADDIU() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
+    log(std::format("ADDIU {:d},{:d},{:d}", rt, rs, immediate));
 
     cpu.setRegister(rt, cpu.getRegister(rs) + immediate);
 }
@@ -147,9 +152,10 @@ void Core::J() {
     // T: temp <- target
     // T+1: pc <- pc_{31...28} || temp || 0^2
     uint32_t target = 0x3FFFFFF & instruction;
-    std::cerr << std::format("0x{:x}", instructionPC) << ": J " << std::format("0x{:x}", target) << std::format(" (->0x{:x})", (cpu.getPC() & 0xF0000000) | (target << 2)) << std::endl;
 
-    cpu.setPC((cpu.getPC() & 0xF0000000) | (target << 2));
+    uint32_t actualTarget = (cpu.getPC() & 0xF0000000) | (target << 2);
+    log(std::format("J 0x{:x} (-> 0x{:x})", target, actualTarget));
+    cpu.setPC(actualTarget);
 }
 
 void Core::UNKFUNCT() {
@@ -162,7 +168,7 @@ void Core::SLL() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
     uint8_t sa = 0x1F & (instruction >> 6);
-    std::cerr << std::format("0x{:x}", instructionPC) << ": SLL " << (uint32_t)rd << "," << (uint32_t)rt << "," << (uint32_t)sa << std::endl;
+    log(std::format("SLL {:d},{:d},{:d}", rd, rt, sa));
 
     cpu.setRegister(rd, cpu.getRegister(rt) << sa);
 }
@@ -173,7 +179,7 @@ void Core::OR() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
-    std::cerr << std::format("0x{:x}", instructionPC) << ": OR " << (uint32_t)rd << "," << (uint32_t)rs << "," << (uint32_t)rt << std::endl;
+    log(std::format("OR {:d},{:d},{:d}", rd, rs, rt));
 
     cpu.setRegister(rd, cpu.getRegister(rs) | cpu.getRegister(rt));
 }
@@ -209,9 +215,10 @@ void Core::step() {
     cpu.setPC(nextInstructionPC + 4);
     
     // execute instruction
+    log(std::format("0x{:08x}: ", instructionPC));
     opcode = instruction >> 26;
     assert (opcode <= 0b111111);
     (this->*opcodes[opcode])();
-
+    log("\n");
 }
 }
