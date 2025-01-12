@@ -16,9 +16,9 @@ const Core::Opcode Core::opcodes[] = {
     // 0b000000
     &Core::SPECIAL,  &Core::UNK,      &Core::J,        &Core::UNK,
     // 0b000100
-    &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
+    &Core::UNK,      &Core::BNE,      &Core::UNK,      &Core::UNK,
     // 0b001000
-    &Core::UNK,      &Core::ADDIU,    &Core::UNK,      &Core::UNK,
+    &Core::ADDI,     &Core::ADDIU,    &Core::UNK,      &Core::UNK,
     // 0b001100
     &Core::UNK,      &Core::ORI,      &Core::UNK,      &Core::LUI,
     // 0b010000
@@ -204,7 +204,7 @@ void Core::ADDIU() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    log(std::format("ADDIU {:d},{:d},{:d}", rt, rs, immediate));
+    log(std::format("ADDIU {:d},{:d},0x{:04X}", rt, rs, immediate));
 
     memory.registers.setRegister(rt, memory.registers.getRegister(rs) + immediate);
 }
@@ -218,6 +218,38 @@ void Core::J() {
     uint32_t actualTarget = (memory.registers.getPC() & 0xF0000000) | (target << 2);
     log(std::format("J 0x{:x} (-> 0x{:x})", target, actualTarget));
     memory.registers.setPC(actualTarget);
+}
+
+void Core::BNE() {
+    // Branch On Not Equal
+    // T: target <- (offset_{15})^{14} || offset || 0^2
+    //    condition <- (GPR[rs] != GPR[rt])
+    // T+1: if condition then
+    //      PC <- PC + target
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    uint32_t target = ((offset >> 15) ? 0xFFFC0000 : 0x00000000) | (offset << 2);
+    uint32_t actualTarget = memory.registers.getPC() + target;
+    log(std::format("BNE {:d},{:d},0x{:04x} (+0x{:08x}, -> 0x{:08x})", rt, rs, offset, target, actualTarget));
+    if (memory.registers.getRegister(rs) != memory.registers.getRegister(rt)) {
+        memory.registers.setPC(actualTarget);
+    }
+}
+
+void Core::ADDI() {
+    // Add Immediate Word
+    // T: GPR[rt] <- GPR[rs] + (immediate_{15})^{16} || immediate_{15...0}
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t immediate = 0xFFFF & instruction;
+    log(std::format("ADDI {:d},{:d},0x{:04X}", rt, rs, immediate));
+
+    uint32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
+    memory.registers.setRegister(rt, memory.registers.getRegister(rs) + signExtension);
+    // TODO integer overflow exception
+    // TODO ADDI vs ADDIU?
 }
 
 void Core::UNKSPCL() {

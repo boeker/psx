@@ -38,6 +38,8 @@ private:
     void SW();
     void ADDIU();
     void J();
+    void BNE();
+    void ADDI();
 
     static const Opcode special[];
     void UNKSPCL();
