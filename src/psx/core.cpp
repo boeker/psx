@@ -22,7 +22,7 @@ const Core::Opcode Core::opcodes[] = {
     // 0b001100
     &Core::UNK,      &Core::ORI,      &Core::UNK,      &Core::LUI,
     // 0b010000
-    &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
+    &Core::CP0,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b010100
     &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b011000
@@ -47,43 +47,97 @@ const Core::Opcode Core::opcodes[] = {
     &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK
 };
 
-const Core::Opcode Core::functions[] = {
+const Core::Opcode Core::special[] = {
     // 0b000000
-    &Core::SLL,      &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::SLL,      &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b000100
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b001000
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b001100
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b010000
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b010100
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b011000
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b011100
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b100000
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b100100
-    &Core::UNKFUNCT, &Core::OR,       &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::OR,       &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b101000
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b101100
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b110000
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b110100
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b111000
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b111100
-    &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT, &Core::UNKFUNCT
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL
+};
+
+const Core::Opcode Core::cp0[] = {
+    // 0b000000
+    &Core::CP0MOVE,  &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b000100
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b001000
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b001100
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b010000
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b010100
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b011000
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b011100
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b100000
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b100100
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b101000
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b101100
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b110000
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b110100
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b111000
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    // 0b111100
+    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0
+};
+
+const Core::Opcode Core::cp0Move[] = {
+    // 0b00000
+    &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,
+    // 0b00100
+    &Core::MTC0,     &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,
+    // 0b01000
+    &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,
+    // 0b01100
+    &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,
+    // 0b10000
+    &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,
+    // 0b10100
+    &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,
+    // 0b11000
+    &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,
+    // 0b11100
+    &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M
 };
 
 void Core::UNK() {
-    throw exceptions::UnknownOpcodeError(std::format("{:x}", instructionPC) + ": " + std::format("0b{:06b}", opcode));
+    throw exceptions::UnknownOpcodeError(std::format("instruction 0x{:x}: 0b{:06b}", instructionPC, opcode));
 }
 
 void Core::SPECIAL() {
@@ -91,7 +145,15 @@ void Core::SPECIAL() {
     // Operation depends on function field
     funct = 0x3F & instruction;
     
-    (this->*functions[funct])();
+    (this->*special[funct])();
+}
+
+void Core::CP0() {
+    // CP0
+    // Operation depends on function field
+    funct = 0x3F & instruction;
+    
+    (this->*cp0[funct])();
 }
 
 void Core::LUI() {
@@ -101,7 +163,7 @@ void Core::LUI() {
     uint32_t immediate = 0xFFFF & instruction;
     log(std::format("LUI {:d},0x{:x}", rt, immediate));
 
-    cpu.setRegister(rt, immediate << 16);
+    memory.registers.setRegister(rt, immediate << 16);
 }
 
 void Core::ORI() {
@@ -112,7 +174,7 @@ void Core::ORI() {
     uint32_t immediate = 0xFFFF & instruction;
     log(std::format("ORI {:d},{:d},0x{:x}", rt, rs, immediate));
 
-    cpu.setRegister(rt, cpu.getRegister(rs) | immediate);
+    memory.registers.setRegister(rt, memory.registers.getRegister(rs) | immediate);
 }
 
 void Core::SW() {
@@ -125,8 +187,8 @@ void Core::SW() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + cpu.getRegister(base);
-    uint32_t data = cpu.getRegister(rt);
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.registers.getRegister(base);
+    uint32_t data = memory.registers.getRegister(rt);
     log(std::format("SW {:d},0x{:x}({:d}) (0x{:x} -> 0x{:x})", rt, offset, base, data, vAddr));
     memory.writeWord(vAddr, data);
     // TODO Address Error Exception if the two least-significat bits of effective address are non-zero
@@ -144,7 +206,7 @@ void Core::ADDIU() {
     uint32_t immediate = 0xFFFF & instruction;
     log(std::format("ADDIU {:d},{:d},{:d}", rt, rs, immediate));
 
-    cpu.setRegister(rt, cpu.getRegister(rs) + immediate);
+    memory.registers.setRegister(rt, memory.registers.getRegister(rs) + immediate);
 }
 
 void Core::J() {
@@ -153,13 +215,13 @@ void Core::J() {
     // T+1: pc <- pc_{31...28} || temp || 0^2
     uint32_t target = 0x3FFFFFF & instruction;
 
-    uint32_t actualTarget = (cpu.getPC() & 0xF0000000) | (target << 2);
+    uint32_t actualTarget = (memory.registers.getPC() & 0xF0000000) | (target << 2);
     log(std::format("J 0x{:x} (-> 0x{:x})", target, actualTarget));
-    cpu.setPC(actualTarget);
+    memory.registers.setPC(actualTarget);
 }
 
-void Core::UNKFUNCT() {
-    throw exceptions::UnknownFunctionError(std::format("{:x}", instructionPC) + ": " + std::format("0b{:06b}", funct));
+void Core::UNKSPCL() {
+    throw exceptions::UnknownFunctionError(std::format("0x{:x}: instruction 0x{:x} (SPECIAL), function 0b{:06b}", instructionPC, instruction, funct));
 }
 
 void Core::SLL() {
@@ -170,7 +232,7 @@ void Core::SLL() {
     uint8_t sa = 0x1F & (instruction >> 6);
     log(std::format("SLL {:d},{:d},{:d}", rd, rt, sa));
 
-    cpu.setRegister(rd, cpu.getRegister(rt) << sa);
+    memory.registers.setRegister(rd, memory.registers.getRegister(rt) << sa);
 }
 
 void Core::OR() {
@@ -181,7 +243,35 @@ void Core::OR() {
     uint8_t rd = 0x1F & (instruction >> 11);
     log(std::format("OR {:d},{:d},{:d}", rd, rs, rt));
 
-    cpu.setRegister(rd, cpu.getRegister(rs) | cpu.getRegister(rt));
+    memory.registers.setRegister(rd, memory.registers.getRegister(rs) | memory.registers.getRegister(rt));
+}
+
+void Core::UNKCP0() {
+    throw exceptions::UnknownFunctionError(std::format("0x{:x}: instruction 0x{:x} (CP0), function 0b{:06b}", instructionPC, instruction, funct));
+}
+
+void Core::CP0MOVE() {
+    // CP0 Move
+    // Operation depends on function field
+    move = 0x1F & (instruction >> 21);
+    
+    (this->*cp0Move[move])();
+}
+
+void Core::UNKCP0M() {
+    throw exceptions::UnknownOpcodeError(std::format("0x{:x}: instruction 0x{:x} (CP0Move), move 0b{:05b}", instructionPC, instruction, move));
+}
+
+void Core::MTC0() {
+    // Move To Coprocessor 0
+    // T: data <- GPR[rt]
+    // T+1: CPR[0,rd] <- data
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    uint32_t data = memory.registers.getRegister(rt);
+    log(std::format("MTC0 {:d},{:d} (0x{:x} -> CP0 {:d})", rt, rd, data, rd));
+    memory.registers.setCP0Register(rd, data);
 }
 
 Core::Core() {
@@ -189,7 +279,7 @@ Core::Core() {
 }
 
 void Core::reset() {
-    this->cpu.reset();
+    this->memory.registers.reset();
     this->memory.reset();
 
     instructionPC = 0;
@@ -208,11 +298,11 @@ void Core::step() {
     instruction = nextInstruction;
 
     // load instruction from memory at program counter
-    nextInstructionPC = cpu.getPC();
+    nextInstructionPC = memory.registers.getPC();
     nextInstruction = memory.readWord(nextInstructionPC);
 
     // increase program counter
-    cpu.setPC(nextInstructionPC + 4);
+    memory.registers.setPC(nextInstructionPC + 4);
     
     // execute instruction
     log(std::format("0x{:08x}: ", instructionPC));

@@ -3,14 +3,12 @@
 
 #include <string>
 
-#include "cpu.h"
 #include "memory.h"
 
 namespace PSX {
 
 class Core {
 private:
-    CPU cpu;
     Memory memory;
 
     void log(const std::string &string);
@@ -22,6 +20,7 @@ private:
     // Information extracted from instruction
     uint8_t opcode;
     uint8_t funct;
+    uint8_t move;
 
     // Next instruction
     uint32_t nextInstructionPC;
@@ -33,16 +32,25 @@ private:
     static const Opcode opcodes[];
     void UNK();
     void SPECIAL();
+    void CP0();
     void LUI();
     void ORI();
     void SW();
     void ADDIU();
     void J();
 
-    static const Opcode functions[];
-    void UNKFUNCT();
+    static const Opcode special[];
+    void UNKSPCL();
     void SLL();
     void OR();
+
+    static const Opcode cp0[];
+    void UNKCP0();
+    void CP0MOVE();
+
+    static const Opcode cp0Move[];
+    void UNKCP0M();
+    void MTC0();
 
 public:
     Core();

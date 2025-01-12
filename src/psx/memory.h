@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <string>
 
+#include "registers.h"
+
 /*
 KUSEG     KSEG0     KSEG1
 00000000h 80000000h A0000000h  2048K  Main RAM (first 64K reserved for BIOS)
@@ -19,6 +21,7 @@ KUSEG     KSEG0     KSEG1
 #define MAIN_RAM_SIZE (2048 * 1024)
 #define IO_PORTS_SIZE (8 * 1024)
 #define BIOS_SIZE (512 * 1024)
+#define DCACHE_SIZE 1024
 
 namespace PSX {
 
@@ -27,9 +30,13 @@ private:
     uint8_t* mainRAM;
     uint8_t* ioPorts;
     uint8_t* bios;
+    uint8_t* dCache;
+
     uint8_t cacheControlRegister[4];
 
 public:
+    Registers registers;
+
     Memory();
     virtual ~Memory();
     void reset();
@@ -43,6 +50,7 @@ public:
 
 private:
     void* resolveAddress(uint32_t address);
+    void* resolveAddress2(uint32_t address);
 };
 }
 

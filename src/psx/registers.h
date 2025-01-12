@@ -50,22 +50,31 @@ where the allocated 20h bytes have the following purpose:
   [sp+14h..1Fh]  pushed registers
 */
 
+// CPU Control Registers
+#define CP0_REGISTER_SR 12 // Status Register
+
 namespace PSX {
-class CPU {
+class Registers {
 private:
     uint32_t registers[32];
     uint32_t pc;
     uint32_t hi;
     uint32_t lo;
 
+    uint32_t cp0Registers[32];
+
 public:
-    CPU();
+    Registers();
     void reset();
     
     uint32_t getPC();
     void setPC(uint32_t pc);
     uint32_t getRegister(uint8_t reg);
     void setRegister(uint8_t reg, uint32_t value);
+    uint32_t getCP0Register(uint8_t reg);
+    void setCP0Register(uint8_t reg, uint32_t value);
+
+    bool statusRegisterIsolateCacheIsSet() const;
 };
 }
 
