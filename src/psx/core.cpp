@@ -246,10 +246,19 @@ void Core::ADDI() {
     uint32_t immediate = 0xFFFF & instruction;
     log(std::format("ADDI {:d},{:d},0x{:04X}", rt, rs, immediate));
 
+    uint32_t rsValue = memory.registers.getRegister(rs);
     uint32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
-    memory.registers.setRegister(rt, memory.registers.getRegister(rs) + signExtension);
-    // TODO integer overflow exception
-    // TODO ADDI vs ADDIU?
+    bool carry30 = ((0x7FFFFFFF & rsValue) + (0x7FFFFFFF & signExtension)) & 0x80000000;
+    bool carry31 = ((rsValue >> 31) + (signExtension >> 31) + (carry30 ? 1 : 0) >= 2);
+
+    if (carry30 == carry31) {
+        memory.registers.setRegister(rt, rsValue + signExtension);
+
+    } else {
+        // TODO integer overflow exception
+        log(" !!! TODO: integer overflow exception occurred !!!\n");
+        std::exit(1);
+    }
 }
 
 void Core::UNKSPCL() {
