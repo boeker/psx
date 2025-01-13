@@ -34,7 +34,7 @@ const Core::Opcode Core::opcodes[] = {
     // 0b100100
     &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b101000
-    &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::SW,
+    &Core::UNK,      &Core::SH,       &Core::UNK,      &Core::SW,
     // 0b101100
     &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b110000
@@ -278,6 +278,25 @@ void Core::LW() {
     log(std::format("LW {:d},0x{:04x}({:d}) (0x{:08x} -> {:d})", rt, offset, base, data, rt));
     memory.registers.setRegister(rt, data);
     // TODO Address Error Exception
+}
+
+void Core::SH() {
+    // Store Halfword
+    // T: vAddr <- ((offset_{15})^{16} | offset_{15...0}) + GPR[base]
+    // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
+    // pAddr <- pAddr_{PSIZE-1...2} || (pAddr_{1...0} xor (ReverseEndian || 0))
+    // byte <- vAddr_{1...0} xor (BigEndianCPU || 0)
+    // data <- GPR[rt]_{31-8*byte...0} || 0^{8*byte}
+    // StoreMemory(uncached, HALFWORD, data, pAddr, vAddr, DATA)
+    uint8_t base = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.registers.getRegister(base);
+    uint16_t data = (uint16_t)(0x0000FFFF & memory.registers.getRegister(rt));
+    log(std::format("SW {:d},0x{:x}({:d}) (0x{:04x} -> 0x{:08x})", rt, offset, base, data, vAddr));
+    memory.writeHalfWord(vAddr, data);
+    // TODO Address Error Exception if the least-significat bit of effective address is non-zero
 }
 
 void Core::UNKSPCL() {

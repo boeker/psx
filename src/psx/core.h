@@ -41,6 +41,7 @@ private:
     void BNE();
     void ADDI();
     void LW();
+    void SH();
 
     static const Opcode special[];
     void UNKSPCL();
