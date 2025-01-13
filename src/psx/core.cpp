@@ -30,7 +30,7 @@ const Core::Opcode Core::opcodes[] = {
     // 0b011100
     &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b100000
-    &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
+    &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::LW,
     // 0b100100
     &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b101000
@@ -69,7 +69,7 @@ const Core::Opcode Core::special[] = {
     // 0b100100
     &Core::UNKSPCL,  &Core::OR,       &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b101000
-    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::SLTU,
     // 0b101100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b110000
@@ -161,9 +161,11 @@ void Core::LUI() {
     // GPR[rt] <- immediate || 0^{16}
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    log(std::format("LUI {:d},0x{:x}", rt, immediate));
 
-    memory.registers.setRegister(rt, immediate << 16);
+    uint32_t data = immediate << 16;
+    log(std::format("LUI {:d},0x{:x} (0x{:08x} -> {:d})", rt, immediate, data, rt));
+
+    memory.registers.setRegister(rt, data);
 }
 
 void Core::ORI() {
@@ -261,6 +263,23 @@ void Core::ADDI() {
     }
 }
 
+void Core::LW() {
+    // Load Word
+    // T: vAddr <- ((offset_{15})^{16} | offset_{15...0}) + GPR[base]
+    // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
+    // mem <- LoadMemory(uncached, WORD, pAddr, vAddr, DATA)
+    // T+1: GPR[rt] <- mem
+    uint8_t base = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset) + memory.registers.getRegister(base);
+    uint32_t data = memory.readWord(vAddr);
+    log(std::format("LW {:d},0x{:04x}({:d}) (0x{:08x} -> {:d})", rt, offset, base, data, rt));
+    memory.registers.setRegister(rt, data);
+    // TODO Address Error Exception
+}
+
 void Core::UNKSPCL() {
     throw exceptions::UnknownFunctionError(std::format("0x{:x}: instruction 0x{:x} (SPECIAL), function 0b{:06b}", instructionPC, instruction, funct));
 }
@@ -285,6 +304,29 @@ void Core::OR() {
     log(std::format("OR {:d},{:d},{:d}", rd, rs, rt));
 
     memory.registers.setRegister(rd, memory.registers.getRegister(rs) | memory.registers.getRegister(rt));
+}
+
+void Core::SLTU() {
+    // Set on Less Than Unsigned
+    // T: if (0 || GPR[rs]) < 0 || GPR[rt] then
+    //     GPR[rd] <- 0^{31} || 1
+    // else
+    //     GPR[rd] <- 0^{32}
+    // endif
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    uint32_t rsValue = memory.registers.getRegister(rs);
+    uint32_t rtValue = memory.registers.getRegister(rt);
+    log(std::format("SLTU {:d},{:d},{:d} (0x{:08x} < 0x{:08x}?)", rd, rs, rt, rsValue, rtValue));
+
+    if (rsValue < rtValue) {
+        memory.registers.setRegister(rd, 1);
+
+    } else {
+        memory.registers.setRegister(rd, 0);
+    }
 }
 
 void Core::UNKCP0() {

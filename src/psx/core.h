@@ -40,11 +40,13 @@ private:
     void J();
     void BNE();
     void ADDI();
+    void LW();
 
     static const Opcode special[];
     void UNKSPCL();
     void SLL();
     void OR();
+    void SLTU();
 
     static const Opcode cp0[];
     void UNKCP0();
