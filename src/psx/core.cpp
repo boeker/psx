@@ -65,7 +65,7 @@ const Core::Opcode Core::special[] = {
     // 0b011100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b100000
-    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
+    &Core::UNKSPCL,  &Core::ADDU,     &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b100100
     &Core::UNKSPCL,  &Core::OR,       &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b101000
@@ -327,6 +327,20 @@ void Core::SLTU() {
     } else {
         memory.registers.setRegister(rd, 0);
     }
+}
+
+void Core::ADDU() {
+    // Add Unsigned Word
+    // T: GPR[rd] <- GPR[rs] + GPR[rt]
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    uint32_t rsValue = memory.registers.getRegister(rs);
+    uint32_t rtValue = memory.registers.getRegister(rt);
+    log(std::format("ADDU {:d},{:d},{:d}", rd, rs, rt));
+
+    memory.registers.setRegister(rd, rsValue + rtValue);
 }
 
 void Core::UNKCP0() {
