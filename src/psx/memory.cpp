@@ -4,6 +4,7 @@
 #include <cstring>
 #include <format>
 #include <fstream>
+#include <sstream>
 
 #include "exceptions/addressoutofbounds.h"
 #include "exceptions/memory.h"
@@ -99,8 +100,10 @@ void* Memory::resolveAddress(uint32_t address) {
     if (address == 0xFFFE0130) {
         return &cacheControlRegister;
     }
-    
-    throw exceptions::AddressOutOfBounds(std::format("{:x}", address));
+
+    std::stringstream ss;
+    ss << registers;
+    throw exceptions::AddressOutOfBounds(std::format("at {:x}, register contents: {:s}", address, ss.str()));
 }
 
 void* Memory::resolveAddress2(uint32_t address) {
@@ -173,8 +176,9 @@ void* Memory::resolveAddress2(uint32_t address) {
     if (address == 0xFFFE0130) {
         return &cacheControlRegister;
     }
-
-    throw exceptions::AddressOutOfBounds(std::format("{:08x}", address));
+    std::stringstream ss;
+    ss << registers;
+    throw exceptions::AddressOutOfBounds(std::format("at {:08X}, register contents: {:s}", address, ss.str()));
 }
 
 }

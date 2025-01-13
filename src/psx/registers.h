@@ -2,6 +2,7 @@
 #define PSX_CPU_H
 
 #include <cstdint>
+#include <iostream>
 
 /*
 All registers are 32bit wide.
@@ -63,7 +64,11 @@ private:
 
     uint32_t cp0Registers[32];
 
+    friend std::ostream& operator<<(std::ostream &os, const Registers &registers);
+
 public:
+    static const char* REGISTER_NAMES[];
+
     Registers();
     void reset();
     
