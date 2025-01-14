@@ -5,6 +5,20 @@
 
 namespace PSX {
 
+std::ostream& operator<<(std::ostream &os, const Registers &registers) {
+    for (int i = 0; i < 16; ++i) {
+        os << Registers::REGISTER_NAMES[i] << "/r" << i << ": " << std::format("0x{:08X}", registers.registers[i]);
+        os << ", ";
+        os << Registers::REGISTER_NAMES[16 + i] << "/r" << 16 + i << ": " << std::format("0x{:08X}", registers.registers[16 + i]);
+        os << ",\n";
+    }
+    os << "hi: " << std::format("0x{:08X}", registers.hi);
+    os << ", ";
+    os << "lo: " << std::format("0x{:08X}", registers.lo);
+
+    return os;
+}
+
 const char* Registers::REGISTER_NAMES[] = {
     // always returns zero
     "zero",
@@ -34,18 +48,8 @@ const char* Registers::REGISTER_NAMES[] = {
     "ra"
 };
 
-
-std::ostream& operator<<(std::ostream &os, const Registers &registers) {
-    os << "[";
-    for (int i = 0; i < 32; ++i) {
-        os << Registers::REGISTER_NAMES[i] << "/r" << i << ": " << std::format("0x{:08X}", registers.registers[i]);
-        if (i < 31) {
-            os << ", ";
-        }
-    }
-    os << "]";
-
-    return os;
+std::string Registers::getRegisterName(uint8_t reg) {
+    return REGISTER_NAMES[reg];
 }
 
 Registers::Registers() {

@@ -68,6 +68,7 @@ private:
 
 public:
     static const char* REGISTER_NAMES[];
+    std::string getRegisterName(uint8_t reg);
 
     Registers();
     void reset();

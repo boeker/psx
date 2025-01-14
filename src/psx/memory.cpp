@@ -121,7 +121,7 @@ void* Memory::resolveAddress2(uint32_t address) {
     // 0x00000000 - 0x001FFFFF (0b0000 0000 0000 ... - 0b0000 0000 0001 ...)
     // 0x80000000 - 0x801FFFFF (0b1000 0000 0000 ... - 0b1000 0000 0001 ...)
     // 0xA0000000 - 0xA01FFFFF (0b1010 0000 0000 ... - 0b1010 0000 0001 ...)
-    if ((address & 0x1FFE0000) == 0x00000000) {
+    if ((address & 0x1FE00000) == 0x00000000) {
         if (registers.statusRegisterIsolateCacheIsSet()) {
             uint32_t offset = address & 0x000003FF;
             assert(offset < DCACHE_SIZE);

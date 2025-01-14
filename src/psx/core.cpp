@@ -191,7 +191,12 @@ void Core::SW() {
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.registers.getRegister(base);
     uint32_t data = memory.registers.getRegister(rt);
-    log(std::format("SW {:d},0x{:x}({:d}) (0x{:x} -> 0x{:x})", rt, offset, base, data, vAddr));
+    log(std::format("SW {:s},0x{:x}({:s}) (0x{:x} -> 0x{:x})",
+                    memory.registers.getRegisterName(rt),
+                    offset,
+                    memory.registers.getRegisterName(base),
+                    data,
+                    vAddr));
     memory.writeWord(vAddr, data);
     // TODO Address Error Exception if the two least-significat bits of effective address are non-zero
 }
@@ -206,9 +211,11 @@ void Core::ADDIU() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    log(std::format("ADDIU {:d},{:d},0x{:04X}", rt, rs, immediate));
+    uint32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
 
-    memory.registers.setRegister(rt, memory.registers.getRegister(rs) + immediate);
+    log(std::format("ADDIU {:s},{:s},0x{:04X}", memory.registers.getRegisterName(rt), memory.registers.getRegisterName(rs), immediate));
+
+    memory.registers.setRegister(rt, memory.registers.getRegister(rs) + signExtension);
 }
 
 void Core::J() {
