@@ -52,6 +52,7 @@ private:
     void OR();
     void SLTU();
     void ADDU();
+    void JR();
 
     static const Opcode cp0[];
     void UNKCP0();

@@ -53,7 +53,7 @@ const Core::Opcode Core::special[] = {
     // 0b000100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b001000
-    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
+    &Core::JR,       &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b001100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b010000
@@ -410,6 +410,19 @@ void Core::ADDU() {
     log(std::format("ADDU {:d},{:d},{:d}", rd, rs, rt));
 
     memory.registers.setRegister(rd, rsValue + rtValue);
+}
+
+void Core::JR() {
+    // Jump Register
+    // T: temp <- GPR[rs]
+    // T+1: PC <- PC + target
+    // Should be temp, right?
+    uint8_t rs = 0x1F & (instruction >> 21);
+
+    uint32_t target = memory.registers.getRegister(rs);
+    log(std::format("JR {:s} (-> 0x{:08X})", memory.registers.getRegisterName(rs), target));
+    memory.registers.setPC(target);
+    // TODO Address Error Exception if the two least-significat bits of target address are non-zero
 }
 
 void Core::UNKCP0() {
