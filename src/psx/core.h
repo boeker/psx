@@ -43,6 +43,8 @@ private:
     void LW();
     void SH();
     void JAL();
+    void ANDI();
+    void SB();
 
     static const Opcode special[];
     void UNKSPCL();

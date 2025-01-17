@@ -64,6 +64,11 @@ uint32_t Memory::readWord(uint32_t address) {
     return *memory;
 }
 
+void Memory::writeByte(uint32_t address, uint8_t byte) {
+    uint8_t *memory = (uint8_t*)resolveAddress2(address);
+    *memory = byte;
+}
+
 void Memory::writeHalfWord(uint32_t address, uint16_t halfWord) {
     uint16_t *memory = (uint16_t*)resolveAddress2(address); // PSX is little endian, so is x86
     *memory = halfWord;

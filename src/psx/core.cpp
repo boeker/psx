@@ -20,7 +20,7 @@ const Core::Opcode Core::opcodes[] = {
     // 0b001000
     &Core::ADDI,     &Core::ADDIU,    &Core::UNK,      &Core::UNK,
     // 0b001100
-    &Core::UNK,      &Core::ORI,      &Core::UNK,      &Core::LUI,
+    &Core::ANDI,     &Core::ORI,      &Core::UNK,      &Core::LUI,
     // 0b010000
     &Core::CP0,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b010100
@@ -34,7 +34,7 @@ const Core::Opcode Core::opcodes[] = {
     // 0b100100
     &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b101000
-    &Core::UNK,      &Core::SH,       &Core::UNK,      &Core::SW,
+    &Core::SB,       &Core::SH,       &Core::UNK,      &Core::SW,
     // 0b101100
     &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b110000
@@ -318,6 +318,35 @@ void Core::JAL() {
     log(std::format("JAL 0x{:06X} (-> 0x{:08X}, {:s} -> 0x{:08X})", target, actualTarget, memory.registers.getRegisterName(31), newPC));
     memory.registers.setRegister(31, newPC);
     memory.registers.setPC(actualTarget);
+}
+
+void Core::ANDI() {
+    // And Immediate
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t immediate = 0xFFFF & instruction;
+
+    log(std::format("ANDI {:s},{:s},0x{:04X}", memory.registers.getRegisterName(rt), memory.registers.getRegisterName(rs), immediate));
+    memory.registers.setRegister(rt, immediate & memory.registers.getRegister(rs));
+}
+
+void Core::SB() {
+    // Store Byte
+    // T: vAddr <- ((offset_{15})^{16} | offset_{15...0}) + GPR[base]
+    // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
+    // pAddr <- pAddr_{PSIZE-1...2} || (pAddr_{1...0} xor ReverseEndian^2)
+    // byte <- vAddr_{1...0} xor BigEndianCPU^2
+    // data <- GPR[rt]_{31-8*byte...0} || 0^{8*byte}
+    // StoreMemory(uncached, BYTE, data, pAddr, vAddr, DATA)
+    uint8_t base = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.registers.getRegister(base);
+    uint8_t data = (uint8_t)(0x000000FF & memory.registers.getRegister(rt));
+    log(std::format("SB {:s},0x{:04X}({:s}) (0x{:02X} -> 0x{:08X})", memory.registers.getRegisterName(rt), offset, memory.registers.getRegisterName(base), data, vAddr));
+    memory.writeByte(vAddr, data);
+    // TODO Address Error Exception if the least-significat bit of effective address is non-zero
 }
 
 void Core::UNKSPCL() {
