@@ -30,7 +30,7 @@ const Core::Opcode Core::opcodes[] = {
     // 0b011100
     &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b100000
-    &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::LW,
+    &Core::LB,       &Core::UNK,      &Core::UNK,      &Core::LW,
     // 0b100100
     &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b101000
@@ -347,6 +347,26 @@ void Core::SB() {
     log(std::format("SB {:s},0x{:04X}({:s}) (0x{:02X} -> 0x{:08X})", memory.registers.getRegisterName(rt), offset, memory.registers.getRegisterName(base), data, vAddr));
     memory.writeByte(vAddr, data);
     // TODO Address Error Exception if the least-significat bit of effective address is non-zero
+}
+
+void Core::LB() {
+    // Load Byte
+    // T: vAddr <- ((offset_{15})^{16} | offset_{15...0}) + GPR[base]
+    // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
+    // pAddr <- pAddr_{PSIZE-1...2} || (pAddr_{1...0} xor ReverseEndian^2)
+    // mem <- LoadMemory(uncached, BYTE, pAddr, vAddr, DATA)
+    // byte <- vAddr_{1...0} xor BigEndianCPU^2
+    // T+1: GPR[rt] <- (mem_{7+8*byte)^{24} || mem_{7+8*byte...8*byte}
+    uint8_t base = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.registers.getRegister(base);
+    uint8_t mem = memory.readByte(vAddr);
+    uint32_t signExtension = ((mem >> 7) ? 0xFFFFFF00 : 0x00000000) + mem;
+    log(std::format("LB {:s},0x{:04X}({:s}) (0x{:08X} -0x{:08X}-> {:s})", memory.registers.getRegisterName(rt), offset, memory.registers.getRegisterName(base), vAddr, signExtension, memory.registers.getRegisterName(rt)));
+
+    memory.registers.setRegister(rt, signExtension);
 }
 
 void Core::UNKSPCL() {

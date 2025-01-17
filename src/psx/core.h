@@ -45,6 +45,7 @@ private:
     void JAL();
     void ANDI();
     void SB();
+    void LB();
 
     static const Opcode special[];
     void UNKSPCL();
