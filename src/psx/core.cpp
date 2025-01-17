@@ -16,7 +16,7 @@ const Core::Opcode Core::opcodes[] = {
     // 0b000000
     &Core::SPECIAL,  &Core::UNK,      &Core::J,        &Core::JAL,
     // 0b000100
-    &Core::UNK,      &Core::BNE,      &Core::UNK,      &Core::UNK,
+    &Core::BEQ,      &Core::BNE,      &Core::UNK,      &Core::UNK,
     // 0b001000
     &Core::ADDI,     &Core::ADDIU,    &Core::UNK,      &Core::UNK,
     // 0b001100
@@ -367,6 +367,30 @@ void Core::LB() {
     log(std::format("LB {:s},0x{:04X}({:s}) (0x{:08X} -0x{:08X}-> {:s})", memory.registers.getRegisterName(rt), offset, memory.registers.getRegisterName(base), vAddr, signExtension, memory.registers.getRegisterName(rt)));
 
     memory.registers.setRegister(rt, signExtension);
+}
+
+void Core::BEQ() {
+    // Branch On Equal
+    // T: target <- (offset_{15})^{14} || offset || 0^2
+    //    condition <- (GPR[rs] = GPR[rt])
+    // T+1: if condition then
+    //          PC <- PC + target
+    //      endif
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
+    uint32_t target = signExtension << 2;
+    uint32_t actualTarget = memory.registers.getPC() + target;
+
+    uint32_t rsValue = memory.registers.getRegister(rs);
+    uint32_t rtValue = memory.registers.getRegister(rt);
+    log(std::format("BEQ {:s},{:s},{:04X} (0x{:08X} == 0x{:08X}? -> 0x{:08X})", memory.registers.getRegisterName(rs), memory.registers.getRegisterName(rt), offset, rsValue, rtValue, actualTarget));
+
+    if (rsValue == rtValue) {
+        memory.registers.setPC(actualTarget);
+    }
 }
 
 void Core::UNKSPCL() {
