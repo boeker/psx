@@ -14,7 +14,7 @@ void Core::log(const std::string &message) {
 
 const Core::Opcode Core::opcodes[] = {
     // 0b000000
-    &Core::SPECIAL,  &Core::UNK,      &Core::J,        &Core::UNK,
+    &Core::SPECIAL,  &Core::UNK,      &Core::J,        &Core::JAL,
     // 0b000100
     &Core::UNK,      &Core::BNE,      &Core::UNK,      &Core::UNK,
     // 0b001000
@@ -304,6 +304,20 @@ void Core::SH() {
     log(std::format("SW {:d},0x{:x}({:d}) (0x{:04x} -> 0x{:08x})", rt, offset, base, data, vAddr));
     memory.writeHalfWord(vAddr, data);
     // TODO Address Error Exception if the least-significat bit of effective address is non-zero
+}
+
+void Core::JAL() {
+    // Jump And Link
+    // T: temp <- target
+    //    GPR[31] <- PC + 8
+    // T+1: PC <- PC_{31...28} || temp || 0^2
+    uint32_t target = 0x03FFFFFF & instruction;
+    uint32_t actualTarget = (memory.registers.getPC() &  0xF0000000) | (target << 2);
+    uint32_t newPC = instructionPC + 8;
+
+    log(std::format("JAL 0x{:06X} (-> 0x{:08X}, {:s} -> 0x{:08X})", target, actualTarget, memory.registers.getRegisterName(31), newPC));
+    memory.registers.setRegister(31, newPC);
+    memory.registers.setPC(actualTarget);
 }
 
 void Core::UNKSPCL() {

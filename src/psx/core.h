@@ -42,6 +42,7 @@ private:
     void ADDI();
     void LW();
     void SH();
+    void JAL();
 
     static const Opcode special[];
     void UNKSPCL();
