@@ -26,7 +26,7 @@ Memory::~Memory() {
 }
 
 void Memory::reset() {
-    registers.reset();
+    regs.reset();
 
     std::memset(mainRAM, 0, MAIN_RAM_SIZE);
     std::memset(ioPorts, 0, IO_PORTS_SIZE);
@@ -79,7 +79,7 @@ void Memory::writeWord(uint32_t address, uint32_t word) {
 }
 
 void* Memory::resolveAddress(uint32_t address) {
-    if (registers.statusRegisterIsolateCacheIsSet()) {
+    if (regs.statusRegisterIsolateCacheIsSet()) {
         //return dCache + (address & 0x3FF);
     }
 
@@ -106,7 +106,7 @@ void* Memory::resolveAddress(uint32_t address) {
     }
 
     std::stringstream ss;
-    ss << registers;
+    ss << regs;
     throw exceptions::AddressOutOfBounds(std::format("at {:x}, register contents: {:s}", address, ss.str()));
 }
 
@@ -126,7 +126,7 @@ void* Memory::resolveAddress2(uint32_t address) {
     // 0x80000000 - 0x801FFFFF (0b1000 0000 0000 ... - 0b1000 0000 0001 ...)
     // 0xA0000000 - 0xA01FFFFF (0b1010 0000 0000 ... - 0b1010 0000 0001 ...)
     if ((address & 0x1FE00000) == 0x00000000) {
-        if (registers.statusRegisterIsolateCacheIsSet()) {
+        if (regs.statusRegisterIsolateCacheIsSet()) {
             uint32_t offset = address & 0x000003FF;
             assert(offset < DCACHE_SIZE);
             return dCache + offset;
@@ -181,7 +181,7 @@ void* Memory::resolveAddress2(uint32_t address) {
         return &cacheControlRegister;
     }
     std::stringstream ss;
-    ss << registers;
+    ss << regs;
     throw exceptions::AddressOutOfBounds(std::format("at {:08X}, register contents: {:s}", address, ss.str()));
 }
 

@@ -35,7 +35,7 @@ private:
     uint8_t cacheControlRegister[4];
 
 public:
-    Registers registers;
+    Registers regs;
 
     Memory();
     virtual ~Memory();
