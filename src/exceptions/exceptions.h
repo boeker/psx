@@ -1,11 +1,17 @@
-#ifndef EXCEPTIONS_CORE_H
-#define EXCEPTIONS_CORE_H
+#ifndef EXCEPTIONS_EXCEPTIONS_H
+#define EXCEPTIONS_EXCEPTIONS_H
 
 #include <exception>
-#include <stdexcept>
-#include <string>
 
 namespace exceptions {
+
+class AddressOutOfBounds : public std::runtime_error {
+public:
+    explicit AddressOutOfBounds(const std::string &what)
+        : std::runtime_error(what) {}
+    explicit AddressOutOfBounds(const char *what)
+        : std::runtime_error(what) {}
+};
 
 class UnknownOpcodeError : public std::runtime_error {
 public:
@@ -22,6 +28,15 @@ public:
     explicit UnknownFunctionError(const char *what)
         : std::runtime_error(what) {}
 };
+
+class FileReadError : public std::runtime_error {
+public:
+    explicit FileReadError(const std::string &what)
+        : std::runtime_error(what) {}
+    explicit FileReadError(const char *what)
+        : std::runtime_error(what) {}
+};
+
 }
 
 #endif

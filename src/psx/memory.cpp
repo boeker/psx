@@ -6,8 +6,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "exceptions/addressoutofbounds.h"
-#include "exceptions/memory.h"
+#include "exceptions/exceptions.h"
 
 namespace PSX {
 Memory::Memory() {

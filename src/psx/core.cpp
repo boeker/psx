@@ -4,7 +4,7 @@
 #include <format>
 #include <iostream>
 
-#include "exceptions/core.h"
+#include "exceptions/exceptions.h"
 #include "util/log.h"
 
 using namespace util;
