@@ -62,6 +62,7 @@ private:
     static const Opcode cp0Move[];
     void UNKCP0M();
     void MTC0();
+    void MFC0();
 
 public:
     Core();

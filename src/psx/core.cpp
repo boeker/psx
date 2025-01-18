@@ -118,7 +118,7 @@ const Core::Opcode Core::cp0[] = {
 
 const Core::Opcode Core::cp0Move[] = {
     // 0b00000
-    &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,
+    &Core::MFC0,     &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,
     // 0b00100
     &Core::MTC0,     &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,
     // 0b01000
@@ -588,12 +588,32 @@ void Core::MTC0() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    uint32_t data = memory.regs.getRegister(rt);
-    Log::log(std::format("MTC0 {:s},{:s} (0x{:08X} -> CP0 {:d})",
+    Log::log(std::format("MTC0 {:s},{:d}",
                          memory.regs.getRegisterName(rt),
-                         memory.regs.getRegisterName(rd),
-                         data, rd));
+                         rd));
+
+    uint32_t data = memory.regs.getRegister(rt);
+    Log::log(std::format(" (0x{:08X} -> CP0 {:d})",data, rd));
+
     memory.regs.setCP0Register(rd, data);
+}
+
+void Core::MFC0() {
+    // Move From Coprocessor 0
+    // T: data <- CPR[0, rd]
+    // T+1: GPR[rt] <- data
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    Log::log(std::format("MFC0 {:s},{:d}",
+                         memory.regs.getRegisterName(rt),
+                         rd));
+
+    uint32_t data = memory.regs.getCP0Register(rd);
+    Log::log(std::format(" (CP0 {:d} -0x{:08X}->)",
+                         rd, data));
+
+    memory.regs.setRegister(rt, data);
 }
 
 Core::Core() {
