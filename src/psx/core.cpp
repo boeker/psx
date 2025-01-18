@@ -66,7 +66,7 @@ const Core::Opcode Core::special[] = {
     // 0b100000
     &Core::UNKSPCL,  &Core::ADDU,     &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b100100
-    &Core::UNKSPCL,  &Core::OR,       &Core::UNKSPCL,  &Core::UNKSPCL,
+    &Core::AND,      &Core::OR,       &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b101000
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::SLTU,
     // 0b101100
@@ -563,6 +563,21 @@ void Core::JALR() {
     if (target & 0x3) {
         throw exceptions::ExceptionNotImplemented("Address Error");
     }
+}
+
+void Core::AND() {
+    // And
+    // T: GPR[rd] <- GPR[rs] and GPR[rt]
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    Log::log(std::format("AND {:s},{:s},{:s}",
+                         memory.regs.getRegisterName(rd),
+                         memory.regs.getRegisterName(rs),
+                         memory.regs.getRegisterName(rt)));
+
+    memory.regs.setRegister(rd, memory.regs.getRegister(rs) & memory.regs.getRegister(rt));
 }
 
 void Core::UNKCP0() {
