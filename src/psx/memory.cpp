@@ -52,49 +52,49 @@ void Memory::readBIOS(const std::string &file) {
 }
 
 uint8_t Memory::readByte(uint32_t address) {
-    Log::log(std::format("\nRead byte: "));
+    Log::log(std::format(" [rb "));
     uint8_t *memory = (uint8_t*)resolveAddress2(address);
 
     uint8_t byte = *memory;
-    Log::log(std::format("@0x{:08X} -0x{:02X}->\n", address, byte), Log::Type::MEMORY);
+    Log::log(std::format("@0x{:08X} -0x{:02X}->]", address, byte), Log::Type::MEMORY);
 
     return byte;
 }
 
 uint16_t Memory::readHalfWord(uint16_t address) {
-    Log::log(std::format("\nRead halfword: "));
+    Log::log(std::format(" [rhw "));
     uint16_t *memory = (uint16_t*)resolveAddress2(address); // PSX is little endian, so is x86
 
     uint16_t halfWord = *memory;
-    Log::log(std::format("@0x{:08X} -0x{:04X}->\n", address, halfWord), Log::Type::MEMORY);
+    Log::log(std::format("@0x{:08X} -0x{:04X}->]", address, halfWord), Log::Type::MEMORY);
 
     return halfWord;
 }
 
 uint32_t Memory::readWord(uint32_t address) {
-    Log::log(std::format("\nRead word: "));
+    Log::log(std::format(" [rw "));
     uint32_t *memory = (uint32_t*)resolveAddress2(address); // PSX is little endian, so is x86
 
     uint32_t word = *memory;
-    Log::log(std::format("@0x{:08X} -0x{:08X}->\n", address, word), Log::Type::MEMORY);
+    Log::log(std::format("@0x{:08X} -0x{:08X}->]", address, word), Log::Type::MEMORY);
 
     return word;
 }
 
 void Memory::writeByte(uint32_t address, uint8_t byte) {
-    Log::log(std::format("\nWrite byte: -0x{:02X}-> @0x{:08X}\n", byte, address));
+    Log::log(std::format(" [wb -0x{:02X}-> @0x{:08X}]", byte, address));
     uint8_t *memory = (uint8_t*)resolveAddress2(address);
     *memory = byte;
 }
 
 void Memory::writeHalfWord(uint32_t address, uint16_t halfWord) {
-    Log::log(std::format("\nWrite halfword: -0x{:04X}-> @0x{:08X}\n", halfWord, address));
+    Log::log(std::format(" [whw -0x{:04X}-> @0x{:08X}]", halfWord, address));
     uint16_t *memory = (uint16_t*)resolveAddress2(address); // PSX is little endian, so is x86
     *memory = halfWord;
 }
 
 void Memory::writeWord(uint32_t address, uint32_t word) {
-    Log::log(std::format("\nWrite word: -0x{:08X}-> @0x{:08X}\n", word, address));
+    Log::log(std::format(" [ww -0x{:08X}-> @0x{:08X}]", word, address));
     uint32_t *memory = (uint32_t*)resolveAddress2(address); // PSX is little endian, so is x86
     *memory = word;
 }

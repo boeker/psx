@@ -195,15 +195,14 @@ void Core::SW() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
+    Log::log(std::format("SW {:s},0x{:04X}({:s})",
+                    memory.regs.getRegisterName(rt),
+                    offset,
+                    memory.regs.getRegisterName(base)));
+
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
                      + memory.regs.getRegister(base);
     uint32_t data = memory.regs.getRegister(rt);
-    Log::log(std::format("SW {:s},0x{:04X}({:s}) (-0x{:08X}-> @0x{:08X})",
-                    memory.regs.getRegisterName(rt),
-                    offset,
-                    memory.regs.getRegisterName(base),
-                    data,
-                    vAddr));
     memory.writeWord(vAddr, data);
     if (vAddr & 0x3) {
         throw exceptions::ExceptionNotImplemented("Address Error");
@@ -298,14 +297,13 @@ void Core::LW() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset) + memory.regs.getRegister(base);
-    uint32_t data = memory.readWord(vAddr);
-    Log::log(std::format("LW {:s},0x{:04X}({:s}) (0x{:08X} -> {:s})",
+    Log::log(std::format("LW {:s},0x{:04X}({:s})",
                          memory.regs.getRegisterName(rt),
                          offset,
-                         memory.regs.getRegisterName(base),
-                         data,
-                         memory.regs.getRegisterName(rt)));
+                         memory.regs.getRegisterName(base)));
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset) + memory.regs.getRegister(base);
+    uint32_t data = memory.readWord(vAddr);
     memory.regs.setRegister(rt, data);
 
 if (vAddr & 0x3) {
@@ -325,14 +323,13 @@ void Core::SH() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.regs.getRegister(base);
-    uint16_t data = (uint16_t)(0x0000FFFF & memory.regs.getRegister(rt));
-    Log::log(std::format("SW {:s},0x{:08X}({:s}) (-0x{:04X}-> @0x{:08X})",
+    Log::log(std::format("SH {:s},0x{:08X}({:s})",
                          memory.regs.getRegisterName(rt),
                          offset,
-                         memory.regs.getRegisterName(base),
-                         data,
-                         vAddr));
+                         memory.regs.getRegisterName(base)));
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.regs.getRegister(base);
+    uint16_t data = (uint16_t)(0x0000FFFF & memory.regs.getRegister(rt));
     memory.writeHalfWord(vAddr, data);
 
     if (vAddr & 0x1) {
@@ -383,14 +380,13 @@ void Core::SB() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.regs.getRegister(base);
-    uint8_t data = (uint8_t)(0x000000FF & memory.regs.getRegister(rt));
-    Log::log(std::format("SB {:s},0x{:04X}({:s}) (-0x{:02X}-> 0x{:08X})",
+    Log::log(std::format("SB {:s},0x{:04X}({:s})",
                          memory.regs.getRegisterName(rt),
                          offset,
-                         memory.regs.getRegisterName(base),
-                         data,
-                         vAddr));
+                         memory.regs.getRegisterName(base)));
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.regs.getRegister(base);
+    uint8_t data = (uint8_t)(0x000000FF & memory.regs.getRegister(rt));
     memory.writeByte(vAddr, data);
 }
 
@@ -406,17 +402,14 @@ void Core::LB() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
+    Log::log(std::format("LB {:s},0x{:04X}({:s})",
+                         memory.regs.getRegisterName(rt),
+                         offset,
+                         memory.regs.getRegisterName(base)));
+
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.regs.getRegister(base);
     uint8_t mem = memory.readByte(vAddr);
     uint32_t signExtension = ((mem >> 7) ? 0xFFFFFF00 : 0x00000000) + mem;
-    Log::log(std::format("LB {:s},0x{:04X}({:s}) (@0x{:08X} -0x{:08X}-> {:s})",
-                         memory.regs.getRegisterName(rt),
-                         offset,
-                         memory.regs.getRegisterName(base),
-                         vAddr,
-                         signExtension,
-                         memory.regs.getRegisterName(rt)));
-
     memory.regs.setRegister(rt, signExtension);
 }
 
