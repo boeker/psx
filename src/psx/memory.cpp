@@ -53,7 +53,7 @@ void Memory::readBIOS(const std::string &file) {
 
 uint8_t Memory::readByte(uint32_t address) {
     Log::log(std::format(" [rb "), Log::Type::MEMORY);
-    uint8_t *memory = (uint8_t*)resolveAddress2(address);
+    uint8_t *memory = (uint8_t*)resolveAddress(address);
 
     uint8_t byte = *memory;
     Log::log(std::format("@0x{:08X} -0x{:02X}->]", address, byte), Log::Type::MEMORY);
@@ -63,7 +63,7 @@ uint8_t Memory::readByte(uint32_t address) {
 
 uint16_t Memory::readHalfWord(uint16_t address) {
     Log::log(std::format(" [rhw "), Log::Type::MEMORY);
-    uint16_t *memory = (uint16_t*)resolveAddress2(address); // PSX is little endian, so is x86
+    uint16_t *memory = (uint16_t*)resolveAddress(address); // PSX is little endian, so is x86
 
     uint16_t halfWord = *memory;
     Log::log(std::format("@0x{:08X} -0x{:04X}->]", address, halfWord), Log::Type::MEMORY);
@@ -73,7 +73,7 @@ uint16_t Memory::readHalfWord(uint16_t address) {
 
 uint32_t Memory::readWord(uint32_t address) {
     Log::log(std::format(" [rw "), Log::Type::MEMORY);
-    uint32_t *memory = (uint32_t*)resolveAddress2(address); // PSX is little endian, so is x86
+    uint32_t *memory = (uint32_t*)resolveAddress(address); // PSX is little endian, so is x86
 
     uint32_t word = *memory;
     Log::log(std::format("@0x{:08X} -0x{:08X}->]", address, word), Log::Type::MEMORY);
@@ -83,55 +83,23 @@ uint32_t Memory::readWord(uint32_t address) {
 
 void Memory::writeByte(uint32_t address, uint8_t byte) {
     Log::log(std::format(" [wb -0x{:02X}-> @0x{:08X}]", byte, address), Log::Type::MEMORY);
-    uint8_t *memory = (uint8_t*)resolveAddress2(address);
+    uint8_t *memory = (uint8_t*)resolveAddress(address);
     *memory = byte;
 }
 
 void Memory::writeHalfWord(uint32_t address, uint16_t halfWord) {
     Log::log(std::format(" [whw -0x{:04X}-> @0x{:08X}]", halfWord, address), Log::Type::MEMORY);
-    uint16_t *memory = (uint16_t*)resolveAddress2(address); // PSX is little endian, so is x86
+    uint16_t *memory = (uint16_t*)resolveAddress(address); // PSX is little endian, so is x86
     *memory = halfWord;
 }
 
 void Memory::writeWord(uint32_t address, uint32_t word) {
     Log::log(std::format(" [ww -0x{:08X}-> @0x{:08X}]", word, address), Log::Type::MEMORY);
-    uint32_t *memory = (uint32_t*)resolveAddress2(address); // PSX is little endian, so is x86
+    uint32_t *memory = (uint32_t*)resolveAddress(address); // PSX is little endian, so is x86
     *memory = word;
 }
 
 void* Memory::resolveAddress(uint32_t address) {
-    if (regs.statusRegisterIsolateCacheIsSet()) {
-        //return dCache + (address & 0x3FF);
-    }
-
-    if (address < MAIN_RAM_SIZE) {
-        return mainRAM + address;
-    }
-    if ((address >= 0x1F801000) && (address < 0x1F801000 + IO_PORTS_SIZE)) {
-        return ioPorts + (address - 0x1F801000);
-    }
-    if ((address >= 0x80000000) && (address < 0x80000000 + MAIN_RAM_SIZE)) {
-        return mainRAM + (address - 0x80000000);
-    }
-    if ((address >= 0x9FC00000) && (address < 0x9FC00000 + BIOS_SIZE)) {
-        return bios + (address - 0x9FC00000);
-    }
-    if ((address >= 0xA0000000) && (address < 0xA0000000 + MAIN_RAM_SIZE)) {
-        return mainRAM + (address - 0xA0000000);
-    }
-    if ((address >= 0xBFC00000) && (address < 0xBFC00000 + BIOS_SIZE)) {
-        return bios + (address - 0xBFC00000);
-    }
-    if (address == 0xFFFE0130) {
-        return &cacheControlRegister;
-    }
-
-    std::stringstream ss;
-    ss << regs;
-    throw exceptions::AddressOutOfBounds(std::format("@{:08X}, register contents:\n{:s}", address, ss.str()));
-}
-
-void* Memory::resolveAddress2(uint32_t address) {
     // 512MiB Memory Regions
     // 0x00000000 KUSEG
     // 0x20000000 KUSEG (Error)

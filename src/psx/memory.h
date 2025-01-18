@@ -54,7 +54,6 @@ public:
 
 private:
     void* resolveAddress(uint32_t address);
-    void* resolveAddress2(uint32_t address);
 };
 }
 
