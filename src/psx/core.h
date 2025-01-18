@@ -53,6 +53,7 @@ private:
     void SLTU();
     void ADDU();
     void JR();
+    void JALR();
 
     static const Opcode cp0[];
     void UNKCP0();

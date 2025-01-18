@@ -52,7 +52,7 @@ const Core::Opcode Core::special[] = {
     // 0b000100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b001000
-    &Core::JR,       &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
+    &Core::JR,       &Core::JALR,     &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b001100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b010000
@@ -537,6 +537,28 @@ void Core::JR() {
 
     uint32_t target = memory.regs.getRegister(rs);
     memory.regs.setPC(target);
+
+    if (target & 0x3) {
+        throw exceptions::ExceptionNotImplemented("Address Error");
+    }
+}
+
+void Core::JALR() {
+    // Jump And Link Register
+    // T: temp <- GPR[rs]
+    //    GPR[rd] <- PC + 8
+    // T+1: PC <- PC + target
+    // Should be temp, right?
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    Log::log(std::format("JALR {:s},{:s}",
+                         memory.regs.getRegisterName(rd),
+                         memory.regs.getRegisterName(rs)));
+
+    uint32_t target = memory.regs.getRegister(rs);
+    memory.regs.setPC(target);
+    memory.regs.setRegister(rd, instructionPC + 8);
 
     if (target & 0x3) {
         throw exceptions::ExceptionNotImplemented("Address Error");
