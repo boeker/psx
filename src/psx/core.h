@@ -11,8 +11,6 @@ class Core {
 private:
     Memory memory;
 
-    void log(const std::string &string);
-
     // Current instruction and opcode
     uint32_t instructionPC;
     uint32_t instruction;

@@ -5,12 +5,11 @@
 #include <iostream>
 
 #include "exceptions/core.h"
+#include "util/log.h"
+
+using namespace util;
 
 namespace PSX {
-
-void Core::log(const std::string &message) {
-    std::cerr << message;
-}
 
 const Core::Opcode Core::opcodes[] = {
     // 0b000000
@@ -163,7 +162,7 @@ void Core::LUI() {
     uint32_t immediate = 0xFFFF & instruction;
 
     uint32_t data = immediate << 16;
-    log(std::format("LUI {:d},0x{:x} (0x{:08x} -> {:d})", rt, immediate, data, rt));
+    Log::log(std::format("LUI {:d},0x{:x} (0x{:08x} -> {:d})", rt, immediate, data, rt));
 
     memory.registers.setRegister(rt, data);
 }
@@ -174,7 +173,7 @@ void Core::ORI() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    log(std::format("ORI {:d},{:d},0x{:x}", rt, rs, immediate));
+    Log::log(std::format("ORI {:d},{:d},0x{:x}", rt, rs, immediate));
 
     memory.registers.setRegister(rt, memory.registers.getRegister(rs) | immediate);
 }
@@ -191,7 +190,7 @@ void Core::SW() {
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.registers.getRegister(base);
     uint32_t data = memory.registers.getRegister(rt);
-    log(std::format("SW {:s},0x{:x}({:s}) (0x{:x} -> 0x{:x})",
+    Log::log(std::format("SW {:s},0x{:x}({:s}) (0x{:x} -> 0x{:x})",
                     memory.registers.getRegisterName(rt),
                     offset,
                     memory.registers.getRegisterName(base),
@@ -213,7 +212,7 @@ void Core::ADDIU() {
     uint32_t immediate = 0xFFFF & instruction;
     uint32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
 
-    log(std::format("ADDIU {:s},{:s},0x{:04X}", memory.registers.getRegisterName(rt), memory.registers.getRegisterName(rs), immediate));
+    Log::log(std::format("ADDIU {:s},{:s},0x{:04X}", memory.registers.getRegisterName(rt), memory.registers.getRegisterName(rs), immediate));
 
     memory.registers.setRegister(rt, memory.registers.getRegister(rs) + signExtension);
 }
@@ -225,7 +224,7 @@ void Core::J() {
     uint32_t target = 0x3FFFFFF & instruction;
 
     uint32_t actualTarget = (memory.registers.getPC() & 0xF0000000) | (target << 2);
-    log(std::format("J 0x{:x} (-> 0x{:x})", target, actualTarget));
+    Log::log(std::format("J 0x{:x} (-> 0x{:x})", target, actualTarget));
     memory.registers.setPC(actualTarget);
 }
 
@@ -241,7 +240,7 @@ void Core::BNE() {
 
     uint32_t target = ((offset >> 15) ? 0xFFFC0000 : 0x00000000) | (offset << 2);
     uint32_t actualTarget = memory.registers.getPC() + target;
-    log(std::format("BNE {:d},{:d},0x{:04x} (+0x{:08x}, -> 0x{:08x})", rt, rs, offset, target, actualTarget));
+    Log::log(std::format("BNE {:d},{:d},0x{:04x} (+0x{:08x}, -> 0x{:08x})", rt, rs, offset, target, actualTarget));
     if (memory.registers.getRegister(rs) != memory.registers.getRegister(rt)) {
         memory.registers.setPC(actualTarget);
     }
@@ -253,7 +252,7 @@ void Core::ADDI() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    log(std::format("ADDI {:d},{:d},0x{:04X}", rt, rs, immediate));
+    Log::log(std::format("ADDI {:d},{:d},0x{:04X}", rt, rs, immediate));
 
     uint32_t rsValue = memory.registers.getRegister(rs);
     uint32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
@@ -265,7 +264,7 @@ void Core::ADDI() {
 
     } else {
         // TODO integer overflow exception
-        log(" !!! TODO: integer overflow exception occurred !!!\n");
+        Log::log(" !!! TODO: integer overflow exception occurred !!!\n");
         std::exit(1);
     }
 }
@@ -282,7 +281,7 @@ void Core::LW() {
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset) + memory.registers.getRegister(base);
     uint32_t data = memory.readWord(vAddr);
-    log(std::format("LW {:d},0x{:04x}({:d}) (0x{:08x} -> {:d})", rt, offset, base, data, rt));
+    Log::log(std::format("LW {:d},0x{:04x}({:d}) (0x{:08x} -> {:d})", rt, offset, base, data, rt));
     memory.registers.setRegister(rt, data);
     // TODO Address Error Exception
 }
@@ -301,7 +300,7 @@ void Core::SH() {
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.registers.getRegister(base);
     uint16_t data = (uint16_t)(0x0000FFFF & memory.registers.getRegister(rt));
-    log(std::format("SW {:d},0x{:x}({:d}) (0x{:04x} -> 0x{:08x})", rt, offset, base, data, vAddr));
+    Log::log(std::format("SW {:d},0x{:x}({:d}) (0x{:04x} -> 0x{:08x})", rt, offset, base, data, vAddr));
     memory.writeHalfWord(vAddr, data);
     // TODO Address Error Exception if the least-significat bit of effective address is non-zero
 }
@@ -315,7 +314,7 @@ void Core::JAL() {
     uint32_t actualTarget = (memory.registers.getPC() &  0xF0000000) | (target << 2);
     uint32_t newPC = instructionPC + 8;
 
-    log(std::format("JAL 0x{:06X} (-> 0x{:08X}, {:s} -> 0x{:08X})", target, actualTarget, memory.registers.getRegisterName(31), newPC));
+    Log::log(std::format("JAL 0x{:06X} (-> 0x{:08X}, {:s} -> 0x{:08X})", target, actualTarget, memory.registers.getRegisterName(31), newPC));
     memory.registers.setRegister(31, newPC);
     memory.registers.setPC(actualTarget);
 }
@@ -326,7 +325,7 @@ void Core::ANDI() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
 
-    log(std::format("ANDI {:s},{:s},0x{:04X}", memory.registers.getRegisterName(rt), memory.registers.getRegisterName(rs), immediate));
+    Log::log(std::format("ANDI {:s},{:s},0x{:04X}", memory.registers.getRegisterName(rt), memory.registers.getRegisterName(rs), immediate));
     memory.registers.setRegister(rt, immediate & memory.registers.getRegister(rs));
 }
 
@@ -344,7 +343,7 @@ void Core::SB() {
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.registers.getRegister(base);
     uint8_t data = (uint8_t)(0x000000FF & memory.registers.getRegister(rt));
-    log(std::format("SB {:s},0x{:04X}({:s}) (0x{:02X} -> 0x{:08X})", memory.registers.getRegisterName(rt), offset, memory.registers.getRegisterName(base), data, vAddr));
+    Log::log(std::format("SB {:s},0x{:04X}({:s}) (0x{:02X} -> 0x{:08X})", memory.registers.getRegisterName(rt), offset, memory.registers.getRegisterName(base), data, vAddr));
     memory.writeByte(vAddr, data);
     // TODO Address Error Exception if the least-significat bit of effective address is non-zero
 }
@@ -364,7 +363,7 @@ void Core::LB() {
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.registers.getRegister(base);
     uint8_t mem = memory.readByte(vAddr);
     uint32_t signExtension = ((mem >> 7) ? 0xFFFFFF00 : 0x00000000) + mem;
-    log(std::format("LB {:s},0x{:04X}({:s}) (0x{:08X} -0x{:08X}-> {:s})", memory.registers.getRegisterName(rt), offset, memory.registers.getRegisterName(base), vAddr, signExtension, memory.registers.getRegisterName(rt)));
+    Log::log(std::format("LB {:s},0x{:04X}({:s}) (0x{:08X} -0x{:08X}-> {:s})", memory.registers.getRegisterName(rt), offset, memory.registers.getRegisterName(base), vAddr, signExtension, memory.registers.getRegisterName(rt)));
 
     memory.registers.setRegister(rt, signExtension);
 }
@@ -386,7 +385,7 @@ void Core::BEQ() {
 
     uint32_t rsValue = memory.registers.getRegister(rs);
     uint32_t rtValue = memory.registers.getRegister(rt);
-    log(std::format("BEQ {:s},{:s},{:04X} (0x{:08X} == 0x{:08X}? -> 0x{:08X})", memory.registers.getRegisterName(rs), memory.registers.getRegisterName(rt), offset, rsValue, rtValue, actualTarget));
+    Log::log(std::format("BEQ {:s},{:s},{:04X} (0x{:08X} == 0x{:08X}? -> 0x{:08X})", memory.registers.getRegisterName(rs), memory.registers.getRegisterName(rt), offset, rsValue, rtValue, actualTarget));
 
     if (rsValue == rtValue) {
         memory.registers.setPC(actualTarget);
@@ -403,7 +402,7 @@ void Core::SLL() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
     uint8_t sa = 0x1F & (instruction >> 6);
-    log(std::format("SLL {:d},{:d},{:d}", rd, rt, sa));
+    Log::log(std::format("SLL {:d},{:d},{:d}", rd, rt, sa));
 
     memory.registers.setRegister(rd, memory.registers.getRegister(rt) << sa);
 }
@@ -414,7 +413,7 @@ void Core::OR() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
-    log(std::format("OR {:d},{:d},{:d}", rd, rs, rt));
+    Log::log(std::format("OR {:d},{:d},{:d}", rd, rs, rt));
 
     memory.registers.setRegister(rd, memory.registers.getRegister(rs) | memory.registers.getRegister(rt));
 }
@@ -432,7 +431,7 @@ void Core::SLTU() {
 
     uint32_t rsValue = memory.registers.getRegister(rs);
     uint32_t rtValue = memory.registers.getRegister(rt);
-    log(std::format("SLTU {:d},{:d},{:d} (0x{:08x} < 0x{:08x}?)", rd, rs, rt, rsValue, rtValue));
+    Log::log(std::format("SLTU {:d},{:d},{:d} (0x{:08x} < 0x{:08x}?)", rd, rs, rt, rsValue, rtValue));
 
     if (rsValue < rtValue) {
         memory.registers.setRegister(rd, 1);
@@ -451,7 +450,7 @@ void Core::ADDU() {
 
     uint32_t rsValue = memory.registers.getRegister(rs);
     uint32_t rtValue = memory.registers.getRegister(rt);
-    log(std::format("ADDU {:d},{:d},{:d}", rd, rs, rt));
+    Log::log(std::format("ADDU {:d},{:d},{:d}", rd, rs, rt));
 
     memory.registers.setRegister(rd, rsValue + rtValue);
 }
@@ -464,7 +463,7 @@ void Core::JR() {
     uint8_t rs = 0x1F & (instruction >> 21);
 
     uint32_t target = memory.registers.getRegister(rs);
-    log(std::format("JR {:s} (-> 0x{:08X})", memory.registers.getRegisterName(rs), target));
+    Log::log(std::format("JR {:s} (-> 0x{:08X})", memory.registers.getRegisterName(rs), target));
     memory.registers.setPC(target);
     // TODO Address Error Exception if the two least-significat bits of target address are non-zero
 }
@@ -493,7 +492,7 @@ void Core::MTC0() {
     uint8_t rd = 0x1F & (instruction >> 11);
 
     uint32_t data = memory.registers.getRegister(rt);
-    log(std::format("MTC0 {:d},{:d} (0x{:x} -> CP0 {:d})", rt, rd, data, rd));
+    Log::log(std::format("MTC0 {:d},{:d} (0x{:x} -> CP0 {:d})", rt, rd, data, rd));
     memory.registers.setCP0Register(rd, data);
 }
 
@@ -528,10 +527,10 @@ void Core::step() {
     memory.registers.setPC(nextInstructionPC + 4);
     
     // execute instruction
-    log(std::format("0x{:08x}: ", instructionPC));
+    Log::log(std::format("0x{:08x}: ", instructionPC));
     opcode = instruction >> 26;
     assert (opcode <= 0b111111);
     (this->*opcodes[opcode])();
-    log("\n");
+    Log::log("\n");
 }
 }
