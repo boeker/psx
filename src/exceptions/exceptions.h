@@ -13,6 +13,22 @@ public:
         : std::runtime_error(what) {}
 };
 
+class ExceptionNotImplemented : public std::runtime_error {
+public:
+    explicit ExceptionNotImplemented(const std::string &what)
+        : std::runtime_error(what) {}
+    explicit ExceptionNotImplemented(const char *what)
+        : std::runtime_error(what) {}
+};
+
+class FileReadError : public std::runtime_error {
+public:
+    explicit FileReadError(const std::string &what)
+        : std::runtime_error(what) {}
+    explicit FileReadError(const char *what)
+        : std::runtime_error(what) {}
+};
+
 class UnknownOpcodeError : public std::runtime_error {
 public:
     explicit UnknownOpcodeError(const std::string &what)
@@ -26,14 +42,6 @@ public:
     explicit UnknownFunctionError(const std::string &what)
         : std::runtime_error(what) {}
     explicit UnknownFunctionError(const char *what)
-        : std::runtime_error(what) {}
-};
-
-class FileReadError : public std::runtime_error {
-public:
-    explicit FileReadError(const std::string &what)
-        : std::runtime_error(what) {}
-    explicit FileReadError(const char *what)
         : std::runtime_error(what) {}
 };
 

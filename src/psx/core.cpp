@@ -188,7 +188,8 @@ void Core::SW() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.registers.getRegister(base);
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
+                     + memory.registers.getRegister(base);
     uint32_t data = memory.registers.getRegister(rt);
     Log::log(std::format("SW {:s},0x{:x}({:s}) (0x{:x} -> 0x{:x})",
                     memory.registers.getRegisterName(rt),
@@ -197,7 +198,9 @@ void Core::SW() {
                     data,
                     vAddr));
     memory.writeWord(vAddr, data);
-    // TODO Address Error Exception if the two least-significat bits of effective address are non-zero
+    if (vAddr & 0x3) {
+        throw exceptions::ExceptionNotImplemented("Address Error");
+    }
 }
 
 void Core::ADDIU() {
@@ -283,7 +286,10 @@ void Core::LW() {
     uint32_t data = memory.readWord(vAddr);
     Log::log(std::format("LW {:d},0x{:04x}({:d}) (0x{:08x} -> {:d})", rt, offset, base, data, rt));
     memory.registers.setRegister(rt, data);
-    // TODO Address Error Exception
+
+if (vAddr & 0x3) {
+    throw exceptions::ExceptionNotImplemented("Address Error");
+    }
 }
 
 void Core::SH() {
@@ -302,7 +308,10 @@ void Core::SH() {
     uint16_t data = (uint16_t)(0x0000FFFF & memory.registers.getRegister(rt));
     Log::log(std::format("SW {:d},0x{:x}({:d}) (0x{:04x} -> 0x{:08x})", rt, offset, base, data, vAddr));
     memory.writeHalfWord(vAddr, data);
-    // TODO Address Error Exception if the least-significat bit of effective address is non-zero
+
+    if (vAddr & 0x1) {
+        throw exceptions::ExceptionNotImplemented("Address Error");
+    }
 }
 
 void Core::JAL() {
@@ -345,7 +354,6 @@ void Core::SB() {
     uint8_t data = (uint8_t)(0x000000FF & memory.registers.getRegister(rt));
     Log::log(std::format("SB {:s},0x{:04X}({:s}) (0x{:02X} -> 0x{:08X})", memory.registers.getRegisterName(rt), offset, memory.registers.getRegisterName(base), data, vAddr));
     memory.writeByte(vAddr, data);
-    // TODO Address Error Exception if the least-significat bit of effective address is non-zero
 }
 
 void Core::LB() {
@@ -465,7 +473,10 @@ void Core::JR() {
     uint32_t target = memory.registers.getRegister(rs);
     Log::log(std::format("JR {:s} (-> 0x{:08X})", memory.registers.getRegisterName(rs), target));
     memory.registers.setPC(target);
-    // TODO Address Error Exception if the two least-significat bits of target address are non-zero
+
+    if (target & 0x3) {
+        throw exceptions::ExceptionNotImplemented("Address Error");
+    }
 }
 
 void Core::UNKCP0() {
