@@ -52,7 +52,7 @@ void Memory::readBIOS(const std::string &file) {
 }
 
 uint8_t Memory::readByte(uint32_t address) {
-    Log::log(std::format(" [rb "));
+    Log::log(std::format(" [rb "), Log::Type::MEMORY);
     uint8_t *memory = (uint8_t*)resolveAddress2(address);
 
     uint8_t byte = *memory;
@@ -62,7 +62,7 @@ uint8_t Memory::readByte(uint32_t address) {
 }
 
 uint16_t Memory::readHalfWord(uint16_t address) {
-    Log::log(std::format(" [rhw "));
+    Log::log(std::format(" [rhw "), Log::Type::MEMORY);
     uint16_t *memory = (uint16_t*)resolveAddress2(address); // PSX is little endian, so is x86
 
     uint16_t halfWord = *memory;
@@ -72,7 +72,7 @@ uint16_t Memory::readHalfWord(uint16_t address) {
 }
 
 uint32_t Memory::readWord(uint32_t address) {
-    Log::log(std::format(" [rw "));
+    Log::log(std::format(" [rw "), Log::Type::MEMORY);
     uint32_t *memory = (uint32_t*)resolveAddress2(address); // PSX is little endian, so is x86
 
     uint32_t word = *memory;
@@ -82,19 +82,19 @@ uint32_t Memory::readWord(uint32_t address) {
 }
 
 void Memory::writeByte(uint32_t address, uint8_t byte) {
-    Log::log(std::format(" [wb -0x{:02X}-> @0x{:08X}]", byte, address));
+    Log::log(std::format(" [wb -0x{:02X}-> @0x{:08X}]", byte, address), Log::Type::MEMORY);
     uint8_t *memory = (uint8_t*)resolveAddress2(address);
     *memory = byte;
 }
 
 void Memory::writeHalfWord(uint32_t address, uint16_t halfWord) {
-    Log::log(std::format(" [whw -0x{:04X}-> @0x{:08X}]", halfWord, address));
+    Log::log(std::format(" [whw -0x{:04X}-> @0x{:08X}]", halfWord, address), Log::Type::MEMORY);
     uint16_t *memory = (uint16_t*)resolveAddress2(address); // PSX is little endian, so is x86
     *memory = halfWord;
 }
 
 void Memory::writeWord(uint32_t address, uint32_t word) {
-    Log::log(std::format(" [ww -0x{:08X}-> @0x{:08X}]", word, address));
+    Log::log(std::format(" [ww -0x{:08X}-> @0x{:08X}]", word, address), Log::Type::MEMORY);
     uint32_t *memory = (uint32_t*)resolveAddress2(address); // PSX is little endian, so is x86
     *memory = word;
 }

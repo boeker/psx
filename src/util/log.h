@@ -10,6 +10,10 @@ public:
     enum Type {
         CPU,
         MEMORY,
+        REGISTER_READ,
+        REGISTER_WRITE,
+        REGISTER_PC_READ,
+        REGISTER_PC_WRITE,
         MISC
     };
 

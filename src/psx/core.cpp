@@ -161,12 +161,11 @@ void Core::LUI() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
 
-    uint32_t data = immediate << 16;
-    Log::log(std::format("LUI {:s},0x{:04X} (-0x{:08X}-> {:s})",
+    Log::log(std::format("LUI {:s},0x{:04X}",
                           memory.regs.getRegisterName(rt),
-                          immediate,
-                          data,
-                          memory.regs.getRegisterName(rt)));
+                          immediate));
+
+    uint32_t data = immediate << 16;
 
     memory.regs.setRegister(rt, data);
 }
@@ -234,9 +233,10 @@ void Core::J() {
     // T: temp <- target
     // T+1: pc <- pc_{31...28} || temp || 0^2
     uint32_t target = 0x3FFFFFF & instruction;
+    Log::log(std::format("J 0x{:08X}", target));
 
     uint32_t actualTarget = (memory.regs.getPC() & 0xF0000000) | (target << 2);
-    Log::log(std::format("J 0x{:08X} (-> 0x{:08X})", target, actualTarget));
+
     memory.regs.setPC(actualTarget);
 }
 
@@ -343,14 +343,12 @@ void Core::JAL() {
     //    GPR[31] <- PC + 8
     // T+1: PC <- PC_{31...28} || temp || 0^2
     uint32_t target = 0x03FFFFFF & instruction;
+
+    Log::log(std::format("JAL 0x{:06X}", target));
+
     uint32_t actualTarget = (memory.regs.getPC() &  0xF0000000) | (target << 2);
     uint32_t newPC = instructionPC + 8;
 
-    Log::log(std::format("JAL 0x{:06X} (-0x{:08X}-> pc, -0x{:08X}-> {:s})",
-                         target,
-                         actualTarget,
-                         newPC,
-                         memory.regs.getRegisterName(31)));
     memory.regs.setRegister(31, newPC);
     memory.regs.setPC(actualTarget);
 }
@@ -424,15 +422,18 @@ void Core::BEQ() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
+    Log::log(std::format("BEQ {:s},{:s},{:04X}",
+                         memory.regs.getRegisterName(rs),
+                         memory.regs.getRegisterName(rt),
+                         offset));
+
     uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
     uint32_t target = signExtension << 2;
     uint32_t actualTarget = memory.regs.getPC() + target;
 
     uint32_t rsValue = memory.regs.getRegister(rs);
     uint32_t rtValue = memory.regs.getRegister(rt);
-    Log::log(std::format("BEQ {:s},{:s},{:04X} (0x{:08X} == 0x{:08X}? -0x{:08X}-> pc)",
-                         memory.regs.getRegisterName(rs),
-                         memory.regs.getRegisterName(rt),
+    Log::log(std::format(" (0x{:08X} == 0x{:08X}? -0x{:08X}-> pc)",
                          offset, rsValue, rtValue, actualTarget));
 
     if (rsValue == rtValue) {
@@ -488,12 +489,14 @@ void Core::SLTU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    uint32_t rsValue = memory.regs.getRegister(rs);
-    uint32_t rtValue = memory.regs.getRegister(rt);
-    Log::log(std::format("SLTU {:s},{:s},{:s} (0x{:08x} < 0x{:08x}?)",
+    Log::log(std::format("SLTU {:s},{:s},{:s}",
                          memory.regs.getRegisterName(rd),
                          memory.regs.getRegisterName(rs),
-                         memory.regs.getRegisterName(rt),
+                         memory.regs.getRegisterName(rt)));
+
+    uint32_t rsValue = memory.regs.getRegister(rs);
+    uint32_t rtValue = memory.regs.getRegister(rt);
+    Log::log(std::format(" (0x{:08x} < 0x{:08x}?)",
                          rsValue, rtValue));
 
     if (rsValue < rtValue) {
@@ -511,12 +514,13 @@ void Core::ADDU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    uint32_t rsValue = memory.regs.getRegister(rs);
-    uint32_t rtValue = memory.regs.getRegister(rt);
     Log::log(std::format("ADDU {:s},{:s},{:s}",
                          memory.regs.getRegisterName(rd),
                          memory.regs.getRegisterName(rs),
                          memory.regs.getRegisterName(rt)));
+
+    uint32_t rsValue = memory.regs.getRegister(rs);
+    uint32_t rtValue = memory.regs.getRegister(rt);
 
     memory.regs.setRegister(rd, rsValue + rtValue);
 }
@@ -528,10 +532,10 @@ void Core::JR() {
     // Should be temp, right?
     uint8_t rs = 0x1F & (instruction >> 21);
 
+    Log::log(std::format("JR {:s}",
+                         memory.regs.getRegisterName(rs)));
+
     uint32_t target = memory.regs.getRegister(rs);
-    Log::log(std::format("JR {:s} (-0x{:08X}-> pc)",
-                         memory.regs.getRegisterName(rs),
-                         target));
     memory.regs.setPC(target);
 
     if (target & 0x3) {

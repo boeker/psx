@@ -3,6 +3,10 @@
 #include <cassert>
 #include <format>
 
+#include "util/log.h"
+
+using namespace util;
+
 namespace PSX {
 
 std::ostream& operator<<(std::ostream &os, const Registers &registers) {
@@ -72,20 +76,37 @@ void Registers::reset() {
 }
 
 uint32_t Registers::getPC() {
+    Log::log(std::format(" {{r pc -0x{:08X}->}}", this->pc), Log::Type::REGISTER_PC_READ);
+
     return this->pc;
 }
 
 void Registers::setPC(uint32_t pc) {
+    if (pc != this->pc + 4) {
+        Log::log(std::format(" {{w -0x{:08X}-> pc}}", pc), Log::Type::REGISTER_PC_WRITE);
+    } else {
+        Log::log(std::format(" {{w pc}}"), Log::Type::REGISTER_PC_WRITE);
+    }
+
     this->pc = pc;
 }
 
 uint32_t Registers::getRegister(uint8_t rt) {
+    Log::log(std::format(" {{r "), Log::Type::REGISTER_READ);
     assert (rt < 32);
-    return registers[rt];
+    uint32_t word = registers[rt];
+
+    Log::log(std::format("{:s} -0x{:08X}->}}",
+                         getRegisterName(rt), word), Log::Type::REGISTER_READ);
+
+    return word;
 }
 
 void Registers::setRegister(uint8_t rt, uint32_t value) {
     assert (rt < 32);
+    Log::log(std::format(" {{w -0x{:08X}-> {:s}}}", value, getRegisterName(rt)),
+             Log::Type::REGISTER_WRITE);
+
     if (rt > 0) {
         registers[rt] = value;
     }
