@@ -159,6 +159,16 @@ void* Memory::resolveAddress2(uint32_t address) {
         }
     }
 
+    // Expansion Region 1
+    // 0x1F000000 - 0x1F7FFFFF (0b0001 1111 0000 ... - 0b0001 1111 0111 ...)
+    // 0x9F000000 - 0x9F7FFFFF (0b1001 1111 0000 ... - 0b1001 1111 0111 ...)
+    // 0xBF000000 - 0xBF7FFFFF (0b1011 1111 0000 ... - 0b1011 1111 0111 ...)
+    if ((address & 0x1F800000) == 0x1F000000) {
+        //uint32_t offset = address & 0x007FFFFF;
+        null = 0; // Make sure that null is 0 before the next read
+        return &null;
+    }
+
     // D-Cache (Scratchpad)
     // 0x1F800000 - 0x1F8003FF (0b0001 1111 1000 ... - 0b0001 1111 1000 ...)
     // Also in KSEG0?

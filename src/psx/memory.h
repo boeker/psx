@@ -33,6 +33,7 @@ private:
     uint8_t* dCache;
 
     uint8_t cacheControlRegister[4];
+    uint32_t null;
 
 public:
     Registers regs;
