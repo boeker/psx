@@ -6,7 +6,10 @@
 #include <fstream>
 #include <sstream>
 
+#include "util/log.h"
 #include "exceptions/exceptions.h"
+
+using namespace util;
 
 namespace PSX {
 Memory::Memory() {
@@ -49,31 +52,49 @@ void Memory::readBIOS(const std::string &file) {
 }
 
 uint8_t Memory::readByte(uint32_t address) {
+    Log::log(std::format("\nRead byte: "));
     uint8_t *memory = (uint8_t*)resolveAddress2(address);
-    return *memory;
+
+    uint8_t byte = *memory;
+    Log::log(std::format("@0x{:08X} -0x{:02X}->\n", address, byte), Log::Type::MEMORY);
+
+    return byte;
 }
 
 uint16_t Memory::readHalfWord(uint16_t address) {
+    Log::log(std::format("\nRead halfword: "));
     uint16_t *memory = (uint16_t*)resolveAddress2(address); // PSX is little endian, so is x86
-    return *memory;
+
+    uint16_t halfWord = *memory;
+    Log::log(std::format("@0x{:08X} -0x{:04X}->\n", address, halfWord), Log::Type::MEMORY);
+
+    return halfWord;
 }
 
 uint32_t Memory::readWord(uint32_t address) {
+    Log::log(std::format("\nRead word: "));
     uint32_t *memory = (uint32_t*)resolveAddress2(address); // PSX is little endian, so is x86
-    return *memory;
+
+    uint32_t word = *memory;
+    Log::log(std::format("@0x{:08X} -0x{:08X}->\n", address, word), Log::Type::MEMORY);
+
+    return word;
 }
 
 void Memory::writeByte(uint32_t address, uint8_t byte) {
+    Log::log(std::format("\nWrite byte: -0x{:02X}-> @0x{:08X}\n", byte, address));
     uint8_t *memory = (uint8_t*)resolveAddress2(address);
     *memory = byte;
 }
 
 void Memory::writeHalfWord(uint32_t address, uint16_t halfWord) {
+    Log::log(std::format("\nWrite halfword: -0x{:04X}-> @0x{:08X}\n", halfWord, address));
     uint16_t *memory = (uint16_t*)resolveAddress2(address); // PSX is little endian, so is x86
     *memory = halfWord;
 }
 
 void Memory::writeWord(uint32_t address, uint32_t word) {
+    Log::log(std::format("\nWrite word: -0x{:08X}-> @0x{:08X}\n", word, address));
     uint32_t *memory = (uint32_t*)resolveAddress2(address); // PSX is little endian, so is x86
     *memory = word;
 }
@@ -107,7 +128,7 @@ void* Memory::resolveAddress(uint32_t address) {
 
     std::stringstream ss;
     ss << regs;
-    throw exceptions::AddressOutOfBounds(std::format("at {:x}, register contents: {:s}", address, ss.str()));
+    throw exceptions::AddressOutOfBounds(std::format("@{:08X}, register contents:\n{:s}", address, ss.str()));
 }
 
 void* Memory::resolveAddress2(uint32_t address) {
@@ -182,7 +203,7 @@ void* Memory::resolveAddress2(uint32_t address) {
     }
     std::stringstream ss;
     ss << regs;
-    throw exceptions::AddressOutOfBounds(std::format("at {:08X}, register contents: {:s}", address, ss.str()));
+    throw exceptions::AddressOutOfBounds(std::format("@0x{:08X}, register contents:\n{:s}", address, ss.str()));
 }
 
 }
