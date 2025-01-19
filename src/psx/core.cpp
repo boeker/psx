@@ -546,7 +546,7 @@ void Core::LBU() {
 }
 
 void Core::SLTI() {
-    // Set On Less Than Intermediate
+    // Set On Less Than Immediate
     // T: if GPR[rs] < (immediate_{15})^{16} || immediate_{15...0} then
     //        GPR[rt] <- 0^{31} || 1
     //    else
