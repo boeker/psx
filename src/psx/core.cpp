@@ -31,7 +31,7 @@ const Core::Opcode Core::opcodes[] = {
     // 0b100000
     &Core::LB,       &Core::UNK,      &Core::UNK,      &Core::LW,
     // 0b100100
-    &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
+    &Core::LBU,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b101000
     &Core::SB,       &Core::SH,       &Core::UNK,      &Core::SW,
     // 0b101100
@@ -493,6 +493,29 @@ void Core::BLEZ() {
     if ((rsValue >> 31) || (rsValue == 0)) {
         memory.regs.setPC(actualTarget);
     }
+}
+
+void Core::LBU() {
+    // Load Byte Unsigned
+    // T: vAddr <- ((offset_{15})^{16} | offset_{15...0}) + GPR[base]
+    // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
+    // pAddr <- pAddr_{PSIZE-1...2} || (pAddr_{1...0} xor ReverseEndian^2)
+    // mem <- LoadMemory(uncached, BYTE, pAddr, vAddr, DATA)
+    // byte <- vAddr_{1...0} xor BigEndianCPU^2
+    // T+1: GPR[rt] <- 0^{24} || mem_{7+8*byte...8*byte}
+    uint8_t base = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    Log::log(std::format("LBU {:s},0x{:04X}({:s})",
+                         memory.regs.getRegisterName(rt),
+                         offset,
+                         memory.regs.getRegisterName(base)));
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.regs.getRegister(base);
+    uint8_t mem = memory.readByte(vAddr);
+    uint32_t zeroExtension = mem;
+    memory.regs.setRegister(rt, zeroExtension);
 }
 
 void Core::UNKSPCL() {
