@@ -46,6 +46,7 @@ private:
     void LB();
     void BEQ();
     void BGTZ();
+    void BLEZ();
 
     static const Opcode special[];
     void UNKSPCL();

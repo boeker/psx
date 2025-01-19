@@ -15,7 +15,7 @@ const Core::Opcode Core::opcodes[] = {
     // 0b000000
     &Core::SPECIAL,  &Core::UNK,      &Core::J,        &Core::JAL,
     // 0b000100
-    &Core::BEQ,      &Core::BNE,      &Core::UNK,      &Core::BGTZ,
+    &Core::BEQ,      &Core::BNE,      &Core::BLEZ,     &Core::BGTZ,
     // 0b001000
     &Core::ADDI,     &Core::ADDIU,    &Core::UNK,      &Core::UNK,
     // 0b001100
@@ -464,6 +464,33 @@ void Core::BGTZ() {
                          rsValue, actualTarget));
 
     if (!(rsValue >> 31) && (rsValue != 0)) {
+        memory.regs.setPC(actualTarget);
+    }
+}
+
+void Core::BLEZ() {
+    // Branch On Less Than Or Equal To Zero
+    // T: target <- (offset_{15})^{14} || offset || 0^2
+    //    condition <- (GPR[rs]_{31} = 0) or (GPR[rs] == 0^{32})
+    // T+1: if condition then
+    //          PC <- PC + target
+    //      endif
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint32_t offset = 0xFFFF & instruction;
+
+    Log::log(std::format("BLEZ {:s},{:04X}",
+                         memory.regs.getRegisterName(rs),
+                         offset));
+
+    uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
+    uint32_t target = signExtension << 2;
+    uint32_t actualTarget = delaySlotPC + target;
+
+    uint32_t rsValue = memory.regs.getRegister(rs);
+    Log::log(std::format(" (0x{:08X} > 0? -0x{:08X}-> pc)",
+                         rsValue, actualTarget));
+
+    if ((rsValue >> 31) || (rsValue == 0)) {
         memory.regs.setPC(actualTarget);
     }
 }
