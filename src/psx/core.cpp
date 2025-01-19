@@ -48,7 +48,7 @@ const Core::Opcode Core::opcodes[] = {
 
 const Core::Opcode Core::special[] = {
     // 0b000000
-    &Core::SLL,      &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
+    &Core::SLL,      &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::SRA,
     // 0b000100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b001000
@@ -756,6 +756,28 @@ void Core::SUBU() {
     uint32_t rtValue = memory.regs.getRegister(rt);
 
     memory.regs.setRegister(rd, rsValue - rtValue);
+}
+
+void Core::SRA() {
+    // Shift Word Right Arithmetic
+    // T: GPR[rd] <- (GPR[rt]_{31})^{sa} || GPR[rt]_{31...sa}
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+    uint8_t sa = 0x1F & (instruction >> 6);
+
+    Log::log(std::format("SRA {:s},{:s},{:s}",
+                         memory.regs.getRegisterName(rd),
+                         memory.regs.getRegisterName(rt),
+                         memory.regs.getRegisterName(sa)));
+
+    uint32_t rtValue = memory.regs.getRegister(rt);
+    uint32_t result = rtValue >> sa;
+    if (rtValue >> 31) {
+        assert (sa <= 32);
+        result = result | (0xFFFFFFFF << (32 - sa));
+    }
+
+    memory.regs.setRegister(rd, result);
 }
 
 void Core::UNKCP0() {
