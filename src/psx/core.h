@@ -71,6 +71,7 @@ private:
     void SRL();
     void DIVU();
     void MFHI();
+    void SLT();
 
     // Opcode CP0 encodes further instructions
     static const Opcode cp0[];

@@ -68,7 +68,7 @@ const Core::Opcode Core::special[] = {
     // 0b100100
     &Core::AND,      &Core::OR,       &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b101000
-    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::SLTU,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::SLT,      &Core::SLTU,
     // 0b101100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b110000
@@ -888,6 +888,35 @@ void Core::MFHI() {
     Log::log(std::format("MFHI {:s}", memory.regs.getRegisterName(rd)));
 
     memory.regs.setRegister(rd, memory.regs.getHi());
+}
+
+void Core::SLT() {
+    // Set on Less Than
+    // T: if GPR[rs] < GPR[rt] then
+    //     GPR[rd] <- 0^{31} || 1
+    // else
+    //     GPR[rd] <- 0^{32}
+    // endif
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    Log::log(std::format("SLT {:s},{:s},{:s}",
+                         memory.regs.getRegisterName(rd),
+                         memory.regs.getRegisterName(rs),
+                         memory.regs.getRegisterName(rt)));
+
+    int32_t rsValue = (int32_t)memory.regs.getRegister(rs);
+    int32_t rtValue = (int32_t)memory.regs.getRegister(rt);
+    Log::log(std::format(" (0x{:08x} < 0x{:08x}?)",
+                         rsValue, rtValue));
+
+    if (rsValue < rtValue) {
+        memory.regs.setRegister(rd, 1);
+
+    } else {
+        memory.regs.setRegister(rd, 0);
+    }
 }
 
 void Core::CP0MOVE() {
