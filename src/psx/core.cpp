@@ -251,7 +251,7 @@ void Core::BNE() {
     uint32_t offset = 0xFFFF & instruction;
 
     uint32_t target = ((offset >> 15) ? 0xFFFC0000 : 0x00000000) | (offset << 2);
-    uint32_t actualTarget = instructionPC + target;
+    uint32_t actualTarget = memory.regs.getPC() + target;
     Log::log(std::format("BNE {:s},{:s},0x{:04X} (+0x{:08X}, -> @0x{:08X})",
                          memory.regs.getRegisterName(rt),
                          memory.regs.getRegisterName(rs),
