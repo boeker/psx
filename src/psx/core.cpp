@@ -471,7 +471,7 @@ void Core::BGTZ() {
 void Core::BLEZ() {
     // Branch On Less Than Or Equal To Zero
     // T: target <- (offset_{15})^{14} || offset || 0^2
-    //    condition <- (GPR[rs]_{31} = 0) or (GPR[rs] == 0^{32})
+    //    condition <- (GPR[rs]_{31} = 1) or (GPR[rs] == 0^{32})
     // T+1: if condition then
     //          PC <- PC + target
     //      endif
@@ -487,7 +487,7 @@ void Core::BLEZ() {
     uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = memory.regs.getRegister(rs);
-    Log::log(std::format(" (0x{:08X} > 0? -0x{:08X}-> pc)",
+    Log::log(std::format(" (0x{:08X} <= 0? -0x{:08X}-> pc)",
                          rsValue, actualTarget));
 
     if ((rsValue >> 31) || (rsValue == 0)) {
