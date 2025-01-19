@@ -17,7 +17,7 @@ const Core::Opcode Core::opcodes[] = {
     // 0b000100
     &Core::BEQ,      &Core::BNE,      &Core::BLEZ,     &Core::BGTZ,
     // 0b001000
-    &Core::ADDI,     &Core::ADDIU,    &Core::SLTI,     &Core::UNK,
+    &Core::ADDI,     &Core::ADDIU,    &Core::SLTI,     &Core::SLTIU,
     // 0b001100
     &Core::ANDI,     &Core::ORI,      &Core::UNK,      &Core::LUI,
     // 0b010000
@@ -568,6 +568,33 @@ void Core::SLTI() {
     int32_t signExtensionSigned = (int32_t)signExtension;
 
     if (rsValueSigned < signExtensionSigned) {
+        memory.regs.setRegister(rt, 1);
+
+    } else {
+        memory.regs.setRegister(rt, 0);
+    }
+}
+
+void Core::SLTIU() {
+    // Set On Less Than Immediate Unsigned
+    // T: if (0 || GPR[rs]) < (immediate_{15})^{16} || immediate_{15...0} then
+    //        GPR[rt] <- 0^{31} || 1
+    //    else
+    //        GPR[rt] <- 0^{32}
+    //    endif
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t immediate = 0xFFFF & instruction;
+
+    Log::log(std::format("SLTI {:s},{:s},0x{:04x}",
+                         memory.regs.getRegisterName(rt),
+                         memory.regs.getRegisterName(rs),
+                         immediate));
+
+    uint32_t rsValue = memory.regs.getRegister(rs);
+    uint32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
+
+    if (rsValue < signExtension) {
         memory.regs.setRegister(rt, 1);
 
     } else {
