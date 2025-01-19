@@ -13,7 +13,7 @@ namespace PSX {
 
 const Core::Opcode Core::opcodes[] = {
     // 0b000000
-    &Core::SPECIAL,  &Core::UNK,      &Core::J,        &Core::JAL,
+    &Core::SPECIAL,  &Core::REGIMM,   &Core::J,        &Core::JAL,
     // 0b000100
     &Core::BEQ,      &Core::BNE,      &Core::BLEZ,     &Core::BGTZ,
     // 0b001000
@@ -135,6 +135,25 @@ const Core::Opcode Core::cp0Move[] = {
     &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M,  &Core::UNKCP0M
 };
 
+const Core::Opcode Core::regimm[] = {
+    // 0b00000
+    &Core::BLTZ,     &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,
+    // 0b00100
+    &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,
+    // 0b01000
+    &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,
+    // 0b01100
+    &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,
+    // 0b10000
+    &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,
+    // 0b10100
+    &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,
+    // 0b11000
+    &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,
+    // 0b11100
+    &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM,  &Core::UNKRGMM
+};
+
 void Core::UNK() {
     throw exceptions::UnknownOpcodeError(std::format("instruction 0x{:x}: 0b{:06b}", instructionPC, opcode));
 }
@@ -153,6 +172,14 @@ void Core::CP0() {
     funct = 0x3F & instruction;
     
     (this->*cp0[funct])();
+}
+
+void Core::REGIMM() {
+    // REGIMM
+    // Operation depends on rt field
+    instructionRt = 0x1F & (instruction >> 16);
+
+    (this->*regimm[instructionRt])();
 }
 
 void Core::LUI() {
@@ -732,6 +759,67 @@ void Core::MFC0() {
                          rd, data));
 
     memory.regs.setRegister(rt, data);
+}
+
+void Core::UNKRGMM() {
+    throw exceptions::UnknownOpcodeError(std::format("0x{:x}: instruction 0x{:x} (REGIMM), rt 0b{:05b}", instructionPC, instruction, instructionRt));
+}
+
+void Core::BLTZ() {
+    // Branch On Less Than Zero
+    // T: target <- (offset_{15})^{14} || offset || 0^2
+    //    condition <- (GPR[rs]_{31} = 1)
+    //    GPR[31] <- PC + 8
+    // T+1: if condition then
+    //          PC <- PC + target
+    //      endif
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint32_t offset = 0xFFFF & instruction;
+
+    Log::log(std::format("BLTZ {:s},{:04X}",
+                         memory.regs.getRegisterName(rs),
+                         offset));
+
+    uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
+    uint32_t target = signExtension << 2;
+    uint32_t actualTarget = delaySlotPC + target;
+
+    uint32_t rsValue = memory.regs.getRegister(rs);
+    Log::log(std::format(" (0x{:08X} < 0? -0x{:08X}-> pc)",
+                         rsValue, actualTarget));
+
+    if (rsValue >> 31) {
+        memory.regs.setPC(actualTarget);
+    }
+}
+
+void Core::BLTZAL() {
+    // Branch On Less Than Zero And Link
+    // T: target <- (offset_{15})^{14} || offset || 0^2
+    //    condition <- (GPR[rs]_{31} = 1)
+    //    GPR[31] <- PC + 8
+    // T+1: if condition then
+    //          PC <- PC + target
+    //      endif
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint32_t offset = 0xFFFF & instruction;
+
+    Log::log(std::format("BLTZAL {:s},{:04X}",
+                         memory.regs.getRegisterName(rs),
+                         offset));
+
+    uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
+    uint32_t target = signExtension << 2;
+    uint32_t actualTarget = delaySlotPC + target;
+
+    uint32_t rsValue = memory.regs.getRegister(rs);
+    Log::log(std::format(" (0x{:08X} < 0? -0x{:08X}-> pc)",
+                         rsValue, actualTarget));
+
+    if (rsValue >> 31) {
+        memory.regs.setRegister(31, instructionPC + 8);
+        memory.regs.setPC(actualTarget);
+    }
 }
 
 Core::Core() {

@@ -19,6 +19,7 @@ private:
     uint8_t opcode;
     uint8_t funct;
     uint8_t move;
+    uint8_t instructionRt;
 
     // Delay Slot
     uint32_t delaySlotPC;
@@ -31,6 +32,7 @@ private:
     void UNK();
     void SPECIAL();
     void CP0();
+    void REGIMM();
     void LUI();
     void ORI();
     void SW();
@@ -49,6 +51,7 @@ private:
     void BLEZ();
     void LBU();
 
+    // Opcode SPECIAL encodes further instructions via function field
     static const Opcode special[];
     void UNKSPCL();
     void SLL();
@@ -60,14 +63,22 @@ private:
     void AND();
     void ADD();
 
+    // Opcode CP0 encodes further instructions
     static const Opcode cp0[];
     void UNKCP0();
     void CP0MOVE();
 
+    // CP0 instructions are identified via move field
     static const Opcode cp0Move[];
     void UNKCP0M();
     void MTC0();
     void MFC0();
+
+    // Opcode REGIMM encodes further instructions via rt field
+    static const Opcode regimm[];
+    void UNKRGMM();
+    void BLTZ();
+    void BLTZAL();
 
 public:
     Core();
