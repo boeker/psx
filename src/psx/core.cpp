@@ -56,7 +56,7 @@ const Core::Opcode Core::special[] = {
     // 0b001100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b010000
-    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::MFLO,     &Core::UNKSPCL,
     // 0b010100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b011000
@@ -800,6 +800,16 @@ void Core::DIV() {
 
     memory.regs.setLo(rsValue / rtValue);
     memory.regs.setHi(rsValue % rtValue);
+}
+
+void Core::MFLO() {
+    // Move From Lo
+    // T: GPR[rd] <- LO
+    uint8_t rd = 0x1F & (instruction >> 11);
+    
+    Log::log(std::format("MFLO {:s}", memory.regs.getRegisterName(rd)));
+
+    memory.regs.setRegister(rd, memory.regs.getLo());
 }
 
 void Core::UNKCP0() {
