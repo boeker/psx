@@ -20,9 +20,9 @@ private:
     uint8_t funct;
     uint8_t move;
 
-    // Next instruction
-    uint32_t nextInstructionPC;
-    uint32_t nextInstruction;
+    // Delay Slot
+    uint32_t delaySlotPC;
+    uint32_t delaySlot;
 
     // Opcode tables and implementations
     typedef void (Core::*Opcode) ();

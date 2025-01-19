@@ -235,7 +235,7 @@ void Core::J() {
     uint32_t target = 0x3FFFFFF & instruction;
     Log::log(std::format("J 0x{:08X}", target));
 
-    uint32_t actualTarget = (memory.regs.getPC() & 0xF0000000) | (target << 2);
+    uint32_t actualTarget = (delaySlotPC & 0xF0000000) | (target << 2);
 
     memory.regs.setPC(actualTarget);
 }
@@ -251,7 +251,7 @@ void Core::BNE() {
     uint32_t offset = 0xFFFF & instruction;
 
     uint32_t target = ((offset >> 15) ? 0xFFFC0000 : 0x00000000) | (offset << 2);
-    uint32_t actualTarget = memory.regs.getPC() + target;
+    uint32_t actualTarget = delaySlotPC + target;
     Log::log(std::format("BNE {:s},{:s},0x{:04X} (+0x{:08X}, -> @0x{:08X})",
                          memory.regs.getRegisterName(rt),
                          memory.regs.getRegisterName(rs),
@@ -346,7 +346,7 @@ void Core::JAL() {
 
     Log::log(std::format("JAL 0x{:06X}", target));
 
-    uint32_t actualTarget = (memory.regs.getPC() &  0xF0000000) | (target << 2);
+    uint32_t actualTarget = (delaySlotPC &  0xF0000000) | (target << 2);
     uint32_t newPC = instructionPC + 8;
 
     memory.regs.setRegister(31, newPC);
@@ -429,7 +429,7 @@ void Core::BEQ() {
 
     uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
     uint32_t target = signExtension << 2;
-    uint32_t actualTarget = memory.regs.getPC() + target;
+    uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = memory.regs.getRegister(rs);
     uint32_t rtValue = memory.regs.getRegister(rt);
@@ -642,8 +642,8 @@ void Core::reset() {
     instructionPC = 0;
     instruction = 0;
 
-    nextInstructionPC = 0;
-    nextInstruction = 0;
+    delaySlotPC = 0;
+    delaySlot = 0;
 }
 
 void Core::readBIOS(const std::string &file) {
@@ -651,15 +651,17 @@ void Core::readBIOS(const std::string &file) {
 }
 
 void Core::step() {
-    instructionPC = nextInstructionPC;
-    instruction = nextInstruction;
+    instructionPC = delaySlotPC;
+    instruction = delaySlot;
 
-    // load instruction from memory at program counter
-    nextInstructionPC = memory.regs.getPC();
-    nextInstruction = memory.readWord(nextInstructionPC);
+    // load delay-slot instruction from memory at program counter
+    delaySlotPC = memory.regs.getPC();
+    delaySlot = memory.readWord(delaySlotPC);
 
     // increase program counter
-    memory.regs.setPC(nextInstructionPC + 4);
+    // by increasing it before executing the instruction,
+    // it may be overwritten by the instruction
+    memory.regs.setPC(delaySlotPC + 4);
     
     // execute instruction
     Log::log(std::format("@0x{:08X}: ", instructionPC));
