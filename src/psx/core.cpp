@@ -64,7 +64,7 @@ const Core::Opcode Core::special[] = {
     // 0b011100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b100000
-    &Core::UNKSPCL,  &Core::ADDU,     &Core::UNKSPCL,  &Core::UNKSPCL,
+    &Core::ADD,      &Core::ADDU,     &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b100100
     &Core::AND,      &Core::OR,       &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b101000
@@ -578,6 +578,32 @@ void Core::AND() {
                          memory.regs.getRegisterName(rt)));
 
     memory.regs.setRegister(rd, memory.regs.getRegister(rs) & memory.regs.getRegister(rt));
+}
+
+void Core::ADD() {
+    // Add Word
+    // T: GPR[rd] <- GPR[rs] + GPR[rt]
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    Log::log(std::format("ADD {:s},{:s},{:s}",
+                         memory.regs.getRegisterName(rd),
+                         memory.regs.getRegisterName(rs),
+                         memory.regs.getRegisterName(rt)));
+
+    uint32_t rsValue = memory.regs.getRegister(rs);
+    uint32_t rtValue = memory.regs.getRegister(rt);
+
+    bool carry30 = ((0x7FFFFFFF & rsValue) + (0x7FFFFFFF & rtValue)) & 0x80000000;
+    bool carry31 = ((rsValue >> 31) + (rtValue >> 31) + (carry30 ? 1 : 0) >= 2);
+
+    if (carry30 == carry31) {
+        memory.regs.setRegister(rd, rsValue + rtValue);
+
+    } else {
+        throw exceptions::ExceptionNotImplemented("Integer Overflow");
+    }
 }
 
 void Core::UNKCP0() {

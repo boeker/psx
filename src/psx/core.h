@@ -55,6 +55,7 @@ private:
     void JR();
     void JALR();
     void AND();
+    void ADD();
 
     static const Opcode cp0[];
     void UNKCP0();
