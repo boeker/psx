@@ -885,7 +885,7 @@ void Core::MFHI() {
     // T: GPR[rd] <- HI
     uint8_t rd = 0x1F & (instruction >> 11);
     
-    Log::log(std::format("MFHO {:s}", memory.regs.getRegisterName(rd)));
+    Log::log(std::format("MFHI {:s}", memory.regs.getRegisterName(rd)));
 
     memory.regs.setRegister(rd, memory.regs.getHi());
 }
