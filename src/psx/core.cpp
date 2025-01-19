@@ -463,7 +463,7 @@ void Core::BGTZ() {
     Log::log(std::format(" (0x{:08X} > 0? -0x{:08X}-> pc)",
                          rsValue, actualTarget));
 
-    if ((rsValue >> 31) && (rsValue != 0)) {
+    if (!(rsValue >> 31) && (rsValue != 0)) {
         memory.regs.setPC(actualTarget);
     }
 }
