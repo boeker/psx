@@ -48,7 +48,7 @@ const Core::Opcode Core::opcodes[] = {
 
 const Core::Opcode Core::special[] = {
     // 0b000000
-    &Core::SLL,      &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::SRA,
+    &Core::SLL,      &Core::UNKSPCL,  &Core::SRL,      &Core::SRA,
     // 0b000100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b001000
@@ -814,6 +814,21 @@ void Core::MFLO() {
 
 void Core::UNKCP0() {
     throw exceptions::UnknownFunctionError(std::format("0x{:x}: instruction 0x{:x} (CP0), function 0b{:06b}", instructionPC, instruction, funct));
+}
+
+void Core::SRL() {
+    // Shift Word Right Logical
+    // T: GPR[rd] <- 0^{sa} || GPR[rt]_{31...sa}
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+    uint8_t sa = 0x1F & (instruction >> 6);
+
+    Log::log(std::format("SRL {:s},{:s},{:s}",
+                         memory.regs.getRegisterName(rd),
+                         memory.regs.getRegisterName(rt),
+                         memory.regs.getRegisterName(sa)));
+
+    memory.regs.setRegister(rd, memory.regs.getRegister(rt) >> sa);
 }
 
 void Core::CP0MOVE() {
