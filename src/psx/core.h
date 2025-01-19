@@ -63,6 +63,7 @@ private:
     void JALR();
     void AND();
     void ADD();
+    void SUBU();
 
     // Opcode CP0 encodes further instructions
     static const Opcode cp0[];
