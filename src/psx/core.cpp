@@ -60,7 +60,7 @@ const Core::Opcode Core::special[] = {
     // 0b010100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b011000
-    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::DIV,      &Core::UNKSPCL,
+    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::DIV,      &Core::DIVU,
     // 0b011100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b100000
@@ -856,6 +856,28 @@ void Core::SRL() {
                          memory.regs.getRegisterName(sa)));
 
     memory.regs.setRegister(rd, memory.regs.getRegister(rt) >> sa);
+}
+
+void Core::DIVU() {
+    // Divide Word Unsigned
+    // T-2: LO <- undefined
+    //      HI <- undefined
+    // T-1: LO <- undefined
+    //      HI <- undefined
+    // T:   LO <- GPR[rs] div GPR[rt]
+    //      HI <- GPR[rs] mod GPR[rt]
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+
+    Log::log(std::format("DIVU {:s},{:s}",
+                         memory.regs.getRegisterName(rs),
+                         memory.regs.getRegisterName(rt)));
+
+    uint32_t rsValue = memory.regs.getRegister(rs);
+    uint32_t rtValue = memory.regs.getRegister(rt);
+
+    memory.regs.setLo(rsValue / rtValue);
+    memory.regs.setHi(rsValue % rtValue);
 }
 
 void Core::CP0MOVE() {

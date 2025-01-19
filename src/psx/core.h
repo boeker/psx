@@ -69,6 +69,7 @@ private:
     void DIV();
     void MFLO();
     void SRL();
+    void DIVU();
 
     // Opcode CP0 encodes further instructions
     static const Opcode cp0[];
