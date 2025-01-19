@@ -50,6 +50,7 @@ private:
     void BGTZ();
     void BLEZ();
     void LBU();
+    void SLTI();
 
     // Opcode SPECIAL encodes further instructions via function field
     static const Opcode special[];
