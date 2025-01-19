@@ -434,7 +434,7 @@ void Core::BEQ() {
     uint32_t rsValue = memory.regs.getRegister(rs);
     uint32_t rtValue = memory.regs.getRegister(rt);
     Log::log(std::format(" (0x{:08X} == 0x{:08X}? -0x{:08X}-> pc)",
-                         offset, rsValue, rtValue, actualTarget));
+                         rsValue, rtValue, actualTarget));
 
     if (rsValue == rtValue) {
         memory.regs.setPC(actualTarget);
