@@ -84,6 +84,7 @@ private:
     void UNKRGMM();
     void BLTZ();
     void BLTZAL();
+    void BGEZ();
 
 public:
     Core();
