@@ -56,7 +56,7 @@ const Core::Opcode Core::special[] = {
     // 0b001100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b010000
-    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::MFLO,     &Core::UNKSPCL,
+    &Core::MFHI,     &Core::UNKSPCL,  &Core::MFLO,     &Core::UNKSPCL,
     // 0b010100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b011000
@@ -878,6 +878,16 @@ void Core::DIVU() {
 
     memory.regs.setLo(rsValue / rtValue);
     memory.regs.setHi(rsValue % rtValue);
+}
+
+void Core::MFHI() {
+    // Move From Hi
+    // T: GPR[rd] <- HI
+    uint8_t rd = 0x1F & (instruction >> 11);
+    
+    Log::log(std::format("MFHO {:s}", memory.regs.getRegisterName(rd)));
+
+    memory.regs.setRegister(rd, memory.regs.getHi());
 }
 
 void Core::CP0MOVE() {
