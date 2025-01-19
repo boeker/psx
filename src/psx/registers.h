@@ -77,6 +77,10 @@ public:
     void setPC(uint32_t pc);
     uint32_t getRegister(uint8_t reg);
     void setRegister(uint8_t reg, uint32_t value);
+    uint32_t getHi();
+    void setHi(uint32_t value);
+    uint32_t getLo();
+    void setLo(uint32_t value);
     uint32_t getCP0Register(uint8_t reg);
     void setCP0Register(uint8_t reg, uint32_t value);
 

@@ -112,6 +112,22 @@ void Registers::setRegister(uint8_t rt, uint32_t value) {
     }
 }
 
+uint32_t Registers::getHi() {
+    return this->hi;
+}
+
+void Registers::setHi(uint32_t value) {
+    this->hi = value;
+}
+
+uint32_t Registers::getLo() {
+    return this->lo;
+}
+
+void Registers::setLo(uint32_t value) {
+    this->lo = value;
+}
+
 uint32_t Registers::getCP0Register(uint8_t rt) {
     assert (rt < 32);
     return cp0Registers[rt];

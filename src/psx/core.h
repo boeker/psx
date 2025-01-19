@@ -65,6 +65,7 @@ private:
     void ADD();
     void SUBU();
     void SRA();
+    void DIV();
 
     // Opcode CP0 encodes further instructions
     static const Opcode cp0[];
