@@ -54,7 +54,7 @@ const Core::Opcode Core::special[] = {
     // 0b001000
     &Core::JR,       &Core::JALR,     &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b001100
-    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
+    &Core::SYSCALL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b010000
     &Core::MFHI,     &Core::UNKSPCL,  &Core::MFLO,     &Core::UNKSPCL,
     // 0b010100
@@ -917,6 +917,14 @@ void Core::SLT() {
     } else {
         memory.regs.setRegister(rd, 0);
     }
+}
+
+void Core::SYSCALL() {
+    // System Call
+    // T: SystemCallException
+    uint32_t code = 0xFFFFF & (instruction >> 6);
+
+    throw exceptions::ExceptionNotImplemented(std::format("System Call Exception, code 0x{:05X}", code));
 }
 
 void Core::CP0MOVE() {
