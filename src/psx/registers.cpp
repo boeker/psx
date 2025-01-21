@@ -38,6 +38,19 @@ std::string Registers::getSRExplanation() const {
     return ss.str();
 }
 
+std::string Registers::getCauseExplanation() const {
+    std::stringstream ss;
+
+    uint32_t cause = cp0Registers[12];
+
+    ss << std::format("BD[{:01b}] ", (cause >> 31) & 0x1);
+    ss << std::format("CE[{:02b}] ", (cause >> 28) & 0x3);
+    ss << std::format("IP[{:08b}] ", (cause >> 8) & 0xFF);
+    ss << std::format("ExcCode[{:05b}] ", (cause >> 2) & 0x1F);
+
+    return ss.str();
+}
+
 std::ostream& operator<<(std::ostream &os, const Registers &registers) {
     for (int i = 0; i < 16; ++i) {
         os << Registers::REGISTER_NAMES[i] << "/r" << i << "\t"
@@ -64,6 +77,7 @@ std::ostream& operator<<(std::ostream &os, const Registers &registers) {
     os << std::endl;
     
     os << "SR: " << registers.getSRExplanation() << std::endl;
+    os << "Cause: " << registers.getCauseExplanation() << std::endl;
 
     return os;
 }

@@ -14,6 +14,7 @@ private:
     // Current instruction and opcode
     uint32_t instructionPC;
     uint32_t instruction;
+    bool isBranchDelaySlot;
 
     // Information extracted from instruction
     uint8_t opcode;
@@ -24,6 +25,7 @@ private:
     // Delay Slot
     uint32_t delaySlotPC;
     uint32_t delaySlot;
+    bool delaySlotIsBranchDelaySlot;
 
     friend std::ostream& operator<<(std::ostream &os, const Core &core);
 

@@ -271,6 +271,7 @@ void Core::J() {
     uint32_t actualTarget = (delaySlotPC & 0xF0000000) | (target << 2);
 
     memory.regs.setPC(actualTarget);
+    delaySlotIsBranchDelaySlot = true;
 }
 
 void Core::BNE() {
@@ -293,6 +294,7 @@ void Core::BNE() {
                          actualTarget));
     if (memory.regs.getRegister(rs) != memory.regs.getRegister(rt)) {
         memory.regs.setPC(actualTarget);
+        delaySlotIsBranchDelaySlot = true;
     }
 }
 
@@ -384,6 +386,7 @@ void Core::JAL() {
 
     memory.regs.setRegister(31, newPC);
     memory.regs.setPC(actualTarget);
+    delaySlotIsBranchDelaySlot = true;
 }
 
 void Core::ANDI() {
@@ -471,6 +474,7 @@ void Core::BEQ() {
 
     if (rsValue == rtValue) {
         memory.regs.setPC(actualTarget);
+        delaySlotIsBranchDelaySlot = true;
     }
 }
 
@@ -498,6 +502,7 @@ void Core::BGTZ() {
 
     if (!(rsValue >> 31) && (rsValue != 0)) {
         memory.regs.setPC(actualTarget);
+        delaySlotIsBranchDelaySlot = true;
     }
 }
 
@@ -525,6 +530,7 @@ void Core::BLEZ() {
 
     if ((rsValue >> 31) || (rsValue == 0)) {
         memory.regs.setPC(actualTarget);
+        delaySlotIsBranchDelaySlot = true;
     }
 }
 
@@ -704,6 +710,7 @@ void Core::JR() {
 
     uint32_t target = memory.regs.getRegister(rs);
     memory.regs.setPC(target);
+    delaySlotIsBranchDelaySlot = true;
 
     if (target & 0x3) {
         throw exceptions::ExceptionNotImplemented("Address Error");
@@ -726,6 +733,7 @@ void Core::JALR() {
     uint32_t target = memory.regs.getRegister(rs);
     memory.regs.setPC(target);
     memory.regs.setRegister(rd, instructionPC + 8);
+    delaySlotIsBranchDelaySlot = true;
 
     if (target & 0x3) {
         throw exceptions::ExceptionNotImplemented("Address Error");
@@ -928,9 +936,47 @@ void Core::SLT() {
 void Core::SYSCALL() {
     // System Call
     // T: SystemCallException
-    uint32_t code = 0xFFFFF & (instruction >> 6);
+    //uint32_t code = 0xFFFFF & (instruction >> 6);
+    // the exception handler can access "code" by manually loading the instruction
 
-    throw exceptions::ExceptionNotImplemented(std::format("System Call Exception, code 0x{:05X}", code));
+    Log::log("SYSCALL");
+
+    // make EPC point to restart location
+    // the EPC has to point to the instruction which caused the error
+    // if the instruction is in a branch delay slot, then
+    // it has to point to the preceding branch instruction
+    // and signal this via the BD bit
+    if (isBranchDelaySlot) {
+        memory.regs.setCP0Register(CP0_REGISTER_EPC, instructionPC - 4);
+        // set BD bit
+        uint32_t cause = memory.regs.getCP0Register(CP0_REGISTER_CAUSE);
+        memory.regs.setCP0Register(CP0_REGISTER_CAUSE, cause | (0x1 << CAUSE_BIT_BD));
+
+    } else {
+        memory.regs.setCP0Register(CP0_REGISTER_EPC, instructionPC); 
+    }
+    
+    // save user-mode-enable and interrupt-enable flags in SR
+    // by pushing the 3-entry stack inside of SR
+    uint32_t sr = memory.regs.getCP0Register(CP0_REGISTER_SR);
+    // we clear KUc and IEc, not sure if this is correct
+    memory.regs.setCP0Register(CP0_REGISTER_SR, (sr & 0xFFFFFFC0) | ((sr & 0x3F) << 2));
+
+    // set up ExcCode in Cause register
+    uint32_t cause = memory.regs.getCP0Register(CP0_REGISTER_CAUSE);
+    cause = (cause & 0xFFFFFF83) | (8 << 2); // 8 is syscall
+    memory.regs.setCP0Register(CP0_REGISTER_CAUSE, cause);
+    
+    // set BadVaddr on address exception
+    // not for syscall
+
+    // transfer control to exception entry point
+    if (memory.regs.getCP0Register(CP0_REGISTER_SR) & (1 << SR_BIT_BEV)) {
+        memory.regs.setPC(0xBFC00180);
+
+    } else {
+        memory.regs.setPC(0x80000080);
+    }
 }
 
 void Core::CP0MOVE() {
@@ -1009,6 +1055,7 @@ void Core::BLTZ() {
 
     if (rsValue >> 31) {
         memory.regs.setPC(actualTarget);
+        delaySlotIsBranchDelaySlot = true;
     }
 }
 
@@ -1038,6 +1085,7 @@ void Core::BLTZAL() {
     if (rsValue >> 31) {
         memory.regs.setRegister(31, instructionPC + 8);
         memory.regs.setPC(actualTarget);
+        delaySlotIsBranchDelaySlot = true;
     }
 }
 
@@ -1065,6 +1113,7 @@ void Core::BGEZ() {
 
     if (!(rsValue >> 31)) {
         memory.regs.setPC(actualTarget);
+        delaySlotIsBranchDelaySlot = true;
     }
 }
 
@@ -1078,9 +1127,11 @@ void Core::reset() {
 
     instructionPC = 0;
     instruction = 0;
+    isBranchDelaySlot = false;
 
     delaySlotPC = 0;
     delaySlot = 0;
+    delaySlotIsBranchDelaySlot = false;
 }
 
 void Core::readBIOS(const std::string &file) {
@@ -1090,6 +1141,7 @@ void Core::readBIOS(const std::string &file) {
 void Core::step() {
     instructionPC = delaySlotPC;
     instruction = delaySlot;
+    isBranchDelaySlot = delaySlotIsBranchDelaySlot;
     if (instructionPC == 0x80030000) {
         Log::logEnabled = true;
     }
@@ -1097,6 +1149,7 @@ void Core::step() {
     // load delay-slot instruction from memory at program counter
     delaySlotPC = memory.regs.getPC();
     delaySlot = memory.readWord(delaySlotPC);
+    delaySlotIsBranchDelaySlot = false; // this will be set to true be branch instructions
 
     // increase program counter
     // by increasing it before executing the instruction,

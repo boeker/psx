@@ -52,7 +52,21 @@ where the allocated 20h bytes have the following purpose:
 */
 
 // CPU Control Registers
-#define CP0_REGISTER_SR 12 // Status Register
+#define CP0_REGISTER_BUSCTRL  2
+#define CP0_REGISTER_BPC      3
+#define CP0_REGISTER_BDA      5
+#define CP0_REGISTER_JUMPDEST 6
+#define CP0_REGISTER_DCIC     7
+#define CP0_REGISTER_BADVADDR 8
+#define CP0_REGISTER_BDAM     9
+#define CP0_REGISTER_BPCM     10
+#define CP0_REGISTER_SR       12
+#define CP0_REGISTER_CAUSE    13
+#define CP0_REGISTER_EPC      14
+#define CP0_REGISTER_PRID     15
+
+#define SR_BIT_BEV 22
+#define CAUSE_BIT_BD 31
 
 namespace PSX {
 class Registers {
@@ -65,6 +79,7 @@ private:
     uint32_t cp0Registers[32];
 
     std::string getSRExplanation() const;
+    std::string getCauseExplanation() const;
     friend std::ostream& operator<<(std::ostream &os, const Registers &registers);
 
 public:
