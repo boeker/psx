@@ -25,6 +25,8 @@ private:
     uint32_t delaySlotPC;
     uint32_t delaySlot;
 
+    friend std::ostream& operator<<(std::ostream &os, const Core &core);
+
     // Opcode tables and implementations
     typedef void (Core::*Opcode) ();
 

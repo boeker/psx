@@ -11,6 +11,12 @@ using namespace util;
 
 namespace PSX {
 
+std::ostream& operator<<(std::ostream &os, const Core &core) {
+    os << "Register contents: " << std::endl;
+    os << core.memory.regs;
+    return os;
+}
+
 const Core::Opcode Core::opcodes[] = {
     // 0b000000
     &Core::SPECIAL,  &Core::REGIMM,   &Core::J,        &Core::JAL,

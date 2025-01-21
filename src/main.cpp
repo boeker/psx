@@ -6,8 +6,14 @@ int main(int argc, char *argv[]) {
     PSX::Core core;
     core.readBIOS("BIOS/SCPH1001.BIN");
 
-    while (true) {
-        core.step();
+    try {
+        while (true) {
+            core.step();
+        }
+    } catch (const std::runtime_error &e) {
+        std::cout << std::endl;
+        std::cout << "Excecution halted at exception: " << e.what() << std::endl;
+        std::cout << core << std::endl;
     }
 
     return 0;
