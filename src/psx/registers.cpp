@@ -2,12 +2,41 @@
 
 #include <cassert>
 #include <format>
+#include <sstream>
 
 #include "util/log.h"
 
 using namespace util;
 
 namespace PSX {
+
+std::string Registers::getSRExplanation() const {
+    std::stringstream ss;
+
+    uint32_t sr = cp0Registers[12];
+
+    ss << std::format("CU3[{:01b}] ", (sr >> 31) & 0x1);
+    ss << std::format("CU2[{:01b}] ", (sr >> 30) & 0x1);
+    ss << std::format("CU1[{:01b}] ", (sr >> 29) & 0x1);
+    ss << std::format("CU0[{:01b}] ", (sr >> 28) & 0x1);
+    ss << std::format("RE[{:01b}] ", (sr >> 25) & 0x1);
+    ss << std::format("BEV[{:01b}] ", (sr >> 22) & 0x1);
+    ss << std::format("TS[{:01b}] ", (sr >> 21) & 0x1);
+    ss << std::format("PE[{:01b}] ", (sr >> 20) & 0x1);
+    ss << std::format("CM[{:01b}] ", (sr >> 19) & 0x1);
+    ss << std::format("PZ[{:01b}] ", (sr >> 18) & 0x1);
+    ss << std::format("SwC[{:01b}] ", (sr >> 17) & 0x1);
+    ss << std::format("IsC[{:01b}] ", (sr >> 16) & 0x1);
+    ss << std::format("IM[{:08b}] ", (sr >> 8) & 0xFF);
+    ss << std::format("KUo[{:01b}] ", (sr >> 5) & 0x1);
+    ss << std::format("IEo[{:01b}] ", (sr >> 4) & 0x1);
+    ss << std::format("KUp[{:01b}] ", (sr >> 3) & 0x1);
+    ss << std::format("IEp[{:01b}] ", (sr >> 2) & 0x1);
+    ss << std::format("KUc[{:01b}] ", (sr >> 1) & 0x1);
+    ss << std::format("IEc[{:01b}] ", (sr >> 0) & 0x1);
+
+    return ss.str();
+}
 
 std::ostream& operator<<(std::ostream &os, const Registers &registers) {
     for (int i = 0; i < 16; ++i) {
@@ -30,10 +59,11 @@ std::ostream& operator<<(std::ostream &os, const Registers &registers) {
         os << ", ";
         os << Registers::CP0_REGISTER_NAMES[8 + i] << (i != 4 && i != 6 ? "\t" : "\t\t")
            << std::format("0x{:08X}", registers.cp0Registers[8 + i]);
-        if (i < 7) {
-            os << ",\n";
-        }
+        os << ",\n";
     }
+    os << std::endl;
+    
+    os << "SR: " << registers.getSRExplanation() << std::endl;
 
     return os;
 }
@@ -175,9 +205,7 @@ void Registers::setCP0Register(uint8_t rt, uint32_t value) {
     assert (rt < 32);
     Log::log(std::format(" {{w -0x{:08X}-> {:s}}}", value, getCP0RegisterName(rt)),
              Log::Type::CP0_REGISTER_WRITE);
-    if (rt > 0) {
-        cp0Registers[rt] = value;
-    }
+    cp0Registers[rt] = value;
 }
 
 bool Registers::statusRegisterIsolateCacheIsSet() const {

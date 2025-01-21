@@ -64,6 +64,7 @@ private:
 
     uint32_t cp0Registers[32];
 
+    std::string getSRExplanation() const;
     friend std::ostream& operator<<(std::ostream &os, const Registers &registers);
 
 public:
