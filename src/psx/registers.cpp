@@ -24,36 +24,53 @@ std::ostream& operator<<(std::ostream &os, const Registers &registers) {
 }
 
 const char* Registers::REGISTER_NAMES[] = {
-    // always returns zero
-    "zero",
-    // assembler temporary (reserved for use by assembler)
-    "at",
-    // value returned by subroutine
-    "v0", "v1",
-    // arguments: first four parameters for a subroutine
-    "a0", "a1", "a2", "a3",
-    // temporaries: subroutines may use without saving
+    "zero", // always returns zero
+    "at", // assembler temporary (reserved for use by assembler)
+    "v0", "v1", // value returned by subroutine
+    "a0", "a1", "a2", "a3", // arguments: first four parameters for a subroutine
     "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
-    // subroutine register variables:
-    // subroutines have to save and restore these so that
-    // the calling subroutine sees their values preserved
+        // temporaries: subroutines may use without saving
     "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
-    // more temporaries
-    "t8", "t9",
-    // reserved for use by exception handler
-    "k0", "k1",
-    // global pointer: can be maintained by OS for easy access to static variables
-    "gp",
-    // stack pointer
-    "sp",
-    // (also called s8) 9th subroutine register variable / frame pointer
-    "fp",
-    // return address for subroutine
-    "ra"
+        // subroutine register variables:
+        // subroutines have to save and restore these so that
+        // the calling subroutine sees their values preserved
+    "t8", "t9", // more temporaries
+    "k0", "k1", // reserved for use by exception handler
+    "gp", // global pointer: can be maintained by OS for easy access to static variables
+    "sp", // stack pointer
+    "fp", // (also called s8) 9th subroutine register variable / frame pointer
+    "ra" // return address for subroutine
+};
+
+const char* Registers::CP0_REGISTER_NAMES[] = {
+    // unknown
+    "CP0_r0",        "CP0_r1",
+    "BusCtrl",  // 2: configure bus interface signals
+    "BPC",      // 3: Breakpoint on execute
+    "CP0_r4",
+    "BDA",      // 5: Breakpoint on data access
+    "JUMPDEST", // 6: Randomly memorized jump address
+    "DCIC",     // 7: Breakpoint control
+    "BadVaddr", // 8: Contains the last invalid program address which caused a trap
+    "BDAM",     // 9: Data-access-breakpoint mask
+    "CP0_r10",
+    "BPCM",     // 11: Execute-breakpoint mask
+    "SR",       // 12: (status register) cpu mode flags
+    "Cause",    // 13: Describes the most recently recognized exception
+    "EPC",      // 14: Return address from trap
+    "PRId",     // 15: CP0 type and rev level
+    "CP0_r16",       "CP0_r17",       "CP0_r18",       "CP0_r19",
+    "CP0_r20",       "CP0_r21",       "CP0_r22",       "CP0_r23",
+    "CP0_r24",       "CP0_r25",       "CP0_r26",       "CP0_r27",
+    "CP0_r28",       "CP0_r29",       "CP0_r30",       "CP0_r31"
 };
 
 std::string Registers::getRegisterName(uint8_t reg) {
     return REGISTER_NAMES[reg];
+}
+
+std::string Registers::getCP0RegisterName(uint8_t reg) {
+    return CP0_REGISTER_NAMES[reg];
 }
 
 Registers::Registers() {
@@ -129,12 +146,20 @@ void Registers::setLo(uint32_t value) {
 }
 
 uint32_t Registers::getCP0Register(uint8_t rt) {
+    Log::log(std::format(" {{r "), Log::Type::CP0_REGISTER_READ);
     assert (rt < 32);
-    return cp0Registers[rt];
+
+    uint32_t word = cp0Registers[rt];
+    Log::log(std::format("{:s} -0x{:08X}->}}",
+                         getCP0RegisterName(rt), word), Log::Type::CP0_REGISTER_READ);
+
+    return word;
 }
 
 void Registers::setCP0Register(uint8_t rt, uint32_t value) {
     assert (rt < 32);
+    Log::log(std::format(" {{w -0x{:08X}-> {:s}}}", value, getCP0RegisterName(rt)),
+             Log::Type::CP0_REGISTER_WRITE);
     if (rt > 0) {
         cp0Registers[rt] = value;
     }

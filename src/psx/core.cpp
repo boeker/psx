@@ -1084,6 +1084,9 @@ void Core::readBIOS(const std::string &file) {
 void Core::step() {
     instructionPC = delaySlotPC;
     instruction = delaySlot;
+    if (instructionPC == 0x80030000) {
+        Log::logEnabled = true;
+    }
 
     // load delay-slot instruction from memory at program counter
     delaySlotPC = memory.regs.getPC();
