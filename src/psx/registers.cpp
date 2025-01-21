@@ -11,14 +11,29 @@ namespace PSX {
 
 std::ostream& operator<<(std::ostream &os, const Registers &registers) {
     for (int i = 0; i < 16; ++i) {
-        os << Registers::REGISTER_NAMES[i] << "/r" << i << ": " << std::format("0x{:08X}", registers.registers[i]);
+        os << Registers::REGISTER_NAMES[i] << "/r" << i << "\t"
+           << std::format("0x{:08X}", registers.registers[i]);
         os << ", ";
-        os << Registers::REGISTER_NAMES[16 + i] << "/r" << 16 + i << ": " << std::format("0x{:08X}", registers.registers[16 + i]);
+        os << Registers::REGISTER_NAMES[16 + i] << "/r" << 16 + i << "\t"
+           << std::format("0x{:08X}", registers.registers[16 + i]);
         os << ",\n";
     }
-    os << "hi: " << std::format("0x{:08X}", registers.hi);
+    os << "hi\t" << std::format("0x{:08X}", registers.hi);
     os << ", ";
-    os << "lo: " << std::format("0x{:08X}", registers.lo);
+    os << "lo\t\t" << std::format("0x{:08X}", registers.lo);
+    os << "\n";
+    os << std::endl;
+
+    for (int i = 0; i < 8; ++i) {
+        os << Registers::CP0_REGISTER_NAMES[i] << (i != 6 ? "\t" : "")
+           << std::format("0x{:08X}", registers.cp0Registers[i]);
+        os << ", ";
+        os << Registers::CP0_REGISTER_NAMES[8 + i] << (i != 4 && i != 6 ? "\t" : "\t\t")
+           << std::format("0x{:08X}", registers.cp0Registers[8 + i]);
+        if (i < 7) {
+            os << ",\n";
+        }
+    }
 
     return os;
 }
