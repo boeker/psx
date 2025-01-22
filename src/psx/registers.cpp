@@ -13,7 +13,7 @@ namespace PSX {
 std::string Registers::getSRExplanation() const {
     std::stringstream ss;
 
-    uint32_t sr = cp0Registers[12];
+    uint32_t sr = cp0Registers[CP0_REGISTER_SR];
 
     ss << std::format("CU3[{:01b}] ", (sr >> 31) & 0x1);
     ss << std::format("CU2[{:01b}] ", (sr >> 30) & 0x1);
@@ -41,7 +41,7 @@ std::string Registers::getSRExplanation() const {
 std::string Registers::getCauseExplanation() const {
     std::stringstream ss;
 
-    uint32_t cause = cp0Registers[12];
+    uint32_t cause = cp0Registers[CP0_REGISTER_CAUSE];
 
     ss << std::format("BD[{:01b}] ", (cause >> 31) & 0x1);
     ss << std::format("CE[{:02b}] ", (cause >> 28) & 0x3);
