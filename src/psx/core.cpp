@@ -3,6 +3,7 @@
 #include <cassert>
 #include <format>
 #include <iostream>
+#include <sstream>
 
 #include "exceptions/exceptions.h"
 #include "util/log.h"
@@ -977,6 +978,11 @@ void Core::SYSCALL() {
     } else {
         memory.regs.setPC(0x80000080);
     }
+
+    // fetch instruction at new program counter into the delay slot
+    // in order to avoid executing the instruction in the delay slot
+    // before handling the exception
+    fetchDelaySlot();
 }
 
 void Core::CP0MOVE() {
@@ -1147,6 +1153,19 @@ void Core::step() {
     }
 
     // load delay-slot instruction from memory at program counter
+    // and increase program counter
+    fetchDelaySlot();
+
+    // execute instruction
+    Log::log(std::format("@0x{:08X}: ", instructionPC));
+    opcode = instruction >> 26;
+    assert (opcode <= 0b111111);
+    (this->*opcodes[opcode])();
+    Log::log("\n");
+}
+
+void Core::fetchDelaySlot() {
+    // load delay-slot instruction from memory at program counter
     delaySlotPC = memory.regs.getPC();
     delaySlot = memory.readWord(delaySlotPC);
     delaySlotIsBranchDelaySlot = false; // this will be set to true be branch instructions
@@ -1155,12 +1174,5 @@ void Core::step() {
     // by increasing it before executing the instruction,
     // it may be overwritten by the instruction
     memory.regs.setPC(delaySlotPC + 4);
-    
-    // execute instruction
-    Log::log(std::format("@0x{:08X}: ", instructionPC));
-    opcode = instruction >> 26;
-    assert (opcode <= 0b111111);
-    (this->*opcodes[opcode])();
-    Log::log("\n");
 }
 }

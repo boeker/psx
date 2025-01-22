@@ -103,6 +103,7 @@ public:
     void readBIOS(const std::string &file);
 
     void step();
+    void fetchDelaySlot();
 };
 }
 
