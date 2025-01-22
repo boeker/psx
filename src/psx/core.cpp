@@ -98,7 +98,7 @@ const Core::Opcode Core::cp0[] = {
     // 0b001100
     &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
     // 0b010000
-    &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
+    &Core::RFE,      &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
     // 0b010100
     &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,   &Core::UNKCP0,
     // 0b011000
@@ -854,10 +854,6 @@ void Core::MFLO() {
     memory.regs.setRegister(rd, memory.regs.getLo());
 }
 
-void Core::UNKCP0() {
-    throw exceptions::UnknownFunctionError(std::format("0x{:x}: instruction 0x{:x} (CP0), function 0b{:06b}", instructionPC, instruction, funct));
-}
-
 void Core::SRL() {
     // Shift Word Right Logical
     // T: GPR[rd] <- 0^{sa} || GPR[rt]_{31...sa}
@@ -1009,12 +1005,27 @@ void Core::MTHI() {
     memory.regs.setHi(memory.regs.getRegister(rs));
 }
 
+void Core::UNKCP0() {
+    throw exceptions::UnknownFunctionError(std::format("0x{:x}: instruction 0x{:x} (CP0), function 0b{:06b}", instructionPC, instruction, funct));
+}
+
+
 void Core::CP0MOVE() {
     // CP0 Move
     // Operation depends on function field
     move = 0x1F & (instruction >> 21);
     
     (this->*cp0Move[move])();
+}
+
+void Core::RFE() {
+    // Restore From Exception
+    // T: SR <- SR_{31...4} || SR_{5...2}
+
+    Log::log("RFE");
+
+    uint32_t sr = memory.regs.getCP0Register(CP0_REGISTER_SR);
+    memory.regs.setCP0Register(CP0_REGISTER_SR, (sr & 0xFFFFFFF0) | ((sr & 0x3C) >> 2));
 }
 
 void Core::UNKCP0M() {

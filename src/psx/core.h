@@ -84,6 +84,7 @@ private:
     static const Opcode cp0[];
     void UNKCP0();
     void CP0MOVE();
+    void RFE();
 
     // CP0 instructions are identified via move field
     static const Opcode cp0Move[];
