@@ -77,6 +77,8 @@ private:
     void MFHI();
     void SLT();
     void SYSCALL();
+    void MTLO();
+    void MTHI();
 
     // Opcode CP0 encodes further instructions
     static const Opcode cp0[];

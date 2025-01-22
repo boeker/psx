@@ -189,18 +189,28 @@ void Registers::setRegister(uint8_t rt, uint32_t value) {
 }
 
 uint32_t Registers::getHi() {
+    Log::log(std::format(" {{r hi -0x{:08X}->}}", this->hi), Log::Type::REGISTER_READ);
+
     return this->hi;
 }
 
 void Registers::setHi(uint32_t value) {
+    Log::log(std::format(" {{w -0x{:08X}-> hi}}", value),
+             Log::Type::REGISTER_WRITE);
+
     this->hi = value;
 }
 
 uint32_t Registers::getLo() {
+    Log::log(std::format(" {{r lo -0x{:08X}->}}", this->lo), Log::Type::REGISTER_READ);
+
     return this->lo;
 }
 
 void Registers::setLo(uint32_t value) {
+    Log::log(std::format(" {{w -0x{:08X}-> lo}}", value),
+             Log::Type::REGISTER_WRITE);
+
     this->lo = value;
 }
 

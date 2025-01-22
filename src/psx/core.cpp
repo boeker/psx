@@ -63,7 +63,7 @@ const Core::Opcode Core::special[] = {
     // 0b001100
     &Core::SYSCALL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b010000
-    &Core::MFHI,     &Core::UNKSPCL,  &Core::MFLO,     &Core::UNKSPCL,
+    &Core::MFHI,     &Core::MTHI,     &Core::MFLO,     &Core::MTLO,
     // 0b010100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b011000
@@ -983,6 +983,30 @@ void Core::SYSCALL() {
     // in order to avoid executing the instruction in the delay slot
     // before handling the exception
     fetchDelaySlot();
+}
+
+void Core::MTLO() {
+    // Move To Lo
+    // T-2: LO <- undefined
+    // T-1: LO <- undefined
+    // T: LO <- GPR[rs]
+    uint8_t rs = 0x1F & (instruction >> 21);
+
+    Log::log(std::format("MTLO {:s}", memory.regs.getRegisterName(rs)));
+
+    memory.regs.setLo(memory.regs.getRegister(rs));
+}
+
+void Core::MTHI() {
+    // Move To HI
+    // T-2: HI <- undefined
+    // T-1: HI <- undefined
+    // T: HI <- GPR[rs]
+    uint8_t rs = 0x1F & (instruction >> 21);
+
+    Log::log(std::format("MTHI {:s}", memory.regs.getRegisterName(rs)));
+
+    memory.regs.setHi(memory.regs.getRegister(rs));
 }
 
 void Core::CP0MOVE() {
