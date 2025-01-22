@@ -162,7 +162,7 @@ const Core::Opcode Core::regimm[] = {
 };
 
 void Core::UNK() {
-    throw exceptions::UnknownOpcodeError(std::format("instruction 0x{:x}: 0b{:06b}", instructionPC, opcode));
+    throw exceptions::UnknownOpcodeError(std::format("Unknown opcode @0x{:x}: opcode 0b{:06b}", instructionPC, opcode));
 }
 
 void Core::SPECIAL() {
@@ -616,7 +616,7 @@ void Core::SLTIU() {
 }
 
 void Core::UNKSPCL() {
-    throw exceptions::UnknownFunctionError(std::format("0x{:x}: instruction 0x{:x} (SPECIAL), function 0b{:06b}", instructionPC, instruction, funct));
+    throw exceptions::UnknownFunctionError(std::format("Unknown function @0x{:x}: instruction 0x{:x} (SPECIAL), function 0b{:06b}", instructionPC, instruction, funct));
 }
 
 void Core::SLL() {
@@ -1006,7 +1006,7 @@ void Core::MTHI() {
 }
 
 void Core::UNKCP0() {
-    throw exceptions::UnknownFunctionError(std::format("0x{:x}: instruction 0x{:x} (CP0), function 0b{:06b}", instructionPC, instruction, funct));
+    throw exceptions::UnknownFunctionError(std::format("Unknown CP0 opcode @0x{:x}: instruction 0x{:x} (CP0), function 0b{:06b}", instructionPC, instruction, funct));
 }
 
 
@@ -1068,7 +1068,7 @@ void Core::MFC0() {
 }
 
 void Core::UNKRGMM() {
-    throw exceptions::UnknownOpcodeError(std::format("0x{:x}: instruction 0x{:x} (REGIMM), rt 0b{:05b}", instructionPC, instruction, instructionRt));
+    throw exceptions::UnknownOpcodeError(std::format("Unknown REGIMM @0x{:x}: instruction 0x{:x} (REGIMM), rt 0b{:05b}", instructionPC, instruction, instructionRt));
 }
 
 void Core::BLTZ() {
