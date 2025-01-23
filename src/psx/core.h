@@ -84,6 +84,7 @@ private:
     void SLLV();
     void NOR();
     void SRAV();
+    void SRLV();
 
     // Opcode CP0 encodes further instructions
     static const Opcode cp0[];
