@@ -45,7 +45,7 @@ public:
     void readBIOS(const std::string &file);
 
     uint8_t readByte(uint32_t address);
-    uint16_t readHalfWord(uint16_t address);
+    uint16_t readHalfWord(uint32_t address);
     uint32_t readWord(uint32_t address);
 
     void writeByte(uint32_t address, uint8_t byte);

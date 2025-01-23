@@ -61,7 +61,7 @@ uint8_t Memory::readByte(uint32_t address) {
     return byte;
 }
 
-uint16_t Memory::readHalfWord(uint16_t address) {
+uint16_t Memory::readHalfWord(uint32_t address) {
     Log::log(std::format(" [rhw "), Log::Type::MEMORY);
     uint16_t *memory = (uint16_t*)resolveAddress(address); // PSX is little endian, so is x86
 
