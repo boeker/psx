@@ -57,7 +57,7 @@ const Core::Opcode Core::special[] = {
     // 0b000000
     &Core::SLL,      &Core::UNKSPCL,  &Core::SRL,      &Core::SRA,
     // 0b000100
-    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
+    &Core::SLLV,     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b001000
     &Core::JR,       &Core::JALR,     &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b001100
@@ -1026,6 +1026,24 @@ void Core::MTHI() {
     Log::log(std::format("MTHI {:s}", memory.regs.getRegisterName(rs)));
 
     memory.regs.setHi(memory.regs.getRegister(rs));
+}
+
+void Core::SLLV() {
+    // Shift Word Left Logical Variable
+    // s <- GP[rs]_{4...0}
+    // GPR[rd] <- GPR[rt]_{(31-s)...0} || 0^s
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    Log::log(std::format("SLLV {:s},{:s},{:s}",
+                         memory.regs.getRegisterName(rd),
+                         memory.regs.getRegisterName(rt),
+                         memory.regs.getRegisterName(rs)));
+
+    uint8_t s = memory.regs.getRegister(rs) & 0x1F;
+
+    memory.regs.setRegister(rd, memory.regs.getRegister(rt) << s);
 }
 
 void Core::UNKCP0() {

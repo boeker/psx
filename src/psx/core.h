@@ -80,6 +80,7 @@ private:
     void SYSCALL();
     void MTLO();
     void MTHI();
+    void SLLV();
 
     // Opcode CP0 encodes further instructions
     static const Opcode cp0[];
