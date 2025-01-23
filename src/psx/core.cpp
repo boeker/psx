@@ -67,7 +67,7 @@ const Core::Opcode Core::special[] = {
     // 0b010100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b011000
-    &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::DIV,      &Core::DIVU,
+    &Core::UNKSPCL,  &Core::MULTU,    &Core::DIV,      &Core::DIVU,
     // 0b011100
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b100000
@@ -1125,6 +1125,30 @@ void Core::SRLV() {
     uint32_t result = rtValue >> s;
 
     memory.regs.setRegister(rd, result);
+}
+
+void Core:: MULTU() {
+    // Multiply Unsigned Word
+    // T-2: LO <- undefined
+    //      HI <- undefined
+    // T-1: LO <- undefined
+    //      HI <- undefined
+    // T:   t <- (0 || GPR[rs]) * (0 || GPR[rt])
+    //      LO <- t_{31...0}
+    //      HI <- t_{63...32}
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+
+    Log::log(std::format("MULTU {:s},{:s}",
+                         memory.regs.getRegisterName(rs),
+                         memory.regs.getRegisterName(rt)));
+
+    uint64_t rsValue = memory.regs.getRegister(rs);
+    uint64_t rtValue = memory.regs.getRegister(rt);
+    uint64_t result = rsValue * rtValue;
+
+    memory.regs.setLo(0x00000000FFFFFFFF & result);
+    memory.regs.setHi(result >> 32);
 }
 
 void Core::UNKCP0() {
