@@ -36,7 +36,7 @@ const Core::Opcode Core::opcodes[] = {
     // 0b011100
     &Core::UNK,      &Core::UNK,      &Core::UNK,      &Core::UNK,
     // 0b100000
-    &Core::LB,       &Core::UNK,      &Core::UNK,      &Core::LW,
+    &Core::LB,       &Core::LH,       &Core::UNK,      &Core::LW,
     // 0b100100
     &Core::LBU,      &Core::LHU,      &Core::UNK,      &Core::UNK,
     // 0b101000
@@ -636,6 +636,29 @@ void Core::LHU() {
     uint16_t mem = memory.readHalfWord(vAddr);
     uint32_t zeroExtension = mem;
     memory.regs.setRegister(rt, zeroExtension);
+}
+
+void Core::LH() {
+    // Load Halfword
+    // T: vAddr <- ((offset_{15})^{16} | offset_{15...0}) + GPR[base]
+    // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
+    // pAddr <- pAddr_{PSIZE-1...2} || (pAddr_{1...0} xor (ReverseEndian || 0))
+    // mem <- LoadMemory(uncached, HALFWORD, pAddr, vAddr, DATA)
+    // byte <- vAddr_{1...0} xor (BigEndianCPU || 0)
+    // T+1: GPR[rt] <- (mem_{15+8*byte)^{16} || mem_{15+8*byte...8*byte}
+    uint8_t base = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    Log::log(std::format("LH {:s},0x{:04X}({:s})",
+                         memory.regs.getRegisterName(rt),
+                         offset,
+                         memory.regs.getRegisterName(base)));
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + memory.regs.getRegister(base);
+    uint16_t mem = memory.readHalfWord(vAddr);
+    uint32_t signExtension = ((mem >> 15) ? 0xFFFF0000 : 0x00000000) + mem;
+    memory.regs.setRegister(rt, signExtension);
 }
 
 void Core::UNKSPCL() {
