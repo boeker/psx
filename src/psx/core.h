@@ -56,6 +56,7 @@ private:
     void LBU();
     void SLTI();
     void SLTIU();
+    void LHU();
 
     // Opcode SPECIAL encodes further instructions via function field
     static const Opcode special[];
