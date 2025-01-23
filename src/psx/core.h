@@ -83,6 +83,7 @@ private:
     void MTHI();
     void SLLV();
     void NOR();
+    void SRAV();
 
     // Opcode CP0 encodes further instructions
     static const Opcode cp0[];

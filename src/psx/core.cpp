@@ -57,7 +57,7 @@ const Core::Opcode Core::special[] = {
     // 0b000000
     &Core::SLL,      &Core::UNKSPCL,  &Core::SRL,      &Core::SRA,
     // 0b000100
-    &Core::SLLV,     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::UNKSPCL,
+    &Core::SLLV,     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::SRAV,
     // 0b001000
     &Core::JR,       &Core::JALR,     &Core::UNKSPCL,  &Core::UNKSPCL,
     // 0b001100
@@ -1081,6 +1081,30 @@ void Core::NOR() {
                          memory.regs.getRegisterName(rt)));
 
     memory.regs.setRegister(rd, ~(memory.regs.getRegister(rs) | memory.regs.getRegister(rt)));
+}
+
+void Core::SRAV() {
+    // Shift Word Right Arithmetic Variable
+    // T: s <- GPR[rs]_{4...0}
+    //    GPR[rd] <- (GPR[rt]_{31})^{s} || GPR[rt]_{31...s}
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    Log::log(std::format("SRAV {:s},{:s},{:s}",
+                         memory.regs.getRegisterName(rd),
+                         memory.regs.getRegisterName(rt),
+                         memory.regs.getRegisterName(rs)));
+
+    uint8_t s = memory.regs.getRegister(rs);
+    uint32_t rtValue = memory.regs.getRegister(rt);
+    uint32_t result = rtValue >> s;
+    if (rtValue >> 31) {
+        assert (s <= 32);
+        result = result | (0xFFFFFFFF << (32 - s));
+    }
+
+    memory.regs.setRegister(rd, result);
 }
 
 void Core::UNKCP0() {
