@@ -73,7 +73,7 @@ const Core::Opcode Core::special[] = {
     // 0b100000
     &Core::ADD,      &Core::ADDU,     &Core::UNKSPCL,  &Core::SUBU,
     // 0b100100
-    &Core::AND,      &Core::OR,       &Core::UNKSPCL,  &Core::UNKSPCL,
+    &Core::AND,      &Core::OR,       &Core::UNKSPCL,  &Core::NOR,
     // 0b101000
     &Core::UNKSPCL,  &Core::UNKSPCL,  &Core::SLT,      &Core::SLTU,
     // 0b101100
@@ -1067,6 +1067,20 @@ void Core::SLLV() {
     uint8_t s = memory.regs.getRegister(rs) & 0x1F;
 
     memory.regs.setRegister(rd, memory.regs.getRegister(rt) << s);
+}
+
+void Core::NOR() {
+    // Nor
+    // T: GPR[rd] <- GPR[rs] nor GPR[rt]
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+    Log::log(std::format("NOR {:s},{:s},{:s}",
+                         memory.regs.getRegisterName(rd),
+                         memory.regs.getRegisterName(rs),
+                         memory.regs.getRegisterName(rt)));
+
+    memory.regs.setRegister(rd, ~(memory.regs.getRegister(rs) | memory.regs.getRegister(rt)));
 }
 
 void Core::UNKCP0() {

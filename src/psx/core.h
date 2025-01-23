@@ -82,6 +82,7 @@ private:
     void MTLO();
     void MTHI();
     void SLLV();
+    void NOR();
 
     // Opcode CP0 encodes further instructions
     static const Opcode cp0[];
