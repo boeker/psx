@@ -154,11 +154,39 @@ void* Memory::resolveAddress(uint32_t address) {
     // our memory is smaller (0x1FFF is max value)
     // 0x1F801000 - 0x1F802FFF (0b0001 1111 1000 0000 0001 ... - 0b0001 1111 1000 0000 ...)
     if (((address & 0x1FFFF000) == 0x1F801000)) {
+        if ((address >= 0x1F801040) && (address <= 0x1F80105F)) {
+            Log::log("~Peripheral~", Log::Type::PERIPHERAL);
+        } else if ((address >= 0x1F801070) && (address <= 0x1F801077)) {
+            Log::log("~Interrupt~", Log::Type::INTERRUPT);
+        } else if ((address >= 0x1F801080) && (address <= 0x1F8010FF)) {
+            Log::log("~DMA~", Log::Type::DMA);
+        } else if ((address >= 0x1F801100) && (address <= 0x1F80112A)) {
+            Log::log("~Timer~", Log::Type::TIMER);
+        } else if ((address >= 0x1F801800) && (address <= 0x1F801803)) {
+            Log::log("~CDROM~", Log::Type::CDROM);
+        } else if ((address >= 0x1F801810) && (address <= 0x1F801817)) {
+            Log::log("~GPU~", Log::Type::GPU);
+        } else if ((address >= 0x1F801820) && (address <= 0x1F801827)) {
+            Log::log("~MDEC~", Log::Type::MDEC);
+        } else if ((address >= 0x1F801C00) && (address <= 0x1F801D7F)) {
+            Log::log("~SPU Voice~", Log::Type::SPU);
+        } else if ((address >= 0x1F801D80) && (address <= 0x1F801DBF)) {
+            Log::log("~SPU~", Log::Type::SPU);
+        } else if ((address >= 0x1F801DC0) && (address <= 0x1F801DFF)) {
+            Log::log("~SPU Reverb~", Log::Type::SPU);
+        } else if ((address >= 0x1F801E00) && (address <= 0x1F801FFF)) {
+            Log::log("~SPU Internal~", Log::Type::SPU);
+        }
+
         uint32_t offset = address & 0x00000FFF;
         assert(offset < IO_PORTS_SIZE);
         return ioPorts + offset;
     }
     if (((address & 0x1FFFF000) == 0x1F802000)) {
+        if ((address >= 0x1F802020) && (address <= 0x1F80202F)) {
+            Log::log("~Dual Serial Port~", Log::Type::GPU);
+        }
+
         uint32_t offset = 0x00001000 + (address & 0x00000FFF);
         assert(offset < IO_PORTS_SIZE);
         return ioPorts + offset;

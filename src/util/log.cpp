@@ -15,12 +15,20 @@ void Log::log(const std::string &message, Type type) {
         case Type::CP0_REGISTER_READ:
         case Type::CP0_REGISTER_WRITE:
         case Type::REGISTER_PC_WRITE:
-        case Type::MISC:
-            if (logEnabled) {
-                std::cerr << message;
-            }
-            break;
         case Type::REGISTER_PC_READ:
+        case Type::GPU:
+        case Type::SPU:
+        case Type::MISC:
+            break;
+        case Type::CDROM:
+        case Type::MDEC:
+        case Type::DMA:
+        case Type::TIMER:
+        case Type::PERIPHERAL:
+        case Type::INTERRUPT:
+            //if (logEnabled) {
+                std::cerr << message;
+            //}
             break;
     }
 }

@@ -16,6 +16,14 @@ public:
         REGISTER_PC_WRITE,
         CP0_REGISTER_READ,
         CP0_REGISTER_WRITE,
+        CDROM,
+        GPU,
+        SPU,
+        MDEC,
+        DMA,
+        TIMER,
+        PERIPHERAL,
+        INTERRUPT,
         MISC
     };
 
