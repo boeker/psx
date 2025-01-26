@@ -178,7 +178,12 @@ void Bus::write (uint32_t address, T value) {
         //if ((address >= 0x1F802020) && (address <= 0x1F80202F)) {
         //    Log::log("~Dual Serial Port~", Log::Type::GPU);
         //}
-        Log::log(std::format("Unimplemented Expansion Region 2 write @0x{:08X}", address), Log::Type::WARNING);
+        if (address == 0x1F802041) {
+            std::cout << std::format("Boot status: 0x{:02X}", 0xFF & value) << std::endl;
+
+        } else {
+            Log::log(std::format("Unimplemented Expansion Region 2 write @0x{:08X}", address), Log::Type::WARNING);
+        }
 
         //uint32_t offset = 0x00001000 + (address & 0x00000FFF);
     } else if ((address & 0x1FF80000) == 0x1FC00000) { // Bios ROM
