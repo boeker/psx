@@ -14,202 +14,118 @@ using namespace util;
 namespace PSX {
 Memory::Memory() {
     mainRAM = new uint8_t[MAIN_RAM_SIZE];
-    ioPorts = new uint8_t[IO_PORTS_SIZE];
-    bios = new uint8_t[BIOS_SIZE];
     dCache = new uint8_t[DCACHE_SIZE];
+    memoryControlRegisters = new uint8_t[MEMORY_CONTROL_SIZE];
 
     reset();
 }
 
 Memory::~Memory() {
     delete[] mainRAM;
-    delete[] ioPorts;
-    delete[] bios;
     delete[] dCache;
+    delete[] memoryControlRegisters;
 }
 
 void Memory::reset() {
-    regs.reset();
-
     std::memset(mainRAM, 0, MAIN_RAM_SIZE);
-    std::memset(ioPorts, 0, IO_PORTS_SIZE);
-    std::memset(bios, 0, BIOS_SIZE);
     std::memset(dCache, 0, DCACHE_SIZE);
+    std::memset(memoryControlRegisters, 0, MEMORY_CONTROL_SIZE);
     std::memset(&cacheControlRegister, 0, 4);
 }
 
-void Memory::readBIOS(const std::string &file) {
-    std::ifstream biosFile(file.c_str(), std::ios::binary);
-    if (!biosFile.good()) {
-        throw exceptions::FileReadError("BIOS file \"" + file + "\"not found");
-    }
-    
-    biosFile.read(reinterpret_cast<char*>(bios), BIOS_SIZE);
 
-    if (biosFile.fail()) {
-        throw exceptions::FileReadError("BIOS file read failed");
-    }
+template <typename T>
+T Memory::readMainRAM(uint32_t address) {
+    uint32_t offset = address & 0x001FFFFF;
+    assert(offset < MAIN_RAM_SIZE);
+
+    return *((T*)(mainRAM + offset));
 }
 
-uint8_t Memory::readByte(uint32_t address) {
-    Log::log(std::format(" [rb "), Log::Type::MEMORY);
-    uint8_t *memory = (uint8_t*)resolveAddress(address);
+template uint32_t Memory::readMainRAM<uint32_t>(uint32_t address);
+template uint16_t Memory::readMainRAM<uint16_t>(uint32_t address);
+template uint8_t Memory::readMainRAM<uint8_t>(uint32_t address);
 
-    uint8_t byte = *memory;
-    Log::log(std::format("@0x{:08X} -0x{:02X}->]", address, byte), Log::Type::MEMORY);
+template <typename T>
+void Memory::writeMainRAM(uint32_t address, T value) {
+    uint32_t offset = address & 0x001FFFFF;
+    assert(offset < MAIN_RAM_SIZE);
 
-    return byte;
+    *((T*)(mainRAM + offset)) = value;
 }
 
-uint16_t Memory::readHalfWord(uint32_t address) {
-    Log::log(std::format(" [rhw "), Log::Type::MEMORY);
-    uint16_t *memory = (uint16_t*)resolveAddress(address); // PSX is little endian, so is x86
+template void Memory::writeMainRAM(uint32_t address, uint32_t value);
+template void Memory::writeMainRAM(uint32_t address, uint16_t value);
+template void Memory::writeMainRAM(uint32_t address, uint8_t value);
 
-    uint16_t halfWord = *memory;
-    Log::log(std::format("@0x{:08X} -0x{:04X}->]", address, halfWord), Log::Type::MEMORY);
+template <typename T>
+T Memory::readDCache(uint32_t address) {
+    uint32_t offset = address & 0x000003FF;
+    assert(offset < DCACHE_SIZE);
 
-    return halfWord;
+    return *((T*)(dCache + offset));
 }
 
-uint32_t Memory::readWord(uint32_t address) {
-    Log::log(std::format(" [rw "), Log::Type::MEMORY);
-    uint32_t *memory = (uint32_t*)resolveAddress(address); // PSX is little endian, so is x86
+template uint32_t Memory::readDCache<uint32_t>(uint32_t address);
+template uint16_t Memory::readDCache<uint16_t>(uint32_t address);
+template uint8_t Memory::readDCache<uint8_t>(uint32_t address);
 
-    uint32_t word = *memory;
-    Log::log(std::format("@0x{:08X} -0x{:08X}->]", address, word), Log::Type::MEMORY);
+template <typename T>
+void Memory::writeDCache(uint32_t address, T value) {
+    uint32_t offset = address & 0x000003FF;
+    assert(offset < DCACHE_SIZE);
 
-    return word;
+    *((T*)(dCache + offset)) = value;
 }
 
-void Memory::writeByte(uint32_t address, uint8_t byte) {
-    Log::log(std::format(" [wb -0x{:02X}-> @0x{:08X}]", byte, address), Log::Type::MEMORY);
-    uint8_t *memory = (uint8_t*)resolveAddress(address);
-    *memory = byte;
+template void Memory::writeDCache(uint32_t address, uint32_t value);
+template void Memory::writeDCache(uint32_t address, uint16_t value);
+template void Memory::writeDCache(uint32_t address, uint8_t value);
+
+template <typename T>
+T Memory::readMemoryControlRegisters(uint32_t address) {
+    uint32_t offset = address & 0x0000001F;
+    assert(offset < MEMORY_CONTROL_SIZE);
+
+    return *((T*)(memoryControlRegisters + offset));
 }
 
-void Memory::writeHalfWord(uint32_t address, uint16_t halfWord) {
-    Log::log(std::format(" [whw -0x{:04X}-> @0x{:08X}]", halfWord, address), Log::Type::MEMORY);
-    uint16_t *memory = (uint16_t*)resolveAddress(address); // PSX is little endian, so is x86
-    *memory = halfWord;
+template uint32_t Memory::readMemoryControlRegisters<uint32_t>(uint32_t address);
+template uint16_t Memory::readMemoryControlRegisters<uint16_t>(uint32_t address);
+template uint8_t Memory::readMemoryControlRegisters<uint8_t>(uint32_t address);
+
+template <typename T>
+void Memory::writeMemoryControlRegisters(uint32_t address, T value) {
+    uint32_t offset = address & 0x0000001F;
+    assert(offset < MEMORY_CONTROL_SIZE);
+
+    *((T*)(memoryControlRegisters + offset)) = value;
 }
 
-void Memory::writeWord(uint32_t address, uint32_t word) {
-    Log::log(std::format(" [ww -0x{:08X}-> @0x{:08X}]", word, address), Log::Type::MEMORY);
-    uint32_t *memory = (uint32_t*)resolveAddress(address); // PSX is little endian, so is x86
-    *memory = word;
+template void Memory::writeMemoryControlRegisters(uint32_t address, uint32_t value);
+template void Memory::writeMemoryControlRegisters(uint32_t address, uint16_t value);
+template void Memory::writeMemoryControlRegisters(uint32_t address, uint8_t value);
+
+template <typename T>
+T Memory::readCacheControlRegister(uint32_t address) {
+    assert(address == 0xFFFE0130);
+
+    return *((T*)cacheControlRegister);
 }
 
-void* Memory::resolveAddress(uint32_t address) {
-    // 512MiB Memory Regions
-    // 0x00000000 KUSEG
-    // 0x20000000 KUSEG (Error)
-    // 0x40000000 KUSEG (Error)
-    // 0x60000000 KUSEG (Error)
-    // 0x80000000 KSEG0
-    // 0xA0000000 KSEG1 (No Scratchpad!)
-    // 0xC0000000 KSEG2
-    // 0xE0000000 KSEG2
+template uint32_t Memory::readCacheControlRegister<uint32_t>(uint32_t address);
+template uint16_t Memory::readCacheControlRegister<uint16_t>(uint32_t address);
+template uint8_t Memory::readCacheControlRegister<uint8_t>(uint32_t address);
 
-    // Main RAM
-    // 0x00000000 - 0x001FFFFF (0b0000 0000 0000 ... - 0b0000 0000 0001 ...)
-    // 0x80000000 - 0x801FFFFF (0b1000 0000 0000 ... - 0b1000 0000 0001 ...)
-    // 0xA0000000 - 0xA01FFFFF (0b1010 0000 0000 ... - 0b1010 0000 0001 ...)
-    if ((address & 0x1FE00000) == 0x00000000) {
-        if (regs.statusRegisterIsolateCacheIsSet()) {
-            uint32_t offset = address & 0x000003FF;
-            assert(offset < DCACHE_SIZE);
-            return dCache + offset;
+template <typename T>
+void Memory::writeCacheControlRegister(uint32_t address, T value) {
+    assert(address == 0xFFFE0130);
 
-        } else {
-            uint32_t offset = address & 0x001FFFFF;
-            assert(offset < MAIN_RAM_SIZE);
-            return mainRAM + offset;
-        }
-    }
-
-    // Expansion Region 1
-    // 0x1F000000 - 0x1F7FFFFF (0b0001 1111 0000 ... - 0b0001 1111 0111 ...)
-    // 0x9F000000 - 0x9F7FFFFF (0b1001 1111 0000 ... - 0b1001 1111 0111 ...)
-    // 0xBF000000 - 0xBF7FFFFF (0b1011 1111 0000 ... - 0b1011 1111 0111 ...)
-    if ((address & 0x1F800000) == 0x1F000000) {
-        //uint32_t offset = address & 0x007FFFFF;
-        null = 0; // Make sure that null is 0 before the next read
-        return &null;
-    }
-
-    // D-Cache (Scratchpad)
-    // 0x1F800000 - 0x1F8003FF (0b0001 1111 1000 ... - 0b0001 1111 1000 ...)
-    // Also in KSEG0?
-    // 0x9F800000 - 0x9F8003FF (0b1001 1111 1000 ... - 0b1001 1111 1000 ...)
-    // But not in KSEG1?
-    if ((address & 0x1FFFFC00) == 0x1F8FFC00) {
-        // Also in KSEG1 for now
-        uint32_t offset = address & 0x000003FF;
-        assert(offset < DCACHE_SIZE);
-        return dCache + offset;
-    }
-
-    // Hardware Registers (I/0 Ports)
-    // 0x1F801000 - 0x1FBFFFFF (0b0001 1111 1000 0000 0001 ... - 0b0001 1111 1011 1111 ...)
-    // our memory is smaller (0x1FFF is max value)
-    // 0x1F801000 - 0x1F802FFF (0b0001 1111 1000 0000 0001 ... - 0b0001 1111 1000 0000 ...)
-    if (((address & 0x1FFFF000) == 0x1F801000)) {
-        if ((address >= 0x1F801040) && (address <= 0x1F80105F)) {
-            Log::log("~Peripheral~", Log::Type::PERIPHERAL);
-        } else if ((address >= 0x1F801070) && (address <= 0x1F801077)) {
-            Log::log("~Interrupt~", Log::Type::INTERRUPT);
-        } else if ((address >= 0x1F801080) && (address <= 0x1F8010FF)) {
-            Log::log("~DMA~", Log::Type::DMA);
-        } else if ((address >= 0x1F801100) && (address <= 0x1F80112A)) {
-            Log::log("~Timer~", Log::Type::TIMER);
-        } else if ((address >= 0x1F801800) && (address <= 0x1F801803)) {
-            Log::log("~CDROM~", Log::Type::CDROM);
-        } else if ((address >= 0x1F801810) && (address <= 0x1F801817)) {
-            Log::log("~GPU~", Log::Type::GPU);
-        } else if ((address >= 0x1F801820) && (address <= 0x1F801827)) {
-            Log::log("~MDEC~", Log::Type::MDEC);
-        } else if ((address >= 0x1F801C00) && (address <= 0x1F801D7F)) {
-            Log::log("~SPU Voice~", Log::Type::SPU);
-        } else if ((address >= 0x1F801D80) && (address <= 0x1F801DBF)) {
-            Log::log("~SPU~", Log::Type::SPU);
-        } else if ((address >= 0x1F801DC0) && (address <= 0x1F801DFF)) {
-            Log::log("~SPU Reverb~", Log::Type::SPU);
-        } else if ((address >= 0x1F801E00) && (address <= 0x1F801FFF)) {
-            Log::log("~SPU Internal~", Log::Type::SPU);
-        }
-
-        uint32_t offset = address & 0x00000FFF;
-        assert(offset < IO_PORTS_SIZE);
-        return ioPorts + offset;
-    }
-    if (((address & 0x1FFFF000) == 0x1F802000)) {
-        if ((address >= 0x1F802020) && (address <= 0x1F80202F)) {
-            Log::log("~Dual Serial Port~", Log::Type::GPU);
-        }
-
-        uint32_t offset = 0x00001000 + (address & 0x00000FFF);
-        assert(offset < IO_PORTS_SIZE);
-        return ioPorts + offset;
-    }
-
-    // Bios ROM
-    // 0x1FC00000 - 0x1FC7FFFF (0b0001 1111 1100 ... - 0b0001 1111 1100 ...)
-    // 0x9FC00000 - 0x9FC7FFFF (0b1001 1111 1100 ... - 0b1001 1111 1100 ...)
-    // 0xBFC00000 - 0xBFC7FFFF (0b1011 1111 1100 ... - 0b0011 1111 1100 ...)
-    if ((address & 0x1FF80000) == 0x1FC00000) {
-        uint32_t offset = address & 0x0007FFFF;
-        assert(offset < BIOS_SIZE);
-        return bios + offset;
-    }
-
-    // Cache Control Register
-    // 0xFFFE0130
-    if (address == 0xFFFE0130) {
-        return &cacheControlRegister;
-    }
-    std::stringstream ss;
-    ss << regs;
-    throw exceptions::AddressOutOfBounds(std::format("@0x{:08X}, register contents:\n{:s}", address, ss.str()));
+    *((T*)(cacheControlRegister)) = value;
 }
+
+template void Memory::writeCacheControlRegister(uint32_t address, uint32_t value);
+template void Memory::writeCacheControlRegister(uint32_t address, uint16_t value);
+template void Memory::writeCacheControlRegister(uint32_t address, uint8_t value);
 
 }

@@ -24,7 +24,8 @@ public:
         TIMER,
         PERIPHERAL,
         INTERRUPT,
-        MISC
+        MISC,
+        WARNING
     };
 
     static bool logEnabled;
