@@ -14,7 +14,7 @@ void GPU::reset() {
 
 template <typename T>
 void GPU::write(uint32_t address, T value) {
-    Log::log(std::format("GPU unimplemented: write @0x{:08X}", address), Log::Type::GPU);
+    Log::log(std::format("GPU unimplemented: write 0x{:0{}X} -> @0x{:08X}", value, 2*sizeof(T), address), Log::Type::GPU);
 }
 
 template void GPU::write(uint32_t address, uint32_t value);

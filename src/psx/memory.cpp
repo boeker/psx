@@ -30,7 +30,7 @@ void Memory::reset() {
     std::memset(mainRAM, 0, MAIN_RAM_SIZE);
     std::memset(dCache, 0, DCACHE_SIZE);
     std::memset(memoryControlRegisters, 0, MEMORY_CONTROL_SIZE);
-    std::memset(&cacheControlRegister, 0, 4);
+    std::memset(cacheControlRegister, 0, 4);
 }
 
 
