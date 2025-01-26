@@ -49,6 +49,7 @@ BIOS
 *.su
 *.idb
 *.pdb
+/traces
 /trace
 
 # Kernel Module Compile Results

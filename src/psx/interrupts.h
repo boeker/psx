@@ -1,11 +1,11 @@
-#ifndef PSX_DMA_H
-#define PSX_DMA_H
+#ifndef PSX_INTERRUPTS_H
+#define PSX_INTERRUPTS_H
 
 #include <cstdint>
 
 namespace PSX {
 
-class DMA {
+class Interrupts {
 private:
 
 public:

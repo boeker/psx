@@ -21,9 +21,9 @@ public:
         SPU,
         MDEC,
         DMA,
-        TIMER,
+        TIMERS,
         PERIPHERAL,
-        INTERRUPT,
+        INTERRUPTS,
         MISC,
         WARNING
     };

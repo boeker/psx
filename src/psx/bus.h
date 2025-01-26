@@ -9,6 +9,10 @@
 #include "bios.h"
 #include "dma.h"
 #include "timers.h"
+#include "interrupts.h"
+#include "dma.h"
+#include "spu.h"
+#include "gpu.h"
 
 /*
 KUSEG     KSEG0     KSEG1
@@ -71,8 +75,11 @@ public:
     CPU cpu;
     Memory memory;
     Bios bios;
-    DMA dma;
     Timers timers;
+    DMA dma;
+    Interrupts interrupts;
+    SPU spu;
+    GPU gpu;
 
 public:
     Bus();

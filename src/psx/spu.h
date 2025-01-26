@@ -1,11 +1,11 @@
-#ifndef PSX_DMA_H
-#define PSX_DMA_H
+#ifndef PSX_SPU_H
+#define PSX_SPU_H
 
 #include <cstdint>
 
 namespace PSX {
 
-class DMA {
+class SPU {
 private:
 
 public:

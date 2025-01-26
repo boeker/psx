@@ -22,8 +22,11 @@ void Bus::reset() {
     cpu.reset();
     memory.reset();
     bios.reset();
-    dma.reset();
     timers.reset();
+    dma.reset();
+    interrupts.reset();
+    spu.reset();
+    gpu.reset();
 }
 
 Bus::~Bus() {
@@ -54,29 +57,30 @@ T Bus::read(uint32_t address) {
     } else if (((address & 0x1FFFF000) == 0x1F801000)) { // Hardware Registers (I/0 Ports)
         if (address <= 0x1F801060) {
             value = memory.readMemoryControlRegisters<T>(address);
+
         } else if ((address >= 0x1F801040) && (address <= 0x1F80105F)) {
             Log::log(std::format("Unimplemented peripheral read @0x{:08X}", address), Log::Type::WARNING);
 
         } else if ((address >= 0x1F801070) && (address <= 0x1F801077)) {
-            Log::log(std::format("Unimplemented interrupt read @0x{:08X}", address), Log::Type::WARNING);
+            value = interrupts.read<T>(address);
 
         } else if ((address >= 0x1F801080) && (address <= 0x1F8010FF)) {
-            Log::log(std::format("Unimplemented DMA read @0x{:08X}", address), Log::Type::WARNING);
+            value = dma.read<T>(address);
 
         } else if ((address >= 0x1F801100) && (address <= 0x1F80112A)) {
-            Log::log(std::format("Unimplemented timer read @0x{:08X}", address), Log::Type::WARNING);
+            value = timers.read<T>(address);
 
         } else if ((address >= 0x1F801800) && (address <= 0x1F801803)) {
             Log::log(std::format("Unimplemented CDROM read @0x{:08X}", address), Log::Type::WARNING);
 
         } else if ((address >= 0x1F801810) && (address <= 0x1F801817)) {
-            Log::log(std::format("Unimplemented GPU read @0x{:08X}", address), Log::Type::WARNING);
+            value = gpu.read<T>(address);
 
         } else if ((address >= 0x1F801820) && (address <= 0x1F801827)) {
             Log::log(std::format("Unimplemented MDEC read @0x{:08X}", address), Log::Type::WARNING);
 
         } else if ((address >= 0x1F801C00) && (address <= 0x1F801FFF)) {
-            Log::log(std::format("Unimplemented SPU read @0x{:08X}", address), Log::Type::WARNING);
+            value = spu.read<T>(address);
 
         } else {
             //Log::log(std::format("Unimplemented Expansion Region 1 read @0x{:08X}", address), Log::Type::WARNING);
@@ -143,25 +147,25 @@ void Bus::write (uint32_t address, T value) {
             Log::log(std::format("Unimplemented peripheral write @0x{:08X}", address), Log::Type::WARNING);
 
         } else if ((address >= 0x1F801070) && (address <= 0x1F801077)) {
-            Log::log(std::format("Unimplemented interrupt write @0x{:08X}", address), Log::Type::WARNING);
+            interrupts.write<T>(address, value);
 
         } else if ((address >= 0x1F801080) && (address <= 0x1F8010FF)) {
-            Log::log(std::format("Unimplemented DMA write @0x{:08X}", address), Log::Type::WARNING);
+            dma.write<T>(address, value);
 
         } else if ((address >= 0x1F801100) && (address <= 0x1F80112A)) {
-            Log::log(std::format("Unimplemented timer write @0x{:08X}", address), Log::Type::WARNING);
+            timers.write<T>(address, value);
 
         } else if ((address >= 0x1F801800) && (address <= 0x1F801803)) {
             Log::log(std::format("Unimplemented CDROM write @0x{:08X}", address), Log::Type::WARNING);
 
         } else if ((address >= 0x1F801810) && (address <= 0x1F801817)) {
-            Log::log(std::format("Unimplemented GPU write @0x{:08X}", address), Log::Type::WARNING);
+            gpu.write<T>(address, value);
 
         } else if ((address >= 0x1F801820) && (address <= 0x1F801827)) {
             Log::log(std::format("Unimplemented MDEC write @0x{:08X}", address), Log::Type::WARNING);
 
         } else if ((address >= 0x1F801C00) && (address <= 0x1F801FFF)) {
-            Log::log(std::format("Unimplemented SPU write @0x{:08X}", address), Log::Type::WARNING);
+            spu.write<T>(address, value);
 
         } else {
             throw exceptions::AddressOutOfBounds(std::format(
@@ -174,7 +178,7 @@ void Bus::write (uint32_t address, T value) {
         //if ((address >= 0x1F802020) && (address <= 0x1F80202F)) {
         //    Log::log("~Dual Serial Port~", Log::Type::GPU);
         //}
-        Log::log("Unimplemented Expansion Region 2 write", Log::Type::WARNING);
+        Log::log(std::format("Unimplemented Expansion Region 2 write @0x{:08X}", address), Log::Type::WARNING);
 
         //uint32_t offset = 0x00001000 + (address & 0x00000FFF);
     } else if ((address & 0x1FF80000) == 0x1FC00000) { // Bios ROM

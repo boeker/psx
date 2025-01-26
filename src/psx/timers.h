@@ -1,5 +1,5 @@
-#ifndef PSX_TIMER_H
-#define PSX_TIMER_H
+#ifndef PSX_TIMERS_H
+#define PSX_TIMERS_H
 
 #include <cstdint>
 
@@ -16,10 +16,10 @@ public:
     void reset();
 
     template <typename T>
-    void writeToIO(uint32_t address, T value);
+    void write(uint32_t address, T value);
 
     template <typename T>
-    T readFromIO(uint32_t address);
+    T read(uint32_t address);
 };
 
 }

@@ -1,11 +1,11 @@
-#ifndef PSX_DMA_H
-#define PSX_DMA_H
+#ifndef PSX_GPU_H
+#define PSX_GPU_H
 
 #include <cstdint>
 
 namespace PSX {
 
-class DMA {
+class GPU {
 private:
 
 public:
