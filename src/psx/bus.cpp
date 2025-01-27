@@ -14,7 +14,7 @@ using namespace util;
 namespace PSX {
 
 Bus::Bus()
-    : cpu(this) {
+    : cpu(this), interrupts(this) {
     reset();
 }
 

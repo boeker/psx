@@ -17,6 +17,7 @@ void Log::log(const std::string &message, Type type) {
         case Type::CDROM:
         case Type::MDEC:
         case Type::PERIPHERAL:
+        case Type::EXCEPTION:
             std::cerr <<  message << std::endl;
             break;
         case Type::GPU:

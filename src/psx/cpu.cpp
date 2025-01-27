@@ -67,6 +67,62 @@ void CPU::fetchDelaySlot() {
     regs.setPC(delaySlotPC + 4);
 }
 
+void CPU::generateException(uint8_t exccode) {
+    Log::log(std::format("Exception @0x{:08X} with code {:d}", instructionPC, exccode), Log::Type::EXCEPTION);
+
+    // make EPC point to restart location
+    // the EPC has to point to the instruction which caused the error
+    // if the instruction is in a branch delay slot, then
+    // it has to point to the preceding branch instruction
+    // and signal this via the BD bit
+    if (isBranchDelaySlot) {
+        cp0regs.setCP0Register(CP0_REGISTER_EPC, instructionPC - 4);
+        // set BD bit
+        uint32_t cause = cp0regs.getCP0Register(CP0_REGISTER_CAUSE);
+        cp0regs.setCP0Register(CP0_REGISTER_CAUSE, cause | (0x1 << CAUSE_BIT_BD));
+
+    } else {
+        cp0regs.setCP0Register(CP0_REGISTER_EPC, instructionPC); 
+    }
+    
+    // save user-mode-enable and interrupt-enable flags in SR
+    // by pushing the 3-entry stack inside of SR
+    uint32_t sr = cp0regs.getCP0Register(CP0_REGISTER_SR);
+    // we clear KUc and IEc, not sure if this is correct
+    cp0regs.setCP0Register(CP0_REGISTER_SR, (sr & 0xFFFFFFC0) | ((sr & 0x3F) << 2));
+
+    // set up ExcCode in Cause register
+    uint32_t cause = cp0regs.getCP0Register(CP0_REGISTER_CAUSE);
+    cause = (cause & 0xFFFFFF83) | (exccode << 2);
+    cp0regs.setCP0Register(CP0_REGISTER_CAUSE, cause);
+    
+    // TODO: set BadVaddr on address exception
+
+    // transfer control to exception entry point
+    if (cp0regs.getCP0Register(CP0_REGISTER_SR) & (1 << SR_BIT_BEV)) {
+        regs.setPC(0xBFC00180);
+
+    } else {
+        regs.setPC(0x80000080);
+    }
+
+    // fetch instruction at new program counter into the delay slot
+    // in order to avoid executing the instruction in the delay slot
+    // before handling the exception
+    fetchDelaySlot();
+}
+
+void CPU::checkAndExecuteInterrupts() {
+    if (cp0regs.getBit(CP0_REGISTER_SR, SR_BIT_IEC)) {
+        uint32_t ip = (cp0regs.getCP0Register(CP0_REGISTER_CAUSE) >> CAUSE_BIT_IP0) & 0xFF;
+        uint32_t im = (cp0regs.getCP0Register(CP0_REGISTER_SR) >> SR_BIT_IM0) & 0xFF;
+
+        if (ip & im) {
+            generateException(EXCCODE_INT);
+        }
+    }
+}
+
 std::ostream& operator<<(std::ostream &os, const CPU &cpu) {
     os << "Register contents: " << std::endl;
     os << cpu.regs << std::endl;
@@ -1043,47 +1099,7 @@ void CPU::SYSCALL() {
 
     Log::log("SYSCALL");
 
-    // make EPC point to restart location
-    // the EPC has to point to the instruction which caused the error
-    // if the instruction is in a branch delay slot, then
-    // it has to point to the preceding branch instruction
-    // and signal this via the BD bit
-    if (isBranchDelaySlot) {
-        cp0regs.setCP0Register(CP0_REGISTER_EPC, instructionPC - 4);
-        // set BD bit
-        uint32_t cause = cp0regs.getCP0Register(CP0_REGISTER_CAUSE);
-        cp0regs.setCP0Register(CP0_REGISTER_CAUSE, cause | (0x1 << CAUSE_BIT_BD));
-
-    } else {
-        cp0regs.setCP0Register(CP0_REGISTER_EPC, instructionPC); 
-    }
-    
-    // save user-mode-enable and interrupt-enable flags in SR
-    // by pushing the 3-entry stack inside of SR
-    uint32_t sr = cp0regs.getCP0Register(CP0_REGISTER_SR);
-    // we clear KUc and IEc, not sure if this is correct
-    cp0regs.setCP0Register(CP0_REGISTER_SR, (sr & 0xFFFFFFC0) | ((sr & 0x3F) << 2));
-
-    // set up ExcCode in Cause register
-    uint32_t cause = cp0regs.getCP0Register(CP0_REGISTER_CAUSE);
-    cause = (cause & 0xFFFFFF83) | (8 << 2); // 8 is syscall
-    cp0regs.setCP0Register(CP0_REGISTER_CAUSE, cause);
-    
-    // set BadVaddr on address exception
-    // not for syscall
-
-    // transfer control to exception entry point
-    if (cp0regs.getCP0Register(CP0_REGISTER_SR) & (1 << SR_BIT_BEV)) {
-        regs.setPC(0xBFC00180);
-
-    } else {
-        regs.setPC(0x80000080);
-    }
-
-    // fetch instruction at new program counter into the delay slot
-    // in order to avoid executing the instruction in the delay slot
-    // before handling the exception
-    fetchDelaySlot();
+    generateException(EXCCODE_SYSCALL);
 }
 
 void CPU::MTLO() {
@@ -1252,6 +1268,7 @@ void CPU::MTC0() {
     Log::log(std::format(" (0x{:08X} -> CP0 {:d})",data, rd));
 
     cp0regs.setCP0Register(rd, data);
+    checkAndExecuteInterrupts();
 }
 
 void CPU::MFC0() {

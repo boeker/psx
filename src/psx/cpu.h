@@ -9,6 +9,20 @@
 
 namespace PSX {
 
+#define EXCCODE_INT 0
+#define EXCCODE_MOD 1
+#define EXCCODE_TLBL 2
+#define EXCCODE_TLBS 3
+#define EXCCODE_ADEL 4
+#define EXCCODE_ADES 5
+#define EXCCODE_IBE 6
+#define EXCCODE_DBE 7
+#define EXCCODE_SYSCALL 8
+#define EXCCODE_BP 9
+#define EXCCODE_RI 10
+#define EXCCODE_CPU 11
+#define EXCCODE_OV 12
+
 class Bus;
 
 class CPU {
@@ -22,6 +36,8 @@ public:
     
     void step();
     void fetchDelaySlot();
+    void generateException(uint8_t exccode);
+    void checkAndExecuteInterrupts();
 
 private:
     Bus *bus;

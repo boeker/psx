@@ -127,4 +127,24 @@ void CP0Registers::setCP0Register(uint8_t rt, uint32_t value) {
 bool CP0Registers::statusRegisterIsolateCacheIsSet() const {
     return cp0Registers[CP0_REGISTER_SR] & (1 << 16);
 }
+
+bool CP0Registers::getBit(uint8_t reg, uint8_t bit) const {
+    return cp0Registers[reg] & (1 << bit);
 }
+
+void CP0Registers::setBit(uint8_t reg, uint8_t bit, bool value) {
+    uint32_t selectedBit = 1 << bit;
+    cp0Registers[reg] = (cp0Registers[reg] & ~selectedBit) | ((value ? 1 : 0) << bit);
+}
+
+void CP0Registers::setBit(uint8_t reg, uint8_t bit) {
+    cp0Registers[reg] = cp0Registers[reg] | (1 << bit);
+}
+
+void CP0Registers::clearBit(uint8_t reg, uint8_t bit) {
+    uint32_t selectedBit = 1 << bit;
+    cp0Registers[reg] = cp0Registers[reg] & ~selectedBit;
+}
+
+}
+
