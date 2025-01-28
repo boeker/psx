@@ -13,6 +13,14 @@ public:
         : std::runtime_error(what) {}
 };
 
+class UnimplementedAddressingError : public std::runtime_error {
+public:
+    explicit UnimplementedAddressingError(const std::string &what)
+        : std::runtime_error(what) {}
+    explicit UnimplementedAddressingError(const char *what)
+        : std::runtime_error(what) {}
+};
+
 class ExceptionNotImplemented : public std::runtime_error {
 public:
     explicit ExceptionNotImplemented(const std::string &what)
@@ -42,6 +50,14 @@ public:
     explicit UnknownFunctionError(const std::string &what)
         : std::runtime_error(what) {}
     explicit UnknownFunctionError(const char *what)
+        : std::runtime_error(what) {}
+};
+
+class UnknownGPUCommandError : public std::runtime_error {
+public:
+    explicit UnknownGPUCommandError(const std::string &what)
+        : std::runtime_error(what) {}
+    explicit UnknownGPUCommandError(const char *what)
         : std::runtime_error(what) {}
 };
 
