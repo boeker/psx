@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <format>
+#include <sstream>
 
 #include "exceptions/exceptions.h"
 #include "util/log.h"
@@ -9,6 +10,64 @@
 using namespace util;
 
 namespace PSX {
+
+std::ostream& operator<<(std::ostream &os, const GPU &gpu) {
+    os << "GPU Status Register:\n";
+    uint32_t gpustat = gpu.gpuStatusRegister;
+
+    os << std::format("INTERLACE_EVEN_ODD: {:01b}\n",
+                      (gpustat >> GPUSTAT_INTERLACE_EVEN_ODD) & 1);
+    os << std::format("DMA_DIRECTION: {:d}\n",
+                      (gpustat >> GPUSTAT_DMA_DIRECTION0) & 3);
+    os << std::format("DMA_RECEIVE_READY: {:01b}\n",
+                      (gpustat >> GPUSTAT_DMA_RECEIVE_READY) & 1);
+    os << std::format("VRAM_SEND_READY: {:01b}\n",
+                      (gpustat >> GPUSTAT_VRAM_SEND_READY) & 1);
+    os << std::format("CMDWORD_RECEIVE_READY: {:01b}\n",
+                      (gpustat >> GPUSTAT_CMDWORD_RECEIVE_READY) & 1);
+    os << std::format("DATAREQUEST: {:01b}\n",
+                      (gpustat >> GPUSTAT_DATAREQUEST) & 1);
+    os << std::format("IRQ: {:01b}\n",
+                      (gpustat >> GPUSTAT_IRQ) & 1);
+    os << std::format("DISPLAY_DISABLE: {:01b}\n",
+                      (gpustat >> GPUSTAT_DISPLAY_DISABLE) & 1);
+    os << std::format("VERTICAL_INTERLACE: {:01b}\n",
+                      (gpustat >> GPUSTAT_VERTICAL_INTERLACE) & 1);
+    os << std::format("DISPLAY_AREA_COLOR_DEPTH: {:01b}\n",
+                      (gpustat >> GPUSTAT_DISPLAY_AREA_COLOR_DEPTH) & 1);
+    os << std::format("VIDEO_MODE: {:01b}\n",
+                      (gpustat >> GPUSTAT_VIDEO_MODE) & 1);
+    os << std::format("VERTICAL_RESOLUTION: {:01b}\n",
+                      (gpustat >> GPUSTAT_VERTICAL_RESOLUTION) & 1);
+    os << std::format("HORIZONTAL_RESOLUTION2: {:01b}\n",
+                      (gpustat >> GPUSTAT_HORIZONTAL_RESOLUTION2) & 1);
+    os << std::format("HORIZONTAL_RESOLUTION1: {:d}\n",
+                      (gpustat >> GPUSTAT_HORIZONTAL_RESOLUTION10) & 3);
+    os << std::format("TEXTURE_DISABLE: {:01b}\n",
+                      (gpustat >> GPUSTAT_TEXTURE_DISABLE) & 1);
+    os << std::format("REVERSEFLAG: {:01b}\n",
+                      (gpustat >> GPUSTAT_REVERSEFLAG) & 1);
+    os << std::format("INTERLACE_FIELD: {:01b}\n",
+                      (gpustat >> GPUSTAT_INTERLACE_FIELD) & 1);
+    os << std::format("DRAW_PIXELS: {:01b}\n",
+                      (gpustat >> GPUSTAT_DRAW_PIXELS) & 1);
+    os << std::format("SET_MASK: {:01b}\n",
+                      (gpustat >> GPUSTAT_SET_MASK) & 1);
+    os << std::format("DRAWING_TO_DISPLAY_AREA_ALLOWED: {:01b}\n",
+                      (gpustat >> GPUSTAT_DRAWING_TO_DISPLAY_AREA_ALLOWED) & 1);
+    os << std::format("DITHER: {:01b}\n",
+                      (gpustat >> GPUSTAT_DITHER) & 1);
+    os << std::format("TEXTURE_PAGE_COLORS: {:d}\n",
+                      (gpustat >> GPUSTAT_TEXTURE_PAGE_COLORS0) & 3);
+    os << std::format("SEMI_TRANSPARENCY: {:d}\n",
+                      (gpustat >> GPUSTAT_SEMI_TRANSPARENCY0) & 3);
+    os << std::format("TEXTURE_PAGE_Y_BASE: {:01b}\n",
+                      (gpustat >> GPUSTAT_TEXTURE_PAGE_Y_BASE) & 1);
+    os << std::format("TEXTURE_PAGE_X_BASE: {:d}\n",
+                      (gpustat >> GPUSTAT_TEXTURE_PAGE_X_BASE0) & 0xF);
+
+    return os;
+}
 
 void GPU::reset() {
     gpuStatusRegister = 0;
@@ -65,8 +124,10 @@ T GPU::read(uint32_t address) {
 
         value = *((T*)(((uint8_t*)&gpuStatusRegister) + offset));
 
+        std::stringstream ss;
+        ss << *this;
         Log::log(std::format("GPUSTAT -> 0x{:08X}", value), Log::Type::GPU);
-        Log::log(std::format("GPUSTAT -> 0x{:08X}", gpuStatusRegister), Log::Type::GPU);
+        Log::log(ss.str(), Log::Type::GPU);
     }
 
     Log::log(std::format("GPU read @0x{:08X} -> 0x{:0{}X}",
