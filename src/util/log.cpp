@@ -21,8 +21,10 @@ void Log::log(const std::string &message, Type type) {
             std::cerr <<  message << std::endl;
             break;
         case Type::GPU:
-            std::cerr <<  message << std::endl;
+            std::cerr <<  message;
             break;
+        case Type::GPUSTAT:
+        case Type::GPU_WRITE:
         case Type::SPU:
         case Type::CPU:
         case Type::MEMORY:

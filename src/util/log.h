@@ -18,6 +18,8 @@ public:
         CP0_REGISTER_WRITE,
         CDROM,
         GPU,
+        GPU_WRITE,
+        GPUSTAT,
         SPU,
         MDEC,
         DMA,

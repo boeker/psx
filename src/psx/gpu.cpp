@@ -77,8 +77,7 @@ template <> void GPU::write(uint32_t address, uint32_t value) {
     assert ((address == 0x1F801810) || (address == 0x1F801814));
 
     Log::log(std::format("GPU write 0x{:08X} -> @0x{:08X}",
-                         value, address), Log::Type::GPU);
-
+                         value, address), Log::Type::GPU_WRITE);
 
     if (address == 0x1F801810) { // GP0
         gp0 = value;
@@ -90,55 +89,43 @@ template <> void GPU::write(uint32_t address, uint32_t value) {
 
         decodeAndExecuteGP1();
     }
-
-    //std::stringstream ss;
-    //ss << *this;
-    //Log::log(ss.str(), Log::Type::INTERRUPTS);
 }
 
 template <> void GPU::write(uint32_t address, uint16_t value) {
-    throw exceptions::UnimplementedAddressingError(std::format("half word write @0x{:08X}", address));
+    throw exceptions::UnimplementedAddressingError(std::format("half-word write @0x{:08X}", address));
 }
 
 template <> void GPU::write(uint32_t address, uint8_t value) {
     throw exceptions::UnimplementedAddressingError(std::format("byte write @0x{:08X}", address));
 }
 
-template <typename T>
-T GPU::read(uint32_t address) {
-    assert ((address >= 0x1F801810) && (address < 0x1F801814 + sizeof(T)));
+template <>
+uint32_t GPU::read(uint32_t address) {
+    assert ((address == 0x1F801810) || (address == 0x1F801814));
 
-    T value;
-
-    if (address < 0x1F801814) { // GPUREAD
+    if (address == 0x1F801810) { // GPUREAD
         throw exceptions::UnknownGPUCommandError(std::format("GPUREAD"));
-        //assert (address + sizeof(T) <= 0x1F801074);
-        //uint32_t offset = address & 0x00000007;
-        //assert (offset == 0);
 
-        //value = *((T*)(interruptStatusRegister + offset));
+        return 0;
 
     } else { // GPUSTAT
-        assert (address + sizeof(T) <= 0x1F801818);
-        uint32_t offset = address & 0x00000003;
+        assert (address == 0x1F801814);
 
-        value = *((T*)(((uint8_t*)&gpuStatusRegister) + offset));
+        Log::log(std::format("GPUSTAT -> 0x{:08X}", gpuStatusRegister), Log::Type::GPUSTAT);
 
-        std::stringstream ss;
-        ss << *this;
-        Log::log(std::format("GPUSTAT -> 0x{:08X}", value), Log::Type::GPU);
-        Log::log(ss.str(), Log::Type::GPU);
+        return gpuStatusRegister;
+
     }
 
-    Log::log(std::format("GPU read @0x{:08X} -> 0x{:0{}X}",
-                         address, value, 2*sizeof(T)), Log::Type::INTERRUPTS);
-
-    return value;
 }
 
-template uint32_t GPU::read(uint32_t address);
-template uint16_t GPU::read(uint32_t address);
-template uint8_t GPU::read(uint32_t address);
+template <> uint16_t GPU::read(uint32_t address) {
+    throw exceptions::UnimplementedAddressingError(std::format("half-word read @0x{:08X}", address));
+}
+
+template <> uint8_t GPU::read(uint32_t address) {
+    throw exceptions::UnimplementedAddressingError(std::format("byte read @0x{:08X}", address));
+}
 
 void GPU::decodeAndExecuteGP0() {
     uint8_t command = gp0 >> 24;
