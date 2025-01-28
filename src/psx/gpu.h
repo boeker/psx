@@ -92,6 +92,7 @@ private:
     // Read  GPUREAD Receive responses to GP0(C0h) and GP1(10h) commands
     uint32_t gp0;
     CommandQueue queue;
+    uint32_t gpuReadResponse;
 
     // 1F801814
     // Write GP1     Send GP1 Commands (Display Control) (and DMA Control)

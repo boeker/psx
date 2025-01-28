@@ -112,6 +112,7 @@ GPU::GPU(Bus *bus) {
 void GPU::reset() {
     gp0 = 0;
     queue.clear();
+    gpuReadResponse = 0;
 
     gp1 = 0;
     gpuStatusRegister = 0x144E200D;
@@ -151,9 +152,7 @@ uint32_t GPU::read(uint32_t address) {
     assert ((address == 0x1F801810) || (address == 0x1F801814));
 
     if (address == 0x1F801810) { // GPUREAD
-        throw exceptions::UnknownGPUCommandError(std::format("GPUREAD"));
-
-        return 0;
+        return gpuReadResponse;
 
     } else { // GPUSTAT
         assert (address == 0x1F801814);
@@ -224,15 +223,67 @@ void GPU::GP0NOP() {
 void GPU::decodeAndExecuteGP1() {
     uint8_t command = gp1 >> 24;
 
-    throw exceptions::UnknownGPUCommandError(std::format("GP1: 0x{:08X}, command 0x{:02X}", gp1, command));
+    if (command == 0x00) {
+        GP1ResetGPU();
+
+    } else if (command == 0x01) {
+        GP1ResetCommandBuffer();
+
+    } else if (command == 0x02) {
+        GP1AcknowledgeGPUInterrupt();
+
+    } else if (command == 0x03) {
+        GP1DisplayEnable();
+
+    } else if (command == 0x04) {
+        GP1DMADirection();
+
+    } else if (command == 0x05) {
+        GP1StartOfDisplayArea();
+
+    } else if (command == 0x06) {
+        GP1HorizontalDisplayRange();
+
+    } else if (command == 0x07) {
+        GP1VerticalDisplayRange();
+
+    } else if (command == 0x08) {
+        GP1DisplayMode();
+
+    } else if (command == 0x09) {
+        GP1NewTextureDisable();
+
+    } else {
+        throw exceptions::UnknownGPUCommandError(std::format("GP1: 0x{:08X}, command 0x{:02X}", gp1, command));
+    }
+
+    Log::log("\n", Log::Type::GPU);
 }
 
 void GPU::GP1ResetGPU() {
     // 0x00
     Log::log(std::format("GP1 - ResetGPU"), Log::Type::GPU);
-    GP1ResetCommandBuffer();
-    GP1AcknowledgeGPUInterrupt();
-    // TODO
+
+    queue.clear();
+    gpuStatusRegister = gpuStatusRegister & ~(1 << GPUSTAT_IRQ);
+    setGPUStatusRegisterBit(GPUSTAT_DISPLAY_ENABLE, 1);
+    gpuStatusRegister = gpuStatusRegister & ~(3 << GPUSTAT_DMA_DIRECTION0);
+    startOfDisplayAreaX = 0;
+    startOfDisplayAreaY = 0;
+    horizontalDisplayRangeX1 = 0x200;
+    horizontalDisplayRangeX2 = 0x200 + 256 * 10;
+    verticalDisplayRangeY1 = 0x010;
+    verticalDisplayRangeY2 = 0x010 + 0x010 + 240;
+    setGPUStatusRegisterBit(17, 0);
+    setGPUStatusRegisterBit(18, 0);
+    setGPUStatusRegisterBit(19, 0);
+    setGPUStatusRegisterBit(20, 0);
+    setGPUStatusRegisterBit(21, 0);
+    setGPUStatusRegisterBit(22, 0);
+    setGPUStatusRegisterBit(16, 0);
+    setGPUStatusRegisterBit(14, 0);
+
+    // TODO GP0(E1...E6)
 }
 
 void GPU::GP1ResetCommandBuffer() {
