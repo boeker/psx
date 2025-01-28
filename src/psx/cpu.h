@@ -9,6 +9,9 @@
 
 namespace PSX {
 
+#define CPU_FREQUENCY 33868800
+#define CPU_VBLANK_FREQUENCY (CPU_FREQUENCY / 60)
+
 #define EXCCODE_INT 0
 #define EXCCODE_MOD 1
 #define EXCCODE_TLBL 2
@@ -41,6 +44,8 @@ public:
 
 private:
     Bus *bus;
+
+    uint32_t cycles;
 
     // Current instruction and opcode
     uint32_t instructionPC;

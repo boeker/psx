@@ -23,6 +23,8 @@ void CPU::reset() {
     regs.reset();
     cp0regs.reset();
 
+    cycles = 0;
+
     instructionPC = 0;
     instruction = 0;
     isBranchDelaySlot = false;
@@ -53,6 +55,13 @@ void CPU::step() {
     assert (opcode <= 0b111111);
     (this->*opcodes[opcode])();
     Log::log("\n");
+
+    cycles += 1;
+    if (cycles >= CPU_VBLANK_FREQUENCY) {
+        cycles -= CPU_VBLANK_FREQUENCY;
+
+        bus->interrupts.notifyAboutVBLANK();
+    }
 }
 
 void CPU::fetchDelaySlot() {
