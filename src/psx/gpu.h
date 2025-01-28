@@ -25,17 +25,17 @@ namespace PSX {
 #define GPUSTAT_DATAREQUEST 25
 // Interrupt request (IRQ1)
 #define GPUSTAT_IRQ 24
-// 0 = display enabled
-#define GPUSTAT_DISPLAY_DISABLE 23
-// Vertical interlace
+// 0 = display enabled, 1 = display disabled
+#define GPUSTAT_DISPLAY_ENABLE 23
+// Vertical interlace (0 = off, 1 = on)
 #define GPUSTAT_VERTICAL_INTERLACE 22
 // Display area color depth (0 = 15 bit, 1 = 24 bit)
 #define GPUSTAT_DISPLAY_AREA_COLOR_DEPTH 21
 // Video mode (0 = NTSC/60Hz, 1 = PAL/50Hz)
 #define GPUSTAT_VIDEO_MODE 20
-// Vertical Resolution
+// Vertical Resolution (0 = 240, 1 = 480 if vertical interlace enabled) 
 #define GPUSTAT_VERTICAL_RESOLUTION 19
-// Horizontal resolution (0 = 256/320/512/640, 1 = 368
+// Horizontal resolution (0 = 256/320/512/640, 1 = 368)
 #define GPUSTAT_HORIZONTAL_RESOLUTION2 18
 // (0 = 256, 1 = 320, 2 = 512, 3 = 640)
 #define GPUSTAT_HORIZONTAL_RESOLUTION11 17
@@ -68,12 +68,30 @@ namespace PSX {
 #define GPUSTAT_TEXTURE_PAGE_X_BASE1 1
 #define GPUSTAT_TEXTURE_PAGE_X_BASE0 0
 
+class Bus;
+
+class CommandQueue {
+private:
+    uint32_t queue[16];
+    uint8_t in;
+    uint8_t out;
+
+public:
+    CommandQueue();
+    void clear();
+    void push(uint32_t command);
+    uint32_t pop();
+};
+
 class GPU {
 private:
+    Bus *bus;
+
     // 1F801810
     // Write GP0     Send GP0 Commands/Packets (Rendering and VRAM Access)
     // Read  GPUREAD Receive responses to GP0(C0h) and GP1(10h) commands
     uint32_t gp0;
+    CommandQueue queue;
 
     // 1F801814
     // Write GP1     Send GP1 Commands (Display Control) (and DMA Control)
@@ -83,10 +101,19 @@ private:
 
     bool texturedRectangleXFlip;
     bool texturedRectangleYFlip;
+    uint16_t startOfDisplayAreaX; // half-word address in VRAM
+    uint16_t startOfDisplayAreaY; // scanline number in VRAM
+
+    uint16_t horizontalDisplayRangeX1; // on screen
+    uint16_t horizontalDisplayRangeX2; // on screen
+
+    uint16_t verticalDisplayRangeY1; // on screen
+    uint16_t verticalDisplayRangeY2; // on screen
 
     friend std::ostream& operator<<(std::ostream &os, const GPU &gpu);
 
 public:
+    GPU(Bus *bus);
     void reset();
 
     template <typename T>
@@ -96,11 +123,38 @@ public:
     T read(uint32_t address);
 
 private:
+    void setGPUStatusRegisterBit(uint32_t bit, uint32_t value);
+
     void decodeAndExecuteGP0();
     // 0xE1
     void GP0DrawModeSetting();
+    // 0x00
+    void GP0NOP();
 
     void decodeAndExecuteGP1();
+
+    // 0x00
+    void GP1ResetGPU();
+    // 0x01
+    void GP1ResetCommandBuffer();
+    // 0x02
+    void GP1AcknowledgeGPUInterrupt();
+    // 0x03
+    void GP1DisplayEnable();
+    // 0x04
+    void GP1DMADirection();
+    // 0x05
+    void GP1StartOfDisplayArea();
+    // 0x06
+    void GP1HorizontalDisplayRange();
+    // 0x07
+    void GP1VerticalDisplayRange();
+    // 0x08
+    void GP1DisplayMode();
+    // 0x09
+    void GP1NewTextureDisable();
+    // 0x10...0x1F
+    void GP1GetGPUInfo();
 };
 
 }

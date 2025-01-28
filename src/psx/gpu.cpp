@@ -4,12 +4,46 @@
 #include <format>
 #include <sstream>
 
+#include "bus.h"
 #include "exceptions/exceptions.h"
 #include "util/log.h"
 
 using namespace util;
 
 namespace PSX {
+
+CommandQueue::CommandQueue() {
+    clear();
+}
+
+void CommandQueue::clear() {
+    for (int i = 0; i < 16; ++i) {
+        queue[i] = 0;
+    }
+
+    in = 0;
+    out = 0;
+}
+
+void CommandQueue::push(uint32_t command) {
+    uint8_t next = (in + 1) % 16;
+
+    if (next != out) {
+        in = next;
+        queue[in] = command;
+    }
+}
+
+uint32_t CommandQueue::pop() {
+    if (out != in) {
+        uint32_t value = queue[out];
+
+        out = (out + 1) % 16;
+        return value;
+    }
+
+    return 0;
+}
 
 std::ostream& operator<<(std::ostream &os, const GPU &gpu) {
     os << "GPU Status Register:\n";
@@ -29,8 +63,8 @@ std::ostream& operator<<(std::ostream &os, const GPU &gpu) {
                       (gpustat >> GPUSTAT_DATAREQUEST) & 1);
     os << std::format("IRQ: {:01b}\n",
                       (gpustat >> GPUSTAT_IRQ) & 1);
-    os << std::format("DISPLAY_DISABLE: {:01b}\n",
-                      (gpustat >> GPUSTAT_DISPLAY_DISABLE) & 1);
+    os << std::format("DISPLAY_ENABLE: {:01b}\n",
+                      (gpustat >> GPUSTAT_DISPLAY_ENABLE) & 1);
     os << std::format("VERTICAL_INTERLACE: {:01b}\n",
                       (gpustat >> GPUSTAT_VERTICAL_INTERLACE) & 1);
     os << std::format("DISPLAY_AREA_COLOR_DEPTH: {:01b}\n",
@@ -69,8 +103,21 @@ std::ostream& operator<<(std::ostream &os, const GPU &gpu) {
     return os;
 }
 
+GPU::GPU(Bus *bus) {
+    this->bus = bus;
+
+    reset();
+}
+
 void GPU::reset() {
-    gpuStatusRegister = 0;
+    gp0 = 0;
+    queue.clear();
+
+    gp1 = 0;
+    gpuStatusRegister = 0x144E200D;
+
+    texturedRectangleXFlip = false;
+    texturedRectangleYFlip = false;
 }
 
 template <> void GPU::write(uint32_t address, uint32_t value) {
@@ -127,10 +174,17 @@ template <> uint8_t GPU::read(uint32_t address) {
     throw exceptions::UnimplementedAddressingError(std::format("byte read @0x{:08X}", address));
 }
 
+void GPU::setGPUStatusRegisterBit(uint32_t bit, uint32_t value) {
+    gpuStatusRegister = (gpuStatusRegister & ~(1 << bit)) | ((value & 1) << bit);
+}
+
 void GPU::decodeAndExecuteGP0() {
     uint8_t command = gp0 >> 24;
 
-    if (command == 0xE1) {
+    if (command == 0x00) {
+        GP0NOP();
+
+    } else if (command == 0xE1) {
         GP0DrawModeSetting();
 
     } else {
@@ -154,19 +208,117 @@ void GPU::GP0DrawModeSetting() {
     // 13    Textured Rectangle Y-Flip   (BIOS does set it equal to GPUSTAT.13...?)
     // 14-23 Not used (should be 0) 
 
-    Log::log(std::format("GP0DrawModeSetting()"), Log::Type::GPU);
+    Log::log(std::format("GP0 - DrawModeSetting"), Log::Type::GPU);
 
 
     gpuStatusRegister = (gpuStatusRegister & 0xFFFFFC00) | (gp0 & 0x000003FF);
-    gpuStatusRegister = (gpuStatusRegister & ~(1 << 15)) | (gp0 & (1 << 11)) << 4;
+    gpuStatusRegister = (gpuStatusRegister & ~(1 << 15)) | ((gp0 & (1 << 11)) << 4);
     texturedRectangleXFlip = (gp0 & (1 << 12));
     texturedRectangleYFlip = (gp0 & (1 << 13));
+}
+
+void GPU::GP0NOP() {
+    Log::log(std::format("GP0 - NOP"), Log::Type::GPU);
 }
 
 void GPU::decodeAndExecuteGP1() {
     uint8_t command = gp1 >> 24;
 
     throw exceptions::UnknownGPUCommandError(std::format("GP1: 0x{:08X}, command 0x{:02X}", gp1, command));
+}
+
+void GPU::GP1ResetGPU() {
+    // 0x00
+    Log::log(std::format("GP1 - ResetGPU"), Log::Type::GPU);
+    GP1ResetCommandBuffer();
+    GP1AcknowledgeGPUInterrupt();
+    // TODO
+}
+
+void GPU::GP1ResetCommandBuffer() {
+    // 0x01
+    Log::log(std::format("GP1 - ResetCommandBuffer"), Log::Type::GPU);
+    queue.clear();
+}
+
+void GPU::GP1AcknowledgeGPUInterrupt() {
+    // 0x02
+    Log::log(std::format("GP1 - AcknowledgeGPUInterrupt"), Log::Type::GPU);
+
+    gpuStatusRegister = gpuStatusRegister & ~(1 << GPUSTAT_IRQ);
+}
+
+void GPU::GP1DisplayEnable() {
+    // 0x03
+    uint32_t parameter = gp1 & 0x00FFFFFF;
+
+    Log::log(std::format("GP1 - DisplayEnable (0x{:06X})", parameter), Log::Type::GPU);
+    
+    setGPUStatusRegisterBit(GPUSTAT_DISPLAY_ENABLE, parameter & 1);
+}
+
+void GPU::GP1DMADirection() {
+    // 0x04
+    uint32_t parameter = gp1 & 0x00FFFFFF;
+
+    Log::log(std::format("GP1 - DMADirection(0x{:06X})", parameter), Log::Type::GPU);
+
+    gpuStatusRegister = (gpuStatusRegister & ~(3 << GPUSTAT_DMA_DIRECTION0))
+                        | ((parameter & 3) << GPUSTAT_DMA_DIRECTION0);
+}
+
+void GPU::GP1StartOfDisplayArea() {
+    // 0x05
+    uint32_t parameter = gp1 & 0x00FFFFFF;
+
+    Log::log(std::format("GP1 - StartOfDisplayArena(0x{:06X})", parameter), Log::Type::GPU);
+    startOfDisplayAreaX = parameter & 0x000003FF;
+    startOfDisplayAreaY = parameter & 0x0007FC00;
+}
+
+void GPU::GP1HorizontalDisplayRange() {
+    // 0x06
+    uint32_t parameter = gp1 & 0x00FFFFFF;
+
+    Log::log(std::format("GP1 - HorizontalDisplayRange(0x{:06X})", parameter), Log::Type::GPU);
+    horizontalDisplayRangeX1 = parameter & 0x00000FFF;
+    horizontalDisplayRangeX2 = parameter & 0x00FFF000;
+}
+
+void GPU::GP1VerticalDisplayRange() {
+    // 0x07
+    uint32_t parameter = gp1 & 0x00FFFFFF;
+
+    Log::log(std::format("GP1 - VerticalDisplayRange(0x{:06X})", parameter), Log::Type::GPU);
+    verticalDisplayRangeY1 = parameter & 0x000003FF;
+    verticalDisplayRangeY2 = parameter & 0x0003FC00;
+}
+
+void GPU::GP1DisplayMode() {
+    // 0x08
+    // parameter bits 0...5 are GPUSTAT bits 17...22
+    // parameter bit 6 is GPUSTAT bit 16
+    // parameter bit 5 is GPUSTAT bit 14
+    uint32_t parameter = gp1 & 0x00FFFFFF;
+
+    Log::log(std::format("GP1 - DisplayMode(0x{:06X})", parameter), Log::Type::GPU);
+
+    gpuStatusRegister = (gpuStatusRegister & 0xFFFFFC00) | (gp0 & 0x000003FF);
+    setGPUStatusRegisterBit(16 , (parameter >> 6) & 1);
+    setGPUStatusRegisterBit(14 , (parameter >> 5) & 1);
+}
+
+void GPU::GP1NewTextureDisable() {
+    // 0x09
+    uint32_t parameter = gp1 & 0x00FFFFFF;
+
+    Log::log(std::format("GP1 - NewTextureDisable(0x{:06X})", parameter), Log::Type::GPU);
+
+    setGPUStatusRegisterBit(GPUSTAT_TEXTURE_DISABLE, parameter & 1);
+}
+
+void GPU::GP1GetGPUInfo() {
+    // 0x10...0x1F
 }
 
 }
