@@ -152,6 +152,8 @@ uint32_t GPU::read(uint32_t address) {
     assert ((address == 0x1F801810) || (address == 0x1F801814));
 
     if (address == 0x1F801810) { // GPUREAD
+        Log::log(std::format("GPUREAD -> 0x{:08X}", gpuReadResponse), Log::Type::GPUSTAT);
+
         return gpuReadResponse;
 
     } else { // GPUSTAT

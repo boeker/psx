@@ -23,6 +23,7 @@ public:
         SPU,
         MDEC,
         DMA,
+        DMA_WRITE,
         TIMERS,
         PERIPHERAL,
         INTERRUPTS,

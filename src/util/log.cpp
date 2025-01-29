@@ -12,6 +12,7 @@ void Log::log(const std::string &message, Type type) {
             std::cerr <<  message << "!" << std::endl;
             break;
         case Type::DMA:
+        case Type::DMA_WRITE:
         case Type::TIMERS:
         case Type::INTERRUPTS:
         case Type::CDROM:
