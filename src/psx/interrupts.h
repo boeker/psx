@@ -46,6 +46,7 @@ public:
 
     void checkAndExecuteInterrupts();
     void notifyAboutVBLANK();
+    void notifyAboutInterrupt(uint32_t interruptBit);
 };
 
 }

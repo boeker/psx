@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <string>
 
 namespace PSX {
 
@@ -53,9 +54,12 @@ namespace PSX {
 #define DICR_ENABLE_FLAG_DMA0 16
 #define DICR_FORCE_IRQ 15
 
+class Bus;
 
 class DMA {
 private:
+    Bus *bus;
+
     // DPCR
     // 0x1F8010F0
     uint32_t dmaControlRegister;
@@ -67,7 +71,7 @@ private:
     friend std::ostream& operator<<(std::ostream &os, const DMA &dma);
 
 public:
-    DMA();
+    DMA(Bus *bus);
     void reset();
 
     template <typename T>
@@ -75,6 +79,10 @@ public:
 
     template <typename T>
     T read(uint32_t address);
+
+private:
+    std::string getDPCRExplanation() const;
+    std::string getDICRExplanation() const;
 };
 
 }

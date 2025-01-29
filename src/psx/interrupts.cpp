@@ -144,5 +144,13 @@ void Interrupts::notifyAboutVBLANK() {
     checkAndExecuteInterrupts();
 }
 
+void Interrupts::notifyAboutInterrupt(uint32_t interruptBit) {
+    uint32_t *istat = ((uint32_t*)(interruptStatusRegister));
+    *istat = (*istat) | (1 << interruptBit);
+    // the bit is edge triggered
+    // hence, only setting it once should be fine
+    checkAndExecuteInterrupts();
+}
+
 }
 
