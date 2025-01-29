@@ -197,7 +197,7 @@ const CPU::Opcode CPU::special[] = {
     // 0b100000
     &CPU::ADD,      &CPU::ADDU,     &CPU::UNKSPCL,  &CPU::SUBU,
     // 0b100100
-    &CPU::AND,      &CPU::OR,       &CPU::UNKSPCL,  &CPU::NOR,
+    &CPU::AND,      &CPU::OR,       &CPU::XOR,      &CPU::NOR,
     // 0b101000
     &CPU::UNKSPCL,  &CPU::UNKSPCL,  &CPU::SLT,      &CPU::SLTU,
     // 0b101100
@@ -1233,6 +1233,23 @@ void CPU::MULTU() {
 
     regs.setLo(0x00000000FFFFFFFF & result);
     regs.setHi(result >> 32);
+}
+
+void CPU::XOR() {
+    // Exclusive Or
+    // T: GPR[rd] <- GPR[rs] xor GPR[rt]
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+    Log::log(std::format("XOR {:s},{:s},{:s}",
+                         regs.getRegisterName(rd),
+                         regs.getRegisterName(rs),
+                         regs.getRegisterName(rt)));
+
+    uint32_t rsValue = regs.getRegister(rs);
+    uint32_t rtValue = regs.getRegister(rt);
+
+    regs.setRegister(rd, (rsValue & ~rtValue) | (~rsValue & rtValue));
 }
 
 void CPU::UNKCP0() {

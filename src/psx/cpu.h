@@ -124,6 +124,7 @@ private:
     void SRAV();
     void SRLV();
     void MULTU();
+    void XOR();
 
     // Opcode CP0 encodes further instructions
     static const Opcode cp0[];
