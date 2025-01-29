@@ -1211,7 +1211,7 @@ void CPU::SRLV() {
     regs.setRegister(rd, result);
 }
 
-void CPU:: MULTU() {
+void CPU::MULTU() {
     // Multiply Unsigned Word
     // T-2: LO <- undefined
     //      HI <- undefined
