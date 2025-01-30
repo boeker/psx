@@ -60,6 +60,14 @@ class DMA {
 private:
     Bus *bus;
 
+    // D#_MADR - DMA Base Address
+    // 0x1F801080...0x1F8010E0
+    uint32_t dmaBaseAddress[7];
+
+    // D#_BCR - DMA Block Control
+    // 0x1F801084...0x1F8010E4
+    uint32_t dmaBlockControl[7];
+
     // DPCR
     // 0x1F8010F0
     uint32_t dmaControlRegister;
@@ -81,6 +89,12 @@ public:
     T read(uint32_t address);
 
 private:
+    void updateControlRegister(uint32_t value);
+    void updateInterruptRegister(uint32_t value);
+    void updateBaseAddress(uint32_t channel, uint32_t value);
+    void updateBlockControl(uint32_t channel, uint32_t value);
+    void updateChannelControl(uint32_t channel, uint32_t value);
+
     std::string getDPCRExplanation() const;
     std::string getDICRExplanation() const;
 };

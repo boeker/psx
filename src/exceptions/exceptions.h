@@ -61,6 +61,14 @@ public:
         : std::runtime_error(what) {}
 };
 
+class UnknownDMACommandError : public std::runtime_error {
+public:
+    explicit UnknownDMACommandError(const std::string &what)
+        : std::runtime_error(what) {}
+    explicit UnknownDMACommandError(const char *what)
+        : std::runtime_error(what) {}
+};
+
 }
 
 #endif

@@ -13,6 +13,19 @@ using namespace util;
 
 namespace PSX {
 
+std::ostream& operator<<(std::ostream &os, const Bus &bus) {
+    os << "=====CPU=====" << std::endl;
+    os << bus.cpu << "\n\n";
+    os << "=====DMA=====" << std::endl;
+    os << bus.dma << "\n\n";
+    os << "=====INT=====" << std::endl;
+    os << bus.interrupts << "\n\n";
+    os << "=====GPU=====" << std::endl;
+    os << bus.gpu << std::endl;
+
+    return os;
+}
+
 Bus::Bus()
     : cpu(this), dma(this), interrupts(this), gpu(this) {
     reset();

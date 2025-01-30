@@ -125,7 +125,7 @@ template <> void GPU::write(uint32_t address, uint32_t value) {
     assert ((address == 0x1F801810) || (address == 0x1F801814));
 
     Log::log(std::format("GPU write 0x{:08X} -> @0x{:08X}",
-                         value, address), Log::Type::GPU_WRITE);
+                         value, address), Log::Type::GPU_IO);
 
     if (address == 0x1F801810) { // GP0
         gp0 = value;
@@ -152,14 +152,14 @@ uint32_t GPU::read(uint32_t address) {
     assert ((address == 0x1F801810) || (address == 0x1F801814));
 
     if (address == 0x1F801810) { // GPUREAD
-        Log::log(std::format("GPUREAD -> 0x{:08X}", gpuReadResponse), Log::Type::GPUSTAT);
+        Log::log(std::format("GPUREAD -> 0x{:08X}", gpuReadResponse), Log::Type::GPU_IO);
 
         return gpuReadResponse;
 
     } else { // GPUSTAT
         assert (address == 0x1F801814);
 
-        Log::log(std::format("GPUSTAT -> 0x{:08X}", gpuStatusRegister), Log::Type::GPUSTAT);
+        Log::log(std::format("GPUSTAT -> 0x{:08X}", gpuStatusRegister), Log::Type::GPU_IO);
 
         return gpuStatusRegister;
 
@@ -191,8 +191,6 @@ void GPU::decodeAndExecuteGP0() {
     } else {
         throw exceptions::UnknownGPUCommandError(std::format("GP0: 0x{:08X}, command 0x{:02X}", gp0, command));
     }
-
-    Log::log("\n", Log::Type::GPU);
 }
 
 void GPU::GP0DrawModeSetting() {
@@ -258,8 +256,6 @@ void GPU::decodeAndExecuteGP1() {
     } else {
         throw exceptions::UnknownGPUCommandError(std::format("GP1: 0x{:08X}, command 0x{:02X}", gp1, command));
     }
-
-    Log::log("\n", Log::Type::GPU);
 }
 
 void GPU::GP1ResetGPU() {

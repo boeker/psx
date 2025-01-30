@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <string>
 
 namespace PSX {
 
@@ -47,6 +48,10 @@ public:
     void checkAndExecuteInterrupts();
     void notifyAboutVBLANK();
     void notifyAboutInterrupt(uint32_t interruptBit);
+
+private:
+    std::string getInterruptStatusRegisterExplanation() const;
+    std::string getInterruptMaskRegisterExplanation() const;
 };
 
 }

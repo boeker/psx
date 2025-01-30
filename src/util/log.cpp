@@ -9,23 +9,26 @@ bool Log::logEnabled = false;
 void Log::log(const std::string &message, Type type) {
     switch (type) {
         case Type::WARNING:
-            std::cerr <<  message << "!" << std::endl;
+            std::cerr << "Warning: " << message << std::endl;
             break;
         case Type::DMA:
-        case Type::DMA_WRITE:
-        case Type::TIMERS:
+        //case Type::DMA_WRITE:
+            std::cerr << "[DMA] " << message << std::endl;
+            break;
+        case Type::GPU:
+        //case Type::GPU_IO:
+            std::cerr << "[GPU] " <<  message << std::endl;;
+            break;
         case Type::INTERRUPTS:
+            std::cerr << "[INT] " <<  message << std::endl;;
+            break;
+        case Type::EXCEPTION:
+            std::cerr <<  "[EXC] " << message << std::endl;
+            break;
         case Type::CDROM:
         case Type::MDEC:
         case Type::PERIPHERAL:
-        case Type::EXCEPTION:
-            std::cerr <<  message << std::endl;
-            break;
-        case Type::GPU:
-            std::cerr <<  message;
-            break;
-        case Type::GPUSTAT:
-        case Type::GPU_WRITE:
+        case Type::TIMERS:
         case Type::SPU:
         case Type::CPU:
         case Type::MEMORY:
@@ -39,6 +42,8 @@ void Log::log(const std::string &message, Type type) {
             //if (logEnabled) {
             //    std::cerr << message;
             //}
+            break;
+        default:
             break;
     }
 }

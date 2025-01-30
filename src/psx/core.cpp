@@ -28,7 +28,7 @@ void Core::run() {
     } catch (const std::runtime_error &e) {
         std::cout << std::endl;
         std::cout << "Excecution halted at exception: " << e.what() << std::endl;
-        std::cout << bus.cpu << std::endl;
+        std::cout << bus << std::endl;
     }
 }
 

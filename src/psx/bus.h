@@ -81,6 +81,8 @@ public:
     SPU spu;
     GPU gpu;
 
+    friend std::ostream& operator<<(std::ostream &os, const Bus &bus);
+
 public:
     Bus();
     virtual ~Bus();

@@ -122,6 +122,8 @@ void CPU::generateException(uint8_t exccode) {
 }
 
 void CPU::checkAndExecuteInterrupts() {
+    Log::log(std::format("Checking if interrupt should be issued"), Log::Type::CPU);
+
     if (cp0regs.getBit(CP0_REGISTER_SR, SR_BIT_IEC)) {
         uint32_t ip = (cp0regs.getCP0Register(CP0_REGISTER_CAUSE) >> CAUSE_BIT_IP0) & 0xFF;
         uint32_t im = (cp0regs.getCP0Register(CP0_REGISTER_SR) >> SR_BIT_IM0) & 0xFF;
