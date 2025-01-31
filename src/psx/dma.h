@@ -7,6 +7,22 @@
 
 namespace PSX {
 
+#define DCHR_UNK2 30
+#define DCHR_UNK1 29
+#define DCHR_START_TRIGGER 28
+#define DCHR_START_BUSY 24
+#define DCHR_CHOPPING_CPU_WINDOW_SIZE2 22
+#define DCHR_CHOPPING_CPU_WINDOW_SIZE1 21
+#define DCHR_CHOPPING_CPU_WINDOW_SIZE0 20
+#define DCHR_CHOPPING_DMA_WINDOW_SIZE2 18
+#define DCHR_CHOPPING_DMA_WINDOW_SIZE1 17
+#define DCHR_CHOPPING_DMA_WINDOW_SIZE0 16
+#define DCHR_SYNC_MODE1 10
+#define DCHR_SYNC_MODE0 9
+#define DCHR_CHOPPING_ENABLE 8
+#define DCHR_MEMORY_ADDRESS_STEP 1
+#define DCHR_TRANSFER_DIRECTION 0
+
 #define DPCR_DMA6_OTC_MASTER_ENABLE 27
 #define DPCR_DMA6_OTC_PRIORITY2 26
 #define DPCR_DMA6_OTC_PRIORITY1 25
@@ -68,6 +84,10 @@ private:
     // 0x1F801084...0x1F8010E4
     uint32_t dmaBlockControl[7];
 
+    // D#_CHR - DMA Channel Control
+    // 0x1F801088...0x1F8010E8
+    uint32_t dmaChannelControl[7];
+
     // DPCR
     // 0x1F8010F0
     uint32_t dmaControlRegister;
@@ -79,6 +99,8 @@ private:
     friend std::ostream& operator<<(std::ostream &os, const DMA &dma);
 
 public:
+    static const char* CHANNEL_NAMES[];
+
     DMA(Bus *bus);
     void reset();
 
@@ -95,6 +117,7 @@ private:
     void updateBlockControl(uint32_t channel, uint32_t value);
     void updateChannelControl(uint32_t channel, uint32_t value);
 
+    std::string getDCHRExplanation(uint32_t channel) const;
     std::string getDPCRExplanation() const;
     std::string getDICRExplanation() const;
 };

@@ -1,6 +1,7 @@
 #include "dma.h"
 
 #include <cassert>
+#include <cstring>
 #include <format>
 #include <sstream>
 
@@ -11,6 +12,16 @@
 using namespace util;
 
 namespace PSX {
+
+const char* DMA::CHANNEL_NAMES[] = {
+    "MDECIn",
+    "MDECOut",
+    "GPU",
+    "CDROM",
+    "SPU",
+    "PIO",
+    "OTC"
+};
 
 std::ostream& operator<<(std::ostream &os, const DMA &dma) {
     os << "DPCR: ";
@@ -29,6 +40,10 @@ DMA::DMA(Bus *bus) {
 }
 
 void DMA::reset() {
+    std::memset(dmaBaseAddress, 0, sizeof(dmaBaseAddress));
+    std::memset(dmaBlockControl, 0, sizeof(dmaBlockControl));
+    std::memset(dmaChannelControl, 0, sizeof(dmaChannelControl));
+
     dmaControlRegister = 0x07654321;
     dmaInterruptRegister = 0;
 }
@@ -117,8 +132,7 @@ uint32_t DMA::read(uint32_t address) {
             case 4: // D#_BCR - DMA Block Control
                 return dmaBlockControl[channel];
             case 8: // D#_CHCR - DMA Channel Control
-                Log::log(std::format("Channel control not implemented, read @0x{:08X}", address), Log::Type::DMA);
-                return 0;
+                return dmaChannelControl[channel];
             default:
                 throw exceptions::UnknownDMACommandError(
                       std::format("Read from unknown DMA register 0x{:08X}", address));
@@ -172,8 +186,10 @@ void DMA::updateBaseAddress(uint32_t channel, uint32_t value) {
     assert (channel <= 6);
     dmaBaseAddress[channel] = value & 0xFFFFFFFC; // word-align address
 
-    Log::log(std::format("Channel {:d} base address updated: 0x{:08X}",
-                         channel, dmaBaseAddress[channel]), Log::Type::DMA);
+    Log::log(std::format("Channel {:d} ({:s}) base address updated: 0x{:08X}",
+                         channel,
+                         CHANNEL_NAMES[channel],
+                         dmaBaseAddress[channel]), Log::Type::DMA);
 }
 
 void DMA::updateBlockControl(uint32_t channel, uint32_t value) {
@@ -182,11 +198,24 @@ void DMA::updateBlockControl(uint32_t channel, uint32_t value) {
 
     uint16_t blockSize = value & 0x0000FFFF;
     uint16_t blocks = value >> 16;
-    Log::log(std::format("Channel {:d} block control updated: 0x{:04X} blocks of size 0x{:04X}",
-                         channel, blocks, blockSize), Log::Type::DMA);
+    Log::log(std::format("Channel {:d} ({:s}) block control updated: 0x{:04X} blocks of size 0x{:04X}",
+                         channel,
+                         CHANNEL_NAMES[channel],
+                         blocks, blockSize), Log::Type::DMA);
 }
 
 void DMA::updateChannelControl(uint32_t channel, uint32_t value) {
+    assert (channel <= 6);
+    if (channel == 6) {
+        // channel 6 only has three read-/writeable bits
+        // 30, 28, 24 (UNK2, START_TRIGGER, START_BUSY)
+        // MEMORY_ADDRESS_STEP is always 1 (= backward)
+        dmaChannelControl[6] = (value & 0x51000000) | (1 << DCHR_MEMORY_ADDRESS_STEP);
+    } else {
+        // we only keep the relevant bits
+        dmaChannelControl[channel] = (value & 0x31770703);
+    }
+
     //uint32_t transferDirection = value & 1;
     //uint32_t memoryAddressStep = (value >> 1) & 1;
     //bool chopping = (value >> 8) & 1;
@@ -195,8 +224,35 @@ void DMA::updateChannelControl(uint32_t channel, uint32_t value) {
     //uint32_t choppingCPUWindowSize = (value >> 20) & 7;
     //bool startBusy = (value >> 24) & 1;
     //bool startTrigger = (value >> (28 >> 1);
-    Log::log(std::format("Channel {:d} channel control updated: 0x{:08X}",
-                         channel, value), Log::Type::DMA);
+    Log::log(std::format("Channel {:d} ({:s}) channel control updated: {:s}",
+                         channel,
+                         CHANNEL_NAMES[channel],
+                         getDCHRExplanation(channel)), Log::Type::DMA);
+}
+
+std::string DMA::getDCHRExplanation(uint32_t channel) const {
+    assert (channel <= 6);
+    uint32_t dchr = dmaChannelControl[channel];
+
+    std::stringstream ss;
+    ss << std::format("START_TRIGGER[{:01b}], ",
+                      (dchr >> DCHR_START_TRIGGER) & 1);
+    ss << std::format("START_BUSY[{:01b}], ",
+                      (dchr >> DCHR_START_BUSY) & 1);
+    ss << std::format("CHOPPING_CPU_WIN_SIZE[{:01d}], ",
+                      (dchr >> DCHR_CHOPPING_CPU_WINDOW_SIZE0) & 7);
+    ss << std::format("CHOPPING_DMA_WIN_SIZE[{:01d}], ",
+                      (dchr >> DCHR_CHOPPING_DMA_WINDOW_SIZE0) & 7);
+    ss << std::format("SYNC_MODE[{:01d}], ",
+                      (dchr >> DCHR_SYNC_MODE0) & 3);
+    ss << std::format("CHOPPING_ENABLE[{:01b}], ",
+                      (dchr >> DCHR_CHOPPING_ENABLE) & 1);
+    ss << std::format("MEMORY_ADDRESS_STEP[{:01b}], ",
+                      (dchr >> DCHR_MEMORY_ADDRESS_STEP) & 1);
+    ss << std::format("TRANSFER_DIRECTION[{:01b}]",
+                      (dchr >> DCHR_TRANSFER_DIRECTION) & 1);
+
+    return ss.str();
 }
 
 std::string DMA::getDPCRExplanation() const {
