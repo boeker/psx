@@ -110,9 +110,10 @@ public:
     template <typename T>
     T read(uint32_t address);
 
-    void checkAndExecuteTransfer();
-    void transferOTC();
+    void handlePendingTransfers();
+    bool dataRequested(uint32_t channel);
     void transfer(uint32_t channel);
+    void transferOTC();
 
 private:
     void updateControlRegister(uint32_t value);

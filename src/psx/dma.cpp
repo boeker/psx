@@ -149,39 +149,63 @@ template <> uint8_t DMA::read(uint32_t address) {
     throw exceptions::UnimplementedAddressingError(std::format("DMA: byte read @0x{:08X}", address));
 }
 
-void DMA::checkAndExecuteTransfer() {
-    uint32_t channel = 7;
-    uint32_t priority = 8;
+void DMA::handlePendingTransfers() {
+    uint32_t channel;
+    uint32_t priority;
 
-    // larger priority number -> higher priority
-    // if priority numbers are the same, then the channel with the larger
-    // channel number has higher priority
-    for (int i = 6; i >= 0; --i) {
-        if ((dmaControlRegister >> (4 * i + 3)) & 1) { // master enable
-            uint32_t currentPriority = (dmaControlRegister >> 4 * i) & 7;
+    Log::log(std::format("Checking for pending DMA transfers"), Log::Type::DMA);
 
-            if ((dmaChannelControl[i] & (1 << DCHR_START_BUSY)) // start/busy bit
-                && (currentPriority > priority)) {
-                channel = i;
-                currentPriority = priority;
+    do {
+        channel = 7;
+        priority = 8;
+
+        // larger priority number -> higher priority
+        // if priority numbers are the same, then the channel with the larger
+        // channel number has higher priority
+        for (int i = 6; i >= 0; --i) {
+            if ((dmaControlRegister >> (4 * i + 3)) & 1) { // master enable
+                uint32_t currentPriority = (dmaControlRegister >> 4 * i) & 7;
+
+                if ((dmaChannelControl[i] & (1 << DCHR_START_BUSY)) // start/busy bit
+                    && (currentPriority > priority)
+                    && dataRequested(i)) {
+                    channel = i;
+                    currentPriority = priority;
+                }
             }
         }
-    }
 
-    if (priority != 8) {
-        // initiate transfer
-        transfer(channel);
+        if (priority != 8) {
+            // initiate transfer
+            transfer(channel);
+        }
+
+    } while (priority != 8);
+}
+
+bool DMA::dataRequested(uint32_t channel) {
+    bool fromMainRAM = dmaChannelControl[channel] & (1 << DCHR_TRANSFER_DIRECTION);
+
+    switch(channel) {
+        case 2:
+            return (fromMainRAM && bus->gpu.transferToGPURequested())
+                   || (!fromMainRAM && bus->gpu.transferToGPURequested());
+        case 6:
+            return false;
+        default:
+            return false;
     }
 }
 
 void DMA::transfer(uint32_t channel) {
-    if (channel == 6) {
-        transferOTC();
-
-    } else {
-        Log::log(std::format("Channel {:d}: transfer not implemented",
-                             channel,
-                             CHANNEL_NAMES[channel]), Log::Type::DMA);
+    switch (channel) {
+        case 6:
+            transferOTC();
+            break;
+        default:
+            Log::log(std::format("Channel {:d}: transfer not implemented",
+                                 channel,
+                                 CHANNEL_NAMES[channel]), Log::Type::DMA);
     }
 
     Log::log(std::format("Channel {:d} ({:s}) channel control: {:s}",
@@ -224,7 +248,7 @@ void DMA::updateControlRegister(uint32_t value) {
 
     Log::log(std::format("DPCR updated: {:s}", getDPCRExplanation()), Log::Type::DMA_WRITE);
 
-    checkAndExecuteTransfer();
+    handlePendingTransfers();
 }
 
 void DMA::updateInterruptRegister(uint32_t value) {
@@ -303,14 +327,20 @@ void DMA::updateChannelControl(uint32_t channel, uint32_t value) {
 
 
     uint32_t dchr = dmaChannelControl[channel];
-    if ((dchr & (1 << DCHR_START_TRIGGER))
-         && (dchr & (1 << DCHR_START_TRIGGER))
-         && (dmaControlRegister & (1 << (4*channel + 3)))) {
+    if ((dchr & (1 << DCHR_START_BUSY))
+        && (dmaControlRegister & (1 << (4*channel + 3)))) {
 
-        Log::log(std::format("Channel {:d} ({:s}) immediate transfer requested",
-                             channel,
-                             CHANNEL_NAMES[channel]), Log::Type::DMA);
-        transfer(channel);
+        if (dchr & (1 << DCHR_START_TRIGGER)) { // manual start requested
+            Log::log(std::format("Channel {:d} ({:s}) immediate transfer requested",
+                                 channel,
+                                 CHANNEL_NAMES[channel]), Log::Type::DMA);
+            transfer(channel);
+
+        } else { // check for data request
+            if (dataRequested(channel)) {
+                transfer(channel);
+            }
+        }
     }
 }
 

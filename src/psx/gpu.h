@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <string>
 
 namespace PSX {
 
@@ -75,12 +76,14 @@ private:
     uint32_t queue[16];
     uint8_t in;
     uint8_t out;
+    uint8_t elements;
 
 public:
     CommandQueue();
     void clear();
     void push(uint32_t command);
     uint32_t pop();
+    bool isFull();
 };
 
 class GPU {
@@ -123,7 +126,12 @@ public:
     template <typename T>
     T read(uint32_t address);
 
+    bool transferFromGPURequested();
+    bool transferToGPURequested();
+
 private:
+    std::string getGPUStatusRegisterExplanation() const;
+    std::string getGPUStatusRegisterExplanation2() const;
     void setGPUStatusRegisterBit(uint32_t bit, uint32_t value);
 
     void decodeAndExecuteGP0();
