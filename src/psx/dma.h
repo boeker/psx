@@ -114,10 +114,13 @@ public:
     bool dataRequested(uint32_t channel);
     void transfer(uint32_t channel);
     void transferOTC();
+    void transferToGPU();
+    void transferFromGPU();
 
 private:
     void updateControlRegister(uint32_t value);
     void updateInterruptRegister(uint32_t value);
+    void processDICRUpdate();
     void updateBaseAddress(uint32_t channel, uint32_t value);
     void updateBlockControl(uint32_t channel, uint32_t value);
     void updateChannelControl(uint32_t channel, uint32_t value);

@@ -177,6 +177,7 @@ void DMA::handlePendingTransfers() {
 
         if (priority != 8) {
             // initiate transfer
+            Log::log(std::format("Pending DMA transfer: channel {:d}", channel), Log::Type::DMA);
             transfer(channel);
         }
 
@@ -198,7 +199,17 @@ bool DMA::dataRequested(uint32_t channel) {
 }
 
 void DMA::transfer(uint32_t channel) {
+    bool fromMainRAM = dmaChannelControl[channel] & (1 << DCHR_TRANSFER_DIRECTION);
+
     switch (channel) {
+        case 2:
+            if (fromMainRAM) {
+                transferToGPU();
+
+            } else {
+                transferFromGPU();
+            }
+            break;
         case 6:
             transferOTC();
             break;
@@ -241,7 +252,69 @@ void DMA::transferOTC() {
 
     // Clear start/busy on completion of transfer
     dmaChannelControl[6] = dmaChannelControl[6] & ~(1 << DCHR_START_BUSY);
+
+    // Set interrupt flag
+    if ((dmaInterruptRegister >> DICR_ENABLE_FLAG_DMA6) & 1) {
+        Log::log(std::format("Channel 6 (OTC) setting IRQ flag"));
+
+        dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_FLAG_DMA6);
+        processDICRUpdate();
+    }
 }
+
+void DMA::transferToGPU() {
+    Log::log(std::format("Channel 2 (GPU) transfer: to GPU"), Log::Type::DMA);
+    uint32_t syncMode = (dmaChannelControl[2] >> DCHR_SYNC_MODE0) & 3;
+
+    if (syncMode == 2) { // linked-list mode
+        // a list of commands is sent to the GPU
+        uint32_t address = dmaBaseAddress[2];
+        uint32_t elementsSent = 0;
+
+        Log::log(std::format("Channel 2 (GPU) transfer: linked-list transfer @0x{:08X}",
+                             address), Log::Type::DMA);
+
+        // Clear start/trigger on beginning of transfer
+        dmaChannelControl[2] = dmaChannelControl[2] & ~(1 << DCHR_START_TRIGGER);
+
+        do {
+            // read linked list until one encounters the end code (0x00FFFFFF)
+            // first 8 bits are the stored byte, remaining 24 bits are the
+            // lower 24 bits of the address of the next element
+            uint32_t word = bus->read<uint32_t>(address);
+            address = (address & 0xFF000000) | (word & 0x00FFFFFF);
+
+            uint8_t byte = word >> 24;
+            // TODO send to GPU
+            Log::log(std::format("Channel 2 (GPU) transfer: sending 0x{:02X}",
+                                 byte), Log::Type::DMA);
+            ++elementsSent;
+
+        } while ((address & 0x00FFFFFF) != 0x00FFFFFF);
+
+        Log::log(std::format("Channel 2 (GPU) transfer: {:d} element(s) sent",
+                             elementsSent), Log::Type::DMA);
+
+        // Clear start/busy on completion of transfer
+        dmaChannelControl[2] = dmaChannelControl[2] & ~(1 << DCHR_START_BUSY);
+
+        // Set interrupt flag
+        if ((dmaInterruptRegister >> DICR_ENABLE_FLAG_DMA2) & 1) {
+            Log::log(std::format("Channel 2 (GPU) setting IRQ flag"));
+
+            dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_FLAG_DMA2);
+            processDICRUpdate();
+        }
+    }
+    else {
+        Log::log(std::format("Transfer to GPU: sync mode {:d} not implemented", syncMode), Log::Type::DMA);
+    }
+}
+
+void DMA::transferFromGPU() {
+    Log::log(std::format("Transfer from GPU not implemented"), Log::Type::DMA);
+}
+
 
 void DMA::updateControlRegister(uint32_t value) {
     dmaControlRegister = value;
@@ -276,6 +349,15 @@ void DMA::updateInterruptRegister(uint32_t value) {
     }
 
     Log::log(std::format("DICR updated: {:s}", getDICRExplanation()), Log::Type::DMA_WRITE);
+}
+
+void DMA::processDICRUpdate() {
+    if (((dmaInterruptRegister >> DICR_ENABLE_IRQ_SIGNAL) & 1) // Set bit 31 on IRQ flag?
+        && ((dmaInterruptRegister >> DICR_IRQ_FLAG_DMA0) & 0x7F) // IRQ flag set?
+        && !((dmaInterruptRegister >> DICR_IRQ_SIGNAL) & 1)) { // Not already set?
+        dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_SIGNAL);
+        bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_DMA);
+    }
 }
 
 void DMA::updateBaseAddress(uint32_t channel, uint32_t value) {
