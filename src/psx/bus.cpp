@@ -47,7 +47,7 @@ Bus::~Bus() {
 
 template <typename T>
 T Bus::read(uint32_t address) {
-    Log::log(std::format(" [@0x{:08X} -> ", address), Log::Type::MEMORY);
+    Log::log(std::format(" [@0x{:08X} -> ", address), Log::Type::BUS);
     T value = 0;
 
     if ((address & 0x1FE00000) == 0x00000000) { // Main RAM
@@ -121,7 +121,7 @@ T Bus::read(uint32_t address) {
         throw exceptions::AddressOutOfBounds(std::format("Read @0x{:08X}", address ));
     }
     
-    Log::log(std::format("0x{:0{}X}]", value, 2*sizeof(T)), Log::Type::MEMORY);
+    Log::log(std::format("0x{:0{}X}]", value, 2*sizeof(T)), Log::Type::BUS);
     return value;
 }
 
@@ -131,7 +131,7 @@ template uint8_t Bus::read<uint8_t>(uint32_t address);
 
 template <typename T>
 void Bus::write (uint32_t address, T value) {
-    Log::log(std::format(" [0x{:0{}X} -> @0x{:08X}]", value, 2*sizeof(T), address), Log::Type::MEMORY);
+    Log::log(std::format(" [0x{:0{}X} -> @0x{:08X}]", value, 2*sizeof(T), address), Log::Type::BUS);
 
     if ((address & 0x1FE00000) == 0x00000000) { // Main RAM
         if (cpu.cp0regs.statusRegisterIsolateCacheIsSet()) {
@@ -218,40 +218,40 @@ template void Bus::write<uint8_t>(uint32_t address, uint8_t value);
 
 uint8_t Bus::readByte(uint32_t address) {
     return read<uint8_t>(address);
-    //Log::log(std::format(" [rb "), Log::Type::MEMORY);
+    //Log::log(std::format(" [rb "), Log::Type::BUS);
     //uint8_t *memory = (uint8_t*)resolveAddress(address);
 
     //uint8_t byte = *memory;
-    //Log::log(std::format("@0x{:08X} -0x{:02X}->]", address, byte), Log::Type::MEMORY);
+    //Log::log(std::format("@0x{:08X} -0x{:02X}->]", address, byte), Log::Type::BUS);
 
     //return byte;
 }
 
 uint16_t Bus::readHalfWord(uint32_t address) {
     return read<uint16_t>(address);
-    //Log::log(std::format(" [rhw "), Log::Type::MEMORY);
+    //Log::log(std::format(" [rhw "), Log::Type::BUS);
     //uint16_t *memory = (uint16_t*)resolveAddress(address); // PSX is little endian, so is x86
 
     //uint16_t halfWord = *memory;
-    //Log::log(std::format("@0x{:08X} -0x{:04X}->]", address, halfWord), Log::Type::MEMORY);
+    //Log::log(std::format("@0x{:08X} -0x{:04X}->]", address, halfWord), Log::Type::BUS);
 
     //return halfWord;
 }
 
 uint32_t Bus::readWord(uint32_t address) {
     return read<uint32_t>(address);
-    //Log::log(std::format(" [rw "), Log::Type::MEMORY);
+    //Log::log(std::format(" [rw "), Log::Type::BUS);
     //uint32_t *memory = (uint32_t*)resolveAddress(address); // PSX is little endian, so is x86
 
     //uint32_t word = *memory;
-    //Log::log(std::format("@0x{:08X} -0x{:08X}->]", address, word), Log::Type::MEMORY);
+    //Log::log(std::format("@0x{:08X} -0x{:08X}->]", address, word), Log::Type::BUS);
 
     //return word;
 }
 
 void Bus::writeByte(uint32_t address, uint8_t byte) {
     write<uint8_t>(address, byte);
-    //Log::log(std::format(" [wb -0x{:02X}-> @0x{:08X}]", byte, address), Log::Type::MEMORY);
+    //Log::log(std::format(" [wb -0x{:02X}-> @0x{:08X}]", byte, address), Log::Type::BUS);
 
 
     //if ((address >= 0x1F801070) && (address <= 0x1F801077)) {
@@ -273,7 +273,7 @@ void Bus::writeByte(uint32_t address, uint8_t byte) {
 
 void Bus::writeHalfWord(uint32_t address, uint16_t halfWord) {
     write<uint16_t>(address, halfWord);
-    //Log::log(std::format(" [whw -0x{:04X}-> @0x{:08X}]", halfWord, address), Log::Type::MEMORY);
+    //Log::log(std::format(" [whw -0x{:04X}-> @0x{:08X}]", halfWord, address), Log::Type::BUS);
 
 
     //if ((address >= 0x1F801070) && (address <= 0x1F801077)) {
@@ -294,7 +294,7 @@ void Bus::writeHalfWord(uint32_t address, uint16_t halfWord) {
 
 void Bus::writeWord(uint32_t address, uint32_t word) {
     write<uint32_t>(address, word);
-    //Log::log(std::format(" [ww -0x{:08X}-> @0x{:08X}]", word, address), Log::Type::MEMORY);
+    //Log::log(std::format(" [ww -0x{:08X}-> @0x{:08X}]", word, address), Log::Type::BUS);
 
     //if ((address >= 0x1F801070) && (address <= 0x1F801077)) {
     //    Log::log(std::format("\n~Interrupt write 0x{:08X} --> @0x{:08X}~\n", word, address), Log::Type::INTERRUPT);

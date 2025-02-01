@@ -149,10 +149,82 @@ template <> uint8_t DMA::read(uint32_t address) {
     throw exceptions::UnimplementedAddressingError(std::format("DMA: byte read @0x{:08X}", address));
 }
 
+void DMA::checkAndExecuteTransfer() {
+    uint32_t channel = 7;
+    uint32_t priority = 8;
+
+    // larger priority number -> higher priority
+    // if priority numbers are the same, then the channel with the larger
+    // channel number has higher priority
+    for (int i = 6; i >= 0; --i) {
+        if ((dmaControlRegister >> (4 * i + 3)) & 1) { // master enable
+            uint32_t currentPriority = (dmaControlRegister >> 4 * i) & 7;
+
+            if ((dmaChannelControl[i] & (1 << DCHR_START_BUSY)) // start/busy bit
+                && (currentPriority > priority)) {
+                channel = i;
+                currentPriority = priority;
+            }
+        }
+    }
+
+    if (priority != 8) {
+        // initiate transfer
+        transfer(channel);
+    }
+}
+
+void DMA::transfer(uint32_t channel) {
+    if (channel == 6) {
+        transferOTC();
+
+    } else {
+        Log::log(std::format("Channel {:d}: transfer not implemented",
+                             channel,
+                             CHANNEL_NAMES[channel]), Log::Type::DMA);
+    }
+
+    Log::log(std::format("Channel {:d} ({:s}) channel control: {:s}",
+                         channel,
+                         CHANNEL_NAMES[channel],
+                         getDCHRExplanation(channel)), Log::Type::DMA);
+}
+
+void DMA::transferOTC() {
+    uint32_t baseAddress = dmaBaseAddress[6];
+    uint32_t blocks = dmaBlockControl[6] & 0x0000FFFF;
+    if (blocks == 0) {
+        blocks = 0x10000;
+    }
+
+    Log::log(std::format("Channel 6 (OTC) transfer: 0x{:08X} blocks to @0x{:08X}",
+                         blocks,
+                         baseAddress), Log::Type::DMA);
+
+    // Clear start/trigger on beginning of transfer
+    dmaChannelControl[6] = dmaChannelControl[6] & ~(1 << DCHR_START_TRIGGER);
+    
+    // Create a linked list in memory by going backwards from baseAddress
+    // The lower 24 bits of every entry specify the next address
+    for (uint32_t i = 1; i < blocks; ++i) {
+        uint32_t nextAddress = baseAddress - 4;
+        bus->write<uint32_t>(baseAddress, nextAddress & 0x00FFFFFF);
+
+        baseAddress = nextAddress;
+    }
+
+    bus->write<uint32_t>(baseAddress, 0x00FFFFFF);
+
+    // Clear start/busy on completion of transfer
+    dmaChannelControl[6] = dmaChannelControl[6] & ~(1 << DCHR_START_BUSY);
+}
+
 void DMA::updateControlRegister(uint32_t value) {
     dmaControlRegister = value;
 
     Log::log(std::format("DPCR updated: {:s}", getDPCRExplanation()), Log::Type::DMA_WRITE);
+
+    checkAndExecuteTransfer();
 }
 
 void DMA::updateInterruptRegister(uint32_t value) {
@@ -198,7 +270,7 @@ void DMA::updateBlockControl(uint32_t channel, uint32_t value) {
 
     uint16_t blockSize = value & 0x0000FFFF;
     uint16_t blocks = value >> 16;
-    Log::log(std::format("Channel {:d} ({:s}) block control updated: 0x{:04X} blocks of size 0x{:04X}",
+    Log::log(std::format("Channel {:d} ({:s}) block control updated: 0x{:04X} blocks of 0x{:04X} words",
                          channel,
                          CHANNEL_NAMES[channel],
                          blocks, blockSize), Log::Type::DMA);
@@ -228,6 +300,18 @@ void DMA::updateChannelControl(uint32_t channel, uint32_t value) {
                          channel,
                          CHANNEL_NAMES[channel],
                          getDCHRExplanation(channel)), Log::Type::DMA);
+
+
+    uint32_t dchr = dmaChannelControl[channel];
+    if ((dchr & (1 << DCHR_START_TRIGGER))
+         && (dchr & (1 << DCHR_START_TRIGGER))
+         && (dmaControlRegister & (1 << (4*channel + 3)))) {
+
+        Log::log(std::format("Channel {:d} ({:s}) immediate transfer requested",
+                             channel,
+                             CHANNEL_NAMES[channel]), Log::Type::DMA);
+        transfer(channel);
+    }
 }
 
 std::string DMA::getDCHRExplanation(uint32_t channel) const {

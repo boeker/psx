@@ -5,6 +5,7 @@
 namespace util {
 
 bool Log::logEnabled = false;
+bool Log::busLogEnabled = false;
 
 void Log::log(const std::string &message, Type type) {
     switch (type) {
@@ -43,6 +44,10 @@ void Log::log(const std::string &message, Type type) {
             //    std::cerr << message;
             //}
             break;
+        case Type::BUS:
+            if (busLogEnabled) {
+                std::cerr << message << std::endl;
+            }
         default:
             break;
     }

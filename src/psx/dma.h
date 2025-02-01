@@ -110,6 +110,10 @@ public:
     template <typename T>
     T read(uint32_t address);
 
+    void checkAndExecuteTransfer();
+    void transferOTC();
+    void transfer(uint32_t channel);
+
 private:
     void updateControlRegister(uint32_t value);
     void updateInterruptRegister(uint32_t value);

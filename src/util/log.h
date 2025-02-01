@@ -8,6 +8,7 @@ namespace util {
 class Log {
 public:
     enum Type {
+        BUS,
         CPU,
         MEMORY,
         REGISTER_READ,
@@ -33,6 +34,7 @@ public:
     };
 
     static bool logEnabled;
+    static bool busLogEnabled;
 
     static void log(const std::string &message, Type type = MISC);
 };
