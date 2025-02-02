@@ -78,6 +78,8 @@ private:
     uint8_t out;
     uint8_t elements;
 
+    friend std::ostream& operator<<(std::ostream &os, const CommandQueue &queue);
+
 public:
     CommandQueue();
     void clear();

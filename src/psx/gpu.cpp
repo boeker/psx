@@ -12,6 +12,20 @@ using namespace util;
 
 namespace PSX {
 
+std::ostream& operator<<(std::ostream &os, const CommandQueue &queue) {
+    CommandQueue copy = queue;
+
+    if (!copy.isEmpty()) {
+        os << std::format("0x{:08X}", copy.pop());
+    }
+
+    while (!copy.isEmpty()) {
+        os << std::format(", 0x{:08X}", copy.pop());
+    }
+
+    return os;
+}
+
 CommandQueue::CommandQueue() {
     clear();
 }
@@ -28,10 +42,9 @@ void CommandQueue::clear() {
 
 void CommandQueue::push(uint32_t command) {
     if (elements < 16) {
-        uint8_t next = (in + 1) % 16;
-
-        in = next;
         queue[in] = command;
+
+        in = (in + 1) % 16;
         ++elements;
     }
 }
@@ -57,8 +70,9 @@ bool CommandQueue::isFull() {
 }
 
 std::ostream& operator<<(std::ostream &os, const GPU &gpu) {
-    os << "GPUSTAT: " << gpu.getGPUStatusRegisterExplanation();
-    os << "GPUSTAT (cont.): " << gpu.getGPUStatusRegisterExplanation2();
+    os << "GPUSTAT: " << gpu.getGPUStatusRegisterExplanation() << std::endl;
+    os << "GPUSTAT (cont.): " << gpu.getGPUStatusRegisterExplanation2() << std::endl;
+    os << "Command queue: " << gpu.queue;
     return os;
 }
 
