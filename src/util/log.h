@@ -29,6 +29,7 @@ public:
         INTERRUPTS,
         INTERRUPTS_IO,
         EXCEPTION,
+        EXCEPTION_VERBOSE,
         MISC,
         WARNING,
     };

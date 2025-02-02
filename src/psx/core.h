@@ -13,7 +13,7 @@ public:
     Core();
     void reset(); 
 
-    void step();
+    void emulateBlock();
     void run();
 };
 

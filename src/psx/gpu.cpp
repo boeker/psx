@@ -48,6 +48,10 @@ uint32_t CommandQueue::pop() {
     return 0;
 }
 
+bool CommandQueue::isEmpty() {
+    return elements == 0;
+}
+
 bool CommandQueue::isFull() {
     return elements == 16;
 }
@@ -74,6 +78,19 @@ void GPU::reset() {
 
     texturedRectangleXFlip = false;
     texturedRectangleYFlip = false;
+
+    drawingAreaX1 = 0;
+    drawingAreaY1 = 0;
+
+    drawingAreaX2 = 0;
+    drawingAreaY2 = 0;
+}
+
+void GPU::catchUpToCPU(uint32_t cpuCycles) {
+    while (!queue.isEmpty()) {
+        gp0 = queue.pop();
+        decodeAndExecuteGP0();
+    }
 }
 
 template <> void GPU::write(uint32_t address, uint32_t value) {
@@ -234,15 +251,109 @@ void GPU::setGPUStatusRegisterBit(uint32_t bit, uint32_t value) {
 void GPU::decodeAndExecuteGP0() {
     uint8_t command = gp0 >> 24;
 
-    if (command == 0x00) {
-        GP0NOP();
+    (this->*gp0Commands[command])();
+}
 
-    } else if (command == 0xE1) {
-        GP0DrawModeSetting();
+const GPU::Command GPU::gp0Commands[] = {
+    // 0x00
+    &GPU::GP0NOP,     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x10
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x20
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x30
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x40
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x50
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x60
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x70
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x80
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x90
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0xA0
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0xB0
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0xC0
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0xD0
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0xE0
+    &GPU::GP0Unknown,
+    // 0xE1
+    &GPU::GP0DrawModeSetting,
+    // 0xE1
+    &GPU::GP0Unknown,
+    // 0xE3
+    &GPU::GP0SetDrawingAreaTopLeft,
+    // 0xE4
+    &GPU::GP0SetDrawingAreaBottomRight,
+    // 0xE5
+    &GPU::GP0SetDrawingOffset,
+    &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0xF0
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+};
 
-    } else {
-        throw exceptions::UnknownGPUCommandError(std::format("GP0: 0x{:08X}, command 0x{:02X}", gp0, command));
-    }
+void GPU::GP0Unknown() {
+    uint8_t command = gp0 >> 24;
+    throw exceptions::UnknownGPUCommandError(std::format("GP0: 0x{:08X}, command 0x{:02X}", gp0, command));
+}
+
+void GPU::GP0NOP() {
+    Log::log(std::format("GP0 - NOP"), Log::Type::GPU);
 }
 
 void GPU::GP0DrawModeSetting() {
@@ -268,8 +379,40 @@ void GPU::GP0DrawModeSetting() {
     texturedRectangleYFlip = (gp0 & (1 << 13));
 }
 
-void GPU::GP0NOP() {
-    Log::log(std::format("GP0 - NOP"), Log::Type::GPU);
+void GPU::GP0SetDrawingAreaTopLeft() {
+    // 0xE3
+    uint32_t xCoord = gp0 & 0x3FF;
+    uint32_t yCoord = (gp0 >> 10) & 0x1FF;
+
+    Log::log(std::format("GP0 - SetDrawingAreaTopLeft({:d}, {:d})", xCoord, yCoord), Log::Type::GPU);
+
+
+    drawingAreaX1 = xCoord;
+    drawingAreaY1 = yCoord;
+}
+
+void GPU::GP0SetDrawingAreaBottomRight() {
+    // 0xE4
+    uint32_t xCoord = gp0 & 0x3FF;
+    uint32_t yCoord = (gp0 >> 10) & 0x1FF;
+
+    Log::log(std::format("GP0 - SetDrawingAreaBottomRight({:d}, {:d})", xCoord, yCoord), Log::Type::GPU);
+
+    drawingAreaX2 = xCoord;
+    drawingAreaY2 = yCoord;
+}
+
+void GPU::GP0SetDrawingOffset() {
+    // 0xE5
+    uint32_t xOffset = gp0 & 0x7FF;
+    uint32_t yOffset = (gp0 >> 11) & 0x7FF;
+
+    int32_t signedXOffset = ((xOffset >> 10) ? 0xFFFFF800 : 0x00000000) | xOffset;
+    int32_t signedYOffset = ((yOffset >> 10) ? 0xFFFFF800 : 0x00000000) | yOffset;
+
+    Log::log(std::format("GP0 - SetDrawingOffset({:d}, {:d})", signedXOffset, signedYOffset), Log::Type::GPU);
+    drawingOffsetX = signedXOffset;
+    drawingOffsetY = signedYOffset;
 }
 
 void GPU::decodeAndExecuteGP1() {

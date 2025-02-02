@@ -15,14 +15,28 @@ void Core::reset() {
     bus.reset();
 }
 
-void Core::step() {
-    bus.cpu.step();
+void Core::emulateBlock() {
+    uint32_t cyclesTaken = bus.cpu.cycles;
+
+    for (int i = 0; i < 100; ++i) {
+        bus.cpu.step();
+    }
+
+    cyclesTaken = bus.cpu.cycles - cyclesTaken;
+
+    bus.gpu.catchUpToCPU(cyclesTaken);
+
+    if (bus.cpu.cycles >= CPU_VBLANK_FREQUENCY) {
+        bus.cpu.cycles -= CPU_VBLANK_FREQUENCY;
+
+        bus.interrupts.notifyAboutVBLANK();
+    }
 }
 
 void Core::run() {
     try {
         while (true) {
-            step();
+            emulateBlock();
         }
 
     } catch (const std::runtime_error &e) {

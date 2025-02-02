@@ -83,6 +83,7 @@ public:
     void clear();
     void push(uint32_t command);
     uint32_t pop();
+    bool isEmpty();
     bool isFull();
 };
 
@@ -114,11 +115,24 @@ private:
     uint16_t verticalDisplayRangeY1; // on screen
     uint16_t verticalDisplayRangeY2; // on screen
 
+    // top left
+    uint16_t drawingAreaX1;
+    uint16_t drawingAreaY1;
+
+    // bottom right
+    uint16_t drawingAreaX2;
+    uint16_t drawingAreaY2;
+
+    int32_t drawingOffsetX;
+    int32_t drawingOffsetY;
+
     friend std::ostream& operator<<(std::ostream &os, const GPU &gpu);
 
 public:
     GPU(Bus *bus);
     void reset();
+
+    void catchUpToCPU(uint32_t cpuCycles);
 
     template <typename T>
     void write(uint32_t address, T value);
@@ -136,10 +150,22 @@ private:
     void setGPUStatusRegisterBit(uint32_t bit, uint32_t value);
 
     void decodeAndExecuteGP0();
-    // 0xE1
-    void GP0DrawModeSetting();
+
+    typedef void (GPU::*Command) ();
+    static const Command gp0Commands[];
+
+    void GP0Unknown();
+
     // 0x00
     void GP0NOP();
+    // 0xE1
+    void GP0DrawModeSetting();
+    // 0xE3
+    void GP0SetDrawingAreaTopLeft();
+    // 0xE4
+    void GP0SetDrawingAreaBottomRight();
+    // 0xE5
+    void GP0SetDrawingOffset();
 
     void decodeAndExecuteGP1();
 

@@ -45,10 +45,10 @@ public:
 private:
     Bus *bus;
 
+public:
     uint32_t cycles;
 
     // Current instruction and opcode
-public:
     uint32_t instructionPC;
     uint32_t instruction;
     bool isBranchDelaySlot;

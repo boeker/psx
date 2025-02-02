@@ -57,11 +57,6 @@ void CPU::step() {
     Log::log("\n");
 
     cycles += 1;
-    if (cycles >= CPU_VBLANK_FREQUENCY) {
-        cycles -= CPU_VBLANK_FREQUENCY;
-
-        bus->interrupts.notifyAboutVBLANK();
-    }
 }
 
 void CPU::fetchDelaySlot() {
@@ -122,7 +117,7 @@ void CPU::generateException(uint8_t exccode) {
 }
 
 void CPU::checkAndExecuteInterrupts() {
-    Log::log(std::format("Checking if interrupt exception should be issued"), Log::Type::EXCEPTION);
+    Log::log(std::format("Checking if interrupt exception should be issued"), Log::Type::EXCEPTION_VERBOSE);
 
     if (cp0regs.getBit(CP0_REGISTER_SR, SR_BIT_IEC)) {
         uint32_t ip = (cp0regs.getCP0Register(CP0_REGISTER_CAUSE) >> CAUSE_BIT_IP0) & 0xFF;
@@ -132,10 +127,10 @@ void CPU::checkAndExecuteInterrupts() {
             generateException(EXCCODE_INT);
 
         } else {
-            Log::log(std::format("IEc set but no interrupt enabled and issued"), Log::Type::EXCEPTION);
+            Log::log(std::format("IEc set but no interrupt enabled and issued"), Log::Type::EXCEPTION_VERBOSE);
         }
     } else {
-        Log::log(std::format("IEc not set"), Log::Type::EXCEPTION);
+        Log::log(std::format("IEc not set"), Log::Type::EXCEPTION_VERBOSE);
     }
 }
 
