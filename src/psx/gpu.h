@@ -128,6 +128,7 @@ public:
 
     bool transferFromGPURequested();
     bool transferToGPURequested();
+    void receiveGP0Command(uint32_t command);
 
 private:
     std::string getGPUStatusRegisterExplanation() const;

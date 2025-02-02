@@ -265,35 +265,46 @@ void DMA::transferOTC() {
 void DMA::transferToGPU() {
     Log::log(std::format("Channel 2 (GPU) transfer: to GPU"), Log::Type::DMA);
     uint32_t syncMode = (dmaChannelControl[2] >> DCHR_SYNC_MODE0) & 3;
+    uint32_t memoryAddressStep = (dmaChannelControl[2] >> DCHR_MEMORY_ADDRESS_STEP) & 1;
 
     if (syncMode == 2) { // linked-list mode
         // a list of commands is sent to the GPU
         uint32_t address = dmaBaseAddress[2];
-        uint32_t elementsSent = 0;
 
         Log::log(std::format("Channel 2 (GPU) transfer: linked-list transfer @0x{:08X}",
                              address), Log::Type::DMA);
 
         // Clear start/trigger on beginning of transfer
         dmaChannelControl[2] = dmaChannelControl[2] & ~(1 << DCHR_START_TRIGGER);
+        
 
         do {
             // read linked list until one encounters the end code (0x00FFFFFF)
-            // first 8 bits are the stored byte, remaining 24 bits are the
-            // lower 24 bits of the address of the next element
-            uint32_t word = bus->read<uint32_t>(address);
-            address = (address & 0xFF000000) | (word & 0x00FFFFFF);
+            // first 8 bits specify the number of following words, remaining 24 bits are the
+            // lower 24 bits of the address of the next list element
+            uint32_t header = bus->read<uint32_t>(address);
+            uint32_t nextAddress = (address & 0xFF000000) | (header & 0x00FFFFFF);
 
-            uint8_t byte = word >> 24;
-            // TODO send to GPU
-            Log::log(std::format("Channel 2 (GPU) transfer: sending 0x{:02X}",
-                                 byte), Log::Type::DMA);
-            ++elementsSent;
+            uint32_t numberOfWords = header >> 24;
+            Log::log(std::format("Channel 2 (GPU) transfer: node contains {:d} words",
+                                 numberOfWords), Log::Type::DMA);
+
+            for (uint32_t i = 0; i < numberOfWords; ++i) {
+                if (memoryAddressStep == 0) {
+                    address += 4;
+                } else {
+                    address -= 4;
+                }
+
+                uint32_t word = bus->read<uint32_t>(address);
+                Log::log(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
+                                     word), Log::Type::DMA);
+                bus->gpu.receiveGP0Command(word);
+            }
+
+            address = nextAddress;
 
         } while ((address & 0x00FFFFFF) != 0x00FFFFFF);
-
-        Log::log(std::format("Channel 2 (GPU) transfer: {:d} element(s) sent",
-                             elementsSent), Log::Type::DMA);
 
         // Clear start/busy on completion of transfer
         dmaChannelControl[2] = dmaChannelControl[2] & ~(1 << DCHR_START_BUSY);

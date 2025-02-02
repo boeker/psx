@@ -144,6 +144,23 @@ bool GPU::transferToGPURequested() {
            && (gpuStatusRegister & (1 << GPUSTAT_DATAREQUEST));
 }
 
+void GPU::receiveGP0Command(uint32_t command) {
+    Log::log(std::format("Received command 0x{:08X}", command), Log::Type::GPU);
+
+    if (!queue.isFull()) {
+        queue.push(command);
+
+        if (queue.isFull()) {
+            if ((gpuStatusRegister >> GPUSTAT_DMA_DIRECTION0 & 3) == 1) {
+                setGPUStatusRegisterBit(GPUSTAT_CMDWORD_RECEIVE_READY, 0);
+            }
+        }
+
+    } else {
+        Log::log(std::format("Queue is full"), Log::Type::GPU);
+    }
+}
+
 std::string GPU::getGPUStatusRegisterExplanation() const {
     std::stringstream ss;
     uint32_t gpustat = gpuStatusRegister;
