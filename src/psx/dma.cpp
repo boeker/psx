@@ -286,8 +286,8 @@ void DMA::transferToGPU() {
             uint32_t nextAddress = (address & 0xFF000000) | (header & 0x00FFFFFF);
 
             uint32_t numberOfWords = header >> 24;
-            Log::log(std::format("Channel 2 (GPU) transfer: node contains {:d} words",
-                                 numberOfWords), Log::Type::DMA);
+            //Log::log(std::format("Channel 2 (GPU) transfer: node contains {:d} words",
+            //                     numberOfWords), Log::Type::DMA);
 
             for (uint32_t i = 0; i < numberOfWords; ++i) {
                 if (memoryAddressStep == 0) {

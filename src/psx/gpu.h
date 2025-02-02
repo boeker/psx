@@ -165,6 +165,10 @@ private:
 
     // 0x00
     void GP0NOP();
+    // 0x01
+    void GP0ClearCache();
+    // 0xA0
+    void GP0CopyRectangleToVRAM();
     // 0xE1
     void GP0DrawModeSetting();
     // 0xE2
@@ -177,6 +181,9 @@ private:
     void GP0SetDrawingOffset();
     // 0xE6
     void GP0MaskBitSetting();
+
+    // 0x28
+    void GP0MonochromeFourPointPolygonOpaque();
 
     void decodeAndExecuteGP1();
 

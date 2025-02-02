@@ -270,7 +270,10 @@ void GPU::decodeAndExecuteGP0() {
 
 const GPU::Command GPU::gp0Commands[] = {
     // 0x00
-    &GPU::GP0NOP,     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0NOP,
+    // 0x01
+    &GPU::GP0ClearCache,
+    &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
@@ -282,7 +285,9 @@ const GPU::Command GPU::gp0Commands[] = {
     // 0x20
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x28
+    &GPU::GP0MonochromeFourPointPolygonOpaque,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x30
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
@@ -320,7 +325,8 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0xA0
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0CopyRectangleToVRAM,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
@@ -370,6 +376,20 @@ void GPU::GP0Unknown() {
 
 void GPU::GP0NOP() {
     Log::log(std::format("GP0 - NOP"), Log::Type::GPU);
+}
+
+void GPU::GP0ClearCache() {
+    Log::log(std::format("GP0 - ClearCache"), Log::Type::GPU);
+    // TODO Implement?
+}
+
+void GPU::GP0CopyRectangleToVRAM() {
+    uint32_t destinationCoord = queue.pop();
+    uint32_t widthAndHeight = queue.pop();
+    Log::log(std::format("GP0 - CopyRectangleToVRAM(0x{:08X}, 0x{:08X}, ...)",
+                         destinationCoord, widthAndHeight), Log::Type::GPU);
+
+    // read data from GPUREAD
 }
 
 void GPU::GP0DrawModeSetting() {
@@ -456,6 +476,23 @@ void GPU::GP0MaskBitSetting() {
 
     setGPUStatusRegisterBit(GPUSTAT_SET_MASK, setMaskWhileDrawing);
     setGPUStatusRegisterBit(GPUSTAT_DRAW_PIXELS, checkMaskBeforeDraw);
+}
+
+void GPU::GP0MonochromeFourPointPolygonOpaque() {
+    // 0x28
+    uint32_t color = gp0 & 0x00FFFFFF;
+
+    // TODO Check that there are at least four elements in the queue
+    uint32_t vertex1 = queue.pop();
+    uint32_t vertex2 = queue.pop();
+    uint32_t vertex3 = queue.pop();
+    uint32_t vertex4 = queue.pop();
+
+    Log::log(std::format("GP0 - MonochromeFourPointPolygonOpaque(0x{:06X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X})",
+                         color,
+                         vertex1, vertex2, vertex3, vertex4), Log::Type::GPU);
+
+    // TODO Render
 }
 
 void GPU::decodeAndExecuteGP1() {
