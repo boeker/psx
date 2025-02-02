@@ -329,15 +329,17 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0Unknown,
     // 0xE1
     &GPU::GP0DrawModeSetting,
-    // 0xE1
-    &GPU::GP0Unknown,
+    // 0xE2
+    &GPU::GP0TextureWindowSetting,
     // 0xE3
     &GPU::GP0SetDrawingAreaTopLeft,
     // 0xE4
     &GPU::GP0SetDrawingAreaBottomRight,
     // 0xE5
     &GPU::GP0SetDrawingOffset,
-    &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0xE6
+    &GPU::GP0MaskBitSetting,
+    &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0xF0
@@ -379,6 +381,20 @@ void GPU::GP0DrawModeSetting() {
     texturedRectangleYFlip = (gp0 & (1 << 13));
 }
 
+void GPU::GP0TextureWindowSetting() {
+    // 0xE2
+    this->textureWindowMaskX = gp0 & 0x1F;
+    this->textureWindowMaskY = (gp0 >> 5) & 0x1F;
+    this->textureWindowOffsetX = (gp0 >> 10) & 0x1F;
+    this->textureWindowOffsetY = (gp0 >> 15) & 0x1F;
+
+    Log::log(std::format("GP0 - TextureWindowSetting({:d}, {:d}, {:d}, {:d})",
+                         this->textureWindowMaskX,
+                         this->textureWindowMaskY,
+                         this->textureWindowOffsetX,
+                         this->textureWindowOffsetY), Log::Type::GPU);
+}
+
 void GPU::GP0SetDrawingAreaTopLeft() {
     // 0xE3
     uint32_t xCoord = gp0 & 0x3FF;
@@ -413,6 +429,19 @@ void GPU::GP0SetDrawingOffset() {
     Log::log(std::format("GP0 - SetDrawingOffset({:d}, {:d})", signedXOffset, signedYOffset), Log::Type::GPU);
     drawingOffsetX = signedXOffset;
     drawingOffsetY = signedYOffset;
+}
+
+void GPU::GP0MaskBitSetting() {
+    // 0xE6
+    uint8_t setMaskWhileDrawing = gp0 & 1;
+    uint8_t checkMaskBeforeDraw = (gp0 >> 1) & 1;
+
+    Log::log(std::format("GP0 - MaskBitSetting({:01b}, {:01b})",
+                         setMaskWhileDrawing,
+                         checkMaskBeforeDraw), Log::Type::GPU);
+
+    setGPUStatusRegisterBit(GPUSTAT_SET_MASK, setMaskWhileDrawing);
+    setGPUStatusRegisterBit(GPUSTAT_DRAW_PIXELS, checkMaskBeforeDraw);
 }
 
 void GPU::decodeAndExecuteGP1() {

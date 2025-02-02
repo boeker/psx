@@ -126,6 +126,11 @@ private:
     int32_t drawingOffsetX;
     int32_t drawingOffsetY;
 
+    uint8_t textureWindowMaskX;
+    uint8_t textureWindowMaskY;
+    uint8_t textureWindowOffsetX;
+    uint8_t textureWindowOffsetY;
+
     friend std::ostream& operator<<(std::ostream &os, const GPU &gpu);
 
 public:
@@ -160,12 +165,16 @@ private:
     void GP0NOP();
     // 0xE1
     void GP0DrawModeSetting();
+    // 0xE2
+    void GP0TextureWindowSetting();
     // 0xE3
     void GP0SetDrawingAreaTopLeft();
     // 0xE4
     void GP0SetDrawingAreaBottomRight();
     // 0xE5
     void GP0SetDrawingOffset();
+    // 0xE6
+    void GP0MaskBitSetting();
 
     void decodeAndExecuteGP1();
 
