@@ -18,7 +18,7 @@ void Core::reset() {
 void Core::emulateBlock() {
     uint32_t cyclesTaken = bus.cpu.cycles;
 
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 10; ++i) {
         bus.cpu.step();
     }
 
@@ -41,7 +41,7 @@ void Core::run() {
 
     } catch (const std::runtime_error &e) {
         std::cout << std::endl;
-        std::cout << "Excecution halted at exception: " << e.what() << std::endl;
+        std::cout << "Execution halted at exception: " << e.what() << std::endl;
         std::cout << bus << std::endl;
     }
 }

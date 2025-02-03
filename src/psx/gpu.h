@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace PSX {
 
@@ -69,8 +70,6 @@ namespace PSX {
 #define GPUSTAT_TEXTURE_PAGE_X_BASE1 1
 #define GPUSTAT_TEXTURE_PAGE_X_BASE0 0
 
-class Bus;
-
 class CommandQueue {
 private:
     uint32_t queue[16];
@@ -89,15 +88,30 @@ public:
     bool isFull();
 };
 
+class Bus;
+
 class GPU {
 private:
     Bus *bus;
 
+    enum State {
+        IDLE,
+        EXECUTING_CP0,
+        WAITING_FOR_GP0_PARAMS,
+        TRANSFER_TO_VRAM
+    };
+    State state;
+
     // 1F801810
     // Write GP0     Send GP0 Commands/Packets (Rendering and VRAM Access)
     // Read  GPUREAD Receive responses to GP0(C0h) and GP1(10h) commands
-    uint32_t gp0;
     CommandQueue queue;
+    uint32_t gp0;
+    uint8_t gp0Command;
+    uint8_t neededParams;
+    std::vector<uint32_t> gp0Parameters;
+    uint32_t transferToVRAMRemainingWords;
+
     uint32_t gpuReadResponse;
 
     // 1F801814
@@ -140,6 +154,7 @@ public:
     void reset();
 
     void catchUpToCPU(uint32_t cpuCycles);
+    void decodeAndExecuteGP1();
 
     template <typename T>
     void write(uint32_t address, T value);
@@ -149,17 +164,16 @@ public:
 
     bool transferFromGPURequested();
     bool transferToGPURequested();
-    void receiveGP0Command(uint32_t command);
+    void receiveGP0Data(uint32_t word);
 
 private:
     std::string getGPUStatusRegisterExplanation() const;
     std::string getGPUStatusRegisterExplanation2() const;
     void setGPUStatusRegisterBit(uint32_t bit, uint32_t value);
 
-    void decodeAndExecuteGP0();
-
     typedef void (GPU::*Command) ();
     static const Command gp0Commands[];
+    static const uint8_t gp0ParameterNumbers[];
 
     void GP0Unknown();
 
@@ -184,8 +198,6 @@ private:
 
     // 0x28
     void GP0MonochromeFourPointPolygonOpaque();
-
-    void decodeAndExecuteGP1();
 
     // 0x00
     void GP1ResetGPU();

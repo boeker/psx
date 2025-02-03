@@ -58,6 +58,8 @@ uint32_t CommandQueue::pop() {
         return value;
     }
 
+    throw std::runtime_error("Queue is empty");
+
     return 0;
 }
 
@@ -83,6 +85,8 @@ GPU::GPU(Bus *bus) {
 }
 
 void GPU::reset() {
+    state = State::IDLE;
+
     gp0 = 0;
     queue.clear();
     gpuReadResponse = 0;
@@ -101,11 +105,121 @@ void GPU::reset() {
 }
 
 void GPU::catchUpToCPU(uint32_t cpuCycles) {
-    while (!queue.isEmpty()) {
-        gp0 = queue.pop();
-        decodeAndExecuteGP0();
+    while (true) {
+        switch (state) {
+            case State::IDLE:
+                if (!queue.isEmpty()) {
+                    gp0 = queue.pop();
+                    gp0Command = gp0 >> 24;
+
+                    gp0Parameters.clear();
+                    neededParams = gp0ParameterNumbers[gp0Command];
+                    state = WAITING_FOR_GP0_PARAMS;
+
+                } else {
+                    return;
+                }
+                break;
+
+            case State::WAITING_FOR_GP0_PARAMS:
+                while (gp0Parameters.size() < neededParams
+                       && !queue.isEmpty()) {
+                    gp0Parameters.push_back(queue.pop());
+                }
+                if (gp0Parameters.size() == neededParams) {
+                    state = EXECUTING_CP0;
+
+                } else {
+                    return;
+                }
+                break;
+
+            case State::EXECUTING_CP0:
+                state = State::IDLE;
+                (this->*gp0Commands[gp0Command])();
+                break;
+
+            case State::TRANSFER_TO_VRAM:
+                return;
+                break;
+        }
     }
 }
+
+void GPU::receiveGP0Data(uint32_t word) {
+    Log::log(std::format("Received word 0x{:08X}", word), Log::Type::GPU);
+
+    switch (state) {
+        case State::TRANSFER_TO_VRAM:
+            // TODO write word to VRAM
+            transferToVRAMRemainingWords--;
+            Log::log(std::format("Remaining words: {:d}", transferToVRAMRemainingWords), Log::Type::GPU);
+
+            if (transferToVRAMRemainingWords == 0) {
+                state = State::IDLE;
+            }
+            break;
+
+        default:
+            if (!queue.isFull()) {
+                queue.push(word);
+
+                if (queue.isFull()) {
+                    if ((gpuStatusRegister >> GPUSTAT_DMA_DIRECTION0 & 3) == 1) {
+                        setGPUStatusRegisterBit(GPUSTAT_CMDWORD_RECEIVE_READY, 0);
+                    }
+                }
+
+            } else {
+                Log::log(std::format("Queue is full"), Log::Type::GPU);
+            }
+            break;
+    }
+
+}
+
+void GPU::decodeAndExecuteGP1() {
+    uint8_t command = gp1 >> 24;
+
+    if (command == 0x00) {
+        GP1ResetGPU();
+
+    } else if (command == 0x01) {
+        GP1ResetCommandBuffer();
+
+    } else if (command == 0x02) {
+        GP1AcknowledgeGPUInterrupt();
+
+    } else if (command == 0x03) {
+        GP1DisplayEnable();
+
+    } else if (command == 0x04) {
+        GP1DMADirection();
+
+    } else if (command == 0x05) {
+        GP1StartOfDisplayArea();
+
+    } else if (command == 0x06) {
+        GP1HorizontalDisplayRange();
+
+    } else if (command == 0x07) {
+        GP1VerticalDisplayRange();
+
+    } else if (command == 0x08) {
+        GP1DisplayMode();
+
+    } else if (command == 0x09) {
+        GP1NewTextureDisable();
+
+    } else {
+        throw exceptions::UnknownGPUCommandError(std::format("GP1: 0x{:08X}, command 0x{:02X}", gp1, command));
+    }
+
+    Log::log(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation()), Log::Type::GPU);
+    Log::log(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation2()), Log::Type::GPU);
+}
+
+
 
 template <> void GPU::write(uint32_t address, uint32_t value) {
     assert ((address == 0x1F801810) || (address == 0x1F801814));
@@ -114,9 +228,7 @@ template <> void GPU::write(uint32_t address, uint32_t value) {
                          value, address), Log::Type::GPU_IO);
 
     if (address == 0x1F801810) { // GP0
-        gp0 = value;
-
-        decodeAndExecuteGP0();
+        receiveGP0Data(value);
 
     } else { // GP1
         gp1 = value;
@@ -173,23 +285,6 @@ bool GPU::transferToGPURequested() {
            && (gpuStatusRegister & (1 << GPUSTAT_DMA_DIRECTION1))
            && !(gpuStatusRegister & (1 << GPUSTAT_DMA_DIRECTION0))
            && (gpuStatusRegister & (1 << GPUSTAT_DATAREQUEST));
-}
-
-void GPU::receiveGP0Command(uint32_t command) {
-    Log::log(std::format("Received command 0x{:08X}", command), Log::Type::GPU);
-
-    if (!queue.isFull()) {
-        queue.push(command);
-
-        if (queue.isFull()) {
-            if ((gpuStatusRegister >> GPUSTAT_DMA_DIRECTION0 & 3) == 1) {
-                setGPUStatusRegisterBit(GPUSTAT_CMDWORD_RECEIVE_READY, 0);
-            }
-        }
-
-    } else {
-        Log::log(std::format("Queue is full"), Log::Type::GPU);
-    }
 }
 
 std::string GPU::getGPUStatusRegisterExplanation() const {
@@ -260,12 +355,6 @@ std::string GPU::getGPUStatusRegisterExplanation2() const {
 
 void GPU::setGPUStatusRegisterBit(uint32_t bit, uint32_t value) {
     gpuStatusRegister = (gpuStatusRegister & ~(1 << bit)) | ((value & 1) << bit);
-}
-
-void GPU::decodeAndExecuteGP0() {
-    uint8_t command = gp0 >> 24;
-
-    (this->*gp0Commands[command])();
 }
 
 const GPU::Command GPU::gp0Commands[] = {
@@ -369,6 +458,41 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
 };
 
+const uint8_t GPU::gp0ParameterNumbers[] = {
+    // 0x00
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0x10
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0x20
+    0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0,
+    // 0x30
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0x40
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0x50
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0x60
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0x70
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0x80
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0x90
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0xA0
+    2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0xB0
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0xC0
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0xD0
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0xE0
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0xF0
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
 void GPU::GP0Unknown() {
     uint8_t command = gp0 >> 24;
     throw exceptions::UnknownGPUCommandError(std::format("GP0: 0x{:08X}, command 0x{:02X}", gp0, command));
@@ -384,12 +508,22 @@ void GPU::GP0ClearCache() {
 }
 
 void GPU::GP0CopyRectangleToVRAM() {
-    uint32_t destinationCoord = queue.pop();
-    uint32_t widthAndHeight = queue.pop();
-    Log::log(std::format("GP0 - CopyRectangleToVRAM(0x{:08X}, 0x{:08X}, ...)",
-                         destinationCoord, widthAndHeight), Log::Type::GPU);
+    // 0xA0
+    uint32_t destinationCoord = gp0Parameters[0];
+    uint32_t widthAndHeight = gp0Parameters[1];
+
+    // counted in half words
+    uint32_t sizeY = widthAndHeight >> 16;
+    uint32_t sizeX = widthAndHeight & 0x0000FFFF;
+
+    Log::log(std::format("GP0 - CopyRectangleToVRAM(0x{:08X}, 0x{:08X}) (width {:d}, height {:d})",
+                         destinationCoord, widthAndHeight, sizeX, sizeY), Log::Type::GPU);
 
     // read data from GPUREAD
+    transferToVRAMRemainingWords = (sizeX * sizeY) / 2;
+    if (transferToVRAMRemainingWords > 0) {
+        state = State::TRANSFER_TO_VRAM;
+    }
 }
 
 void GPU::GP0DrawModeSetting() {
@@ -483,57 +617,16 @@ void GPU::GP0MonochromeFourPointPolygonOpaque() {
     uint32_t color = gp0 & 0x00FFFFFF;
 
     // TODO Check that there are at least four elements in the queue
-    uint32_t vertex1 = queue.pop();
-    uint32_t vertex2 = queue.pop();
-    uint32_t vertex3 = queue.pop();
-    uint32_t vertex4 = queue.pop();
+    uint32_t vertex1 = gp0Parameters[0];
+    uint32_t vertex2 = gp0Parameters[1];
+    uint32_t vertex3 = gp0Parameters[2];
+    uint32_t vertex4 = gp0Parameters[3];
 
     Log::log(std::format("GP0 - MonochromeFourPointPolygonOpaque(0x{:06X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X})",
                          color,
                          vertex1, vertex2, vertex3, vertex4), Log::Type::GPU);
 
     // TODO Render
-}
-
-void GPU::decodeAndExecuteGP1() {
-    uint8_t command = gp1 >> 24;
-
-    if (command == 0x00) {
-        GP1ResetGPU();
-
-    } else if (command == 0x01) {
-        GP1ResetCommandBuffer();
-
-    } else if (command == 0x02) {
-        GP1AcknowledgeGPUInterrupt();
-
-    } else if (command == 0x03) {
-        GP1DisplayEnable();
-
-    } else if (command == 0x04) {
-        GP1DMADirection();
-
-    } else if (command == 0x05) {
-        GP1StartOfDisplayArea();
-
-    } else if (command == 0x06) {
-        GP1HorizontalDisplayRange();
-
-    } else if (command == 0x07) {
-        GP1VerticalDisplayRange();
-
-    } else if (command == 0x08) {
-        GP1DisplayMode();
-
-    } else if (command == 0x09) {
-        GP1NewTextureDisable();
-
-    } else {
-        throw exceptions::UnknownGPUCommandError(std::format("GP1: 0x{:08X}, command 0x{:02X}", gp1, command));
-    }
-
-    Log::log(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation()), Log::Type::GPU);
-    Log::log(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation2()), Log::Type::GPU);
 }
 
 void GPU::GP1ResetGPU() {

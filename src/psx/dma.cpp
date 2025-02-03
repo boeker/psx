@@ -304,7 +304,7 @@ void DMA::transferToGPU() {
                 uint32_t word = bus->read<uint32_t>(address);
                 Log::log(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
                                      word), Log::Type::DMA);
-                bus->gpu.receiveGP0Command(word);
+                bus->gpu.receiveGP0Data(word);
             }
 
             // do we have to resume CPU operation?
@@ -348,7 +348,8 @@ void DMA::transferToGPU() {
                 uint32_t word = bus->read<uint32_t>(address);
                 Log::log(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
                                      word), Log::Type::DMA);
-                // TODO send to VRAM
+
+                bus->gpu.receiveGP0Data(word);
 
                 previousAddress = address;
                 if (memoryAddressStep == 0) {
