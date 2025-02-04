@@ -98,6 +98,8 @@ private:
     void LH();
     void LWL();
     void LWR();
+    void SWL();
+    void SWR();
 
     // Opcode SPECIAL encodes further instructions via function field
     static const Opcode special[];

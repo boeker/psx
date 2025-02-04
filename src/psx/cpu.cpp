@@ -166,9 +166,9 @@ const CPU::Opcode CPU::opcodes[] = {
     // 0b100100
     &CPU::LBU,      &CPU::LHU,      &CPU::LWR,      &CPU::UNK,
     // 0b101000
-    &CPU::SB,       &CPU::SH,       &CPU::UNK,      &CPU::SW,
+    &CPU::SB,       &CPU::SH,       &CPU::SWL,      &CPU::SW,
     // 0b101100
-    &CPU::UNK,      &CPU::UNK,      &CPU::UNK,      &CPU::UNK,
+    &CPU::UNK,      &CPU::UNK,      &CPU::SWR,      &CPU::UNK,
     // 0b110000
     &CPU::UNK,      &CPU::UNK,      &CPU::UNK,      &CPU::UNK,
     // 0b110100
@@ -793,7 +793,7 @@ void CPU::LWL() {
     // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
     // pAddr <- pAddr_{PSIZE-1...2} || (pAddr_{1...0} xor ReverseEndian^2)
     // if BigEndianMem = 0 then
-    //    pAddr <- pAddr_{31...2} || 0^2
+    //    pAddr <- pAddr_{PSIZE-1...2} || 0^2
     // endif
     // byte <- vAddr_{1...0} xor BigEndianCPU^2
     // mem <- LoadMemory(uncached, byte, pAddr, vAddr, DATA)
@@ -822,7 +822,7 @@ void CPU::LWR() {
     // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
     // pAddr <- pAddr_{PSIZE-1...2} || (pAddr_{1...0} xor ReverseEndian^2)
     // if BigEndianMem = 0 then
-    //    pAddr <- pAddr_{31...2} || 0^2
+    //    pAddr <- pAddr_{PSIZE-1...2} || 0^2
     // endif
     // byte <- vAddr_{1...0} xor BigEndianCPU^2
     // mem <- LoadMemory(uncached, byte, pAddr, vAddr, DATA)
@@ -843,6 +843,64 @@ void CPU::LWR() {
     uint8_t shiftBy = 8 * (vAddr & 3);
     regs.setRegister(rt, (mem >> shiftBy)
                          | (regs.getRegister(rt) & ~(0xFFFFFFFF >> shiftBy)));
+}
+
+void CPU::SWL() {
+    // Store Word Left
+    // T: vAddr <- ((offset_{15})^{16} | offset_{15...0}) + GPR[base]
+    // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
+    // pAddr <- pAddr_{PSIZE-1...2} || (pAddr_{1...0} xor ReverseEndian^2)
+    // if BigEndianMem = 0 then
+    //    pAddr <- pAddr_{PSIZE-1...2} || 0^2
+    // endif
+    // byte <- vAddr_{1...0} xor BigEndianCPU^2
+    // data <- 0^{24-8*byte} || GPR[rt]_{31...24-8*byte}
+    // StoreMemory(uncached, byte, data, pAddr, vAddr, DATA)
+    uint8_t base = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    Log::log(std::format("SWL {:s},0x{:04X}({:s})",
+                         regs.getRegisterName(rt),
+                         offset,
+                         regs.getRegisterName(base)));
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
+                     + regs.getRegister(base);
+
+    uint8_t shiftBy = (24 - 8 * (vAddr & 3));
+    bus->writeWord(vAddr & 0xFFFFFFFC,
+                   (regs.getRegister(rt) >> shiftBy)
+                   | (bus->readWord(vAddr & 0xFFFFFFFC) & ~(0xFFFFFFFF >> shiftBy)));
+}
+
+void CPU::SWR() {
+    // Store Word Right
+    // T: vAddr <- ((offset_{15})^{16} | offset_{15...0}) + GPR[base]
+    // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
+    // pAddr <- pAddr_{PSIZE-1...2} || (pAddr_{1...0} xor ReverseEndian^2)
+    // if BigEndianMem = 0 then
+    //    pAddr <- pAddr_{PSIZE-1...2} || 0^2
+    // endif
+    // byte <- vAddr_{1...0} xor BigEndianCPU^2
+    // data <- GPR[rt]_{31-8*byte} || 0^{8*byte}
+    // StoreMemory(uncached, WORD - byte, data, pAddr, vAddr, DATA)
+    uint8_t base = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    Log::log(std::format("SWR {:s},0x{:04X}({:s})",
+                         regs.getRegisterName(rt),
+                         offset,
+                         regs.getRegisterName(base)));
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
+                     + regs.getRegister(base);
+
+    uint8_t shiftBy = 8 * (vAddr & 3);
+    bus->writeWord(vAddr & 0xFFFFFFFC,
+                   (regs.getRegister(rt) << shiftBy)
+                   | (bus->readWord(vAddr & 0xFFFFFFFC) & ~(0xFFFFFFFF << shiftBy)));
 }
 
 void CPU::UNKSPCL() {
