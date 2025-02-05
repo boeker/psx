@@ -11,6 +11,7 @@ using namespace util;
 namespace PSX {
 
 std::ostream& operator<<(std::ostream &os, const Registers &registers) {
+    os <<  std::format("pc\t0x{:08X}\n", registers.pc);
     for (int i = 0; i < 16; ++i) {
         os << Registers::REGISTER_NAMES[i] << "/r" << i << "\t"
            << std::format("0x{:08X}", registers.registers[i]);
