@@ -303,7 +303,7 @@ void DMA::transferToGPU() {
 
                 uint32_t word = bus->read<uint32_t>(address);
                 Log::log(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
-                                     word), Log::Type::DMA);
+                                     word), Log::Type::DMA_IO);
                 bus->gpu.receiveGP0Data(word);
             }
 
@@ -347,7 +347,7 @@ void DMA::transferToGPU() {
             for (uint32_t j = 0; j < blockSize; ++j) {
                 uint32_t word = bus->read<uint32_t>(address);
                 Log::log(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
-                                     word), Log::Type::DMA);
+                                     word), Log::Type::DMA_IO);
 
                 bus->gpu.receiveGP0Data(word);
 

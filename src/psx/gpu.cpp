@@ -1,6 +1,7 @@
 #include "gpu.h"
 
 #include <cassert>
+#include <cstring>
 #include <format>
 #include <sstream>
 
@@ -81,10 +82,17 @@ std::ostream& operator<<(std::ostream &os, const GPU &gpu) {
 GPU::GPU(Bus *bus) {
     this->bus = bus;
 
+    vram = new uint8_t[VRAM_SIZE];
+
     reset();
 }
 
+GPU::~GPU() {
+    delete[] vram;
+}
+
 void GPU::reset() {
+    std::memset(vram, 0, VRAM_SIZE);
     state = State::IDLE;
 
     gp0 = 0;
@@ -139,6 +147,7 @@ void GPU::catchUpToCPU(uint32_t cpuCycles) {
                 (this->*gp0Commands[gp0Command])();
                 break;
 
+            case State::TRANSFER_TO_CPU:
             case State::TRANSFER_TO_VRAM:
                 return;
                 break;
@@ -147,16 +156,22 @@ void GPU::catchUpToCPU(uint32_t cpuCycles) {
 }
 
 void GPU::receiveGP0Data(uint32_t word) {
-    Log::log(std::format("Received word 0x{:08X}", word), Log::Type::GPU);
+    Log::log(std::format("Received word 0x{:08X}", word), Log::Type::GPU_IO);
 
     switch (state) {
         case State::TRANSFER_TO_VRAM:
-            // TODO write word to VRAM
+            Log::log(std::format("To VRAM: Remaining words: {:d}", transferToVRAMRemainingWords), Log::Type::GPU_IO);
+
+            writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word >> 16));
+            advanceCurrentDestinationPosition();
+            writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word & 0x0000FFFF));
+            advanceCurrentDestinationPosition();
+
             transferToVRAMRemainingWords--;
-            Log::log(std::format("Remaining words: {:d}", transferToVRAMRemainingWords), Log::Type::GPU);
 
             if (transferToVRAMRemainingWords == 0) {
                 state = State::IDLE;
+                Log::log(std::format("State::IDLE"), Log::Type::GPU);
             }
             break;
 
@@ -176,6 +191,34 @@ void GPU::receiveGP0Data(uint32_t word) {
             break;
     }
 
+}
+
+uint32_t GPU::sendGP0Data() {
+    Log::log(std::format("Sending word"), Log::Type::GPU_IO);
+
+    uint32_t value1, value2;
+
+    switch (state) {
+        case State::TRANSFER_TO_CPU:
+            Log::log(std::format("To CPU: Remaining words: {:d}", transferToVRAMRemainingWords), Log::Type::GPU_IO);
+            transferToCPURemainingWords--;
+
+            if (transferToCPURemainingWords == 0) {
+                state = State::IDLE;
+                setGPUStatusRegisterBit(GPUSTAT_VRAM_SEND_READY, 0);
+                Log::log(std::format("State::IDLE"), Log::Type::GPU);
+            }
+
+            value1 = readFromVRAM(sourceCurrentY, sourceCurrentX);
+            advanceCurrentSourcePosition();
+            value2 = readFromVRAM(sourceCurrentY, sourceCurrentX);
+            advanceCurrentSourcePosition();
+
+            return (value1 << 16) | value2;
+
+        default:
+            return 0;
+    }
 }
 
 void GPU::decodeAndExecuteGP1() {
@@ -219,7 +262,39 @@ void GPU::decodeAndExecuteGP1() {
     Log::log(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation2()), Log::Type::GPU);
 }
 
+void GPU::writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) {
+    Log::log(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
+                         value, line, pos), Log::Type::GPU_VRAM);
 
+    uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
+    vramLine[pos] = value;
+}
+
+uint16_t GPU::readFromVRAM(uint32_t line, uint32_t pos) {
+    uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
+    uint16_t value = vramLine[pos];
+
+    Log::log(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
+                         line, pos, value), Log::Type::GPU_VRAM);
+
+    return value;
+}
+
+void GPU::advanceCurrentDestinationPosition() {
+    ++destinationCurrentX;
+    if (destinationCurrentX >= destinationX + destinationSizeX) {
+        ++destinationCurrentY;
+        destinationCurrentX = destinationX;
+    }
+}
+
+void GPU::advanceCurrentSourcePosition() {
+    ++sourceCurrentX;
+    if (sourceCurrentX >= sourceX + sourceSizeX) {
+        ++sourceCurrentY;
+        sourceCurrentX = sourceX;
+    }
+}
 
 template <> void GPU::write(uint32_t address, uint32_t value) {
     assert ((address == 0x1F801810) || (address == 0x1F801814));
@@ -250,9 +325,11 @@ uint32_t GPU::read(uint32_t address) {
     assert ((address == 0x1F801810) || (address == 0x1F801814));
 
     if (address == 0x1F801810) { // GPUREAD
-        Log::log(std::format("GPUREAD -> 0x{:08X}", gpuReadResponse), Log::Type::GPU_IO);
+        uint32_t word = sendGP0Data();
 
-        return gpuReadResponse;
+        Log::log(std::format("GPUREAD -> 0x{:08X}", word), Log::Type::GPU_IO);
+
+        return word;
 
     } else { // GPUSTAT
         assert (address == 0x1F801814);
@@ -425,7 +502,8 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0xC0
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0CopyRectangleVRAMToCPU,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
@@ -484,7 +562,7 @@ const uint8_t GPU::gp0ParameterNumbers[] = {
     // 0xB0
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0xC0
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0xD0
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0xE0
@@ -512,17 +590,49 @@ void GPU::GP0CopyRectangleToVRAM() {
     uint32_t destinationCoord = gp0Parameters[0];
     uint32_t widthAndHeight = gp0Parameters[1];
 
+    destinationX = destinationCoord & 0x0000FFFF;
+    destinationY = destinationCoord >> 16;
+
     // counted in half words
-    uint32_t sizeY = widthAndHeight >> 16;
-    uint32_t sizeX = widthAndHeight & 0x0000FFFF;
+    destinationSizeX = widthAndHeight & 0x0000FFFF;
+    destinationSizeY  = widthAndHeight >> 16;
 
     Log::log(std::format("GP0 - CopyRectangleToVRAM(0x{:08X}, 0x{:08X}) (width {:d}, height {:d})",
-                         destinationCoord, widthAndHeight, sizeX, sizeY), Log::Type::GPU);
+                         destinationCoord, widthAndHeight, destinationSizeX, destinationSizeY), Log::Type::GPU);
 
     // read data from GPUREAD
-    transferToVRAMRemainingWords = (sizeX * sizeY) / 2;
+    transferToVRAMRemainingWords = (destinationSizeX * destinationSizeY) / 2;
     if (transferToVRAMRemainingWords > 0) {
         state = State::TRANSFER_TO_VRAM;
+        Log::log(std::format("State::TRANSFER_TO_VRAM"), Log::Type::GPU);
+        destinationCurrentX = destinationX;
+        destinationCurrentY = destinationY;
+    }
+}
+
+void GPU::GP0CopyRectangleVRAMToCPU() {
+    // 0xC0
+    uint32_t sourceCoord = gp0Parameters[0];
+    uint32_t widthAndHeight = gp0Parameters[1];
+
+    sourceX = sourceCoord & 0x0000FFFF;
+    sourceY = sourceCoord >> 16;
+
+    // counted in half words
+    sourceSizeX = widthAndHeight & 0x0000FFFF;
+    sourceSizeY = widthAndHeight >> 16;
+
+    Log::log(std::format("GP0 - CopyRectangleVRAMToCPU(0x{:08X}, 0x{:08X}) (width {:d}, height {:d})",
+                         sourceCoord, widthAndHeight, sourceSizeX, sourceSizeY), Log::Type::GPU);
+
+    // write data to GPUREAD
+    transferToCPURemainingWords = (sourceSizeX * sourceSizeY) / 2;
+    if (transferToCPURemainingWords > 0) {
+        state = State::TRANSFER_TO_CPU;
+        setGPUStatusRegisterBit(GPUSTAT_VRAM_SEND_READY, 1);
+        Log::log(std::format("State::TRANSFER_TO_CPU"), Log::Type::GPU);
+        sourceCurrentX = sourceX;
+        sourceCurrentY = sourceY;
     }
 }
 

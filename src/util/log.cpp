@@ -18,6 +18,7 @@ void Log::log(const std::string &message, Type type) {
             break;
         case Type::GPU:
         //case Type::GPU_IO:
+        case Type::GPU_VRAM:
             std::cerr << "[GPU] " <<  message << std::endl;;
             break;
         case Type::INTERRUPTS:

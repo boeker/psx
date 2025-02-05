@@ -8,6 +8,8 @@
 
 namespace PSX {
 
+#define VRAM_SIZE (1024 * 1024)
+
 // Even/odd lines in interlace mode (0 = even or vblank, 1 = odd)
 #define GPUSTAT_INTERLACE_EVEN_ODD 31
 // DMA Direction (0 = off, 1 = FIFO, 2 = CPU to GP0, 3 = GPUREAD to CPU)
@@ -98,9 +100,12 @@ private:
         IDLE,
         EXECUTING_CP0,
         WAITING_FOR_GP0_PARAMS,
-        TRANSFER_TO_VRAM
+        TRANSFER_TO_VRAM,
+        TRANSFER_TO_CPU
     };
     State state;
+
+    uint8_t *vram;
 
     // 1F801810
     // Write GP0     Send GP0 Commands/Packets (Rendering and VRAM Access)
@@ -111,6 +116,19 @@ private:
     uint8_t neededParams;
     std::vector<uint32_t> gp0Parameters;
     uint32_t transferToVRAMRemainingWords;
+    uint32_t destinationX;
+    uint32_t destinationY;
+    uint32_t destinationSizeX;
+    uint32_t destinationSizeY;
+    uint32_t destinationCurrentX;
+    uint32_t destinationCurrentY;
+    uint32_t transferToCPURemainingWords;
+    uint32_t sourceX;
+    uint32_t sourceY;
+    uint32_t sourceSizeX;
+    uint32_t sourceSizeY;
+    uint32_t sourceCurrentX;
+    uint32_t sourceCurrentY;
 
     uint32_t gpuReadResponse;
 
@@ -151,10 +169,16 @@ private:
 
 public:
     GPU(Bus *bus);
+    virtual ~GPU();
     void reset();
 
     void catchUpToCPU(uint32_t cpuCycles);
     void decodeAndExecuteGP1();
+
+    void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value);
+    uint16_t readFromVRAM(uint32_t line, uint32_t pos);
+    void advanceCurrentDestinationPosition();
+    void advanceCurrentSourcePosition();
 
     template <typename T>
     void write(uint32_t address, T value);
@@ -165,6 +189,7 @@ public:
     bool transferFromGPURequested();
     bool transferToGPURequested();
     void receiveGP0Data(uint32_t word);
+    uint32_t sendGP0Data();
 
 private:
     std::string getGPUStatusRegisterExplanation() const;
@@ -183,6 +208,8 @@ private:
     void GP0ClearCache();
     // 0xA0
     void GP0CopyRectangleToVRAM();
+    // 0xC0
+    void GP0CopyRectangleVRAMToCPU();
     // 0xE1
     void GP0DrawModeSetting();
     // 0xE2
