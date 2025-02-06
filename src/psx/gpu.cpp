@@ -454,11 +454,16 @@ const GPU::Command GPU::gp0Commands[] = {
     // 0x28
     &GPU::GP0MonochromeFourPointPolygonOpaque,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x2C
+    &GPU::GP0TexturedFourPointPolygonOpaqueTextureBlending,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x30
+    &GPU::GP0ShadedThreePointPolygonOpaque,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x38
+    &GPU::GP0ShadedFourPointPolygonOpaque,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x40
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
@@ -542,9 +547,9 @@ const uint8_t GPU::gp0ParameterNumbers[] = {
     // 0x10
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x20
-    0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 8, 0, 0, 0,
     // 0x30
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    5, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0,
     // 0x40
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x50
@@ -581,9 +586,90 @@ void GPU::GP0NOP() {
 }
 
 void GPU::GP0ClearCache() {
+    // 0x01
     Log::log(std::format("GP0 - ClearCache"), Log::Type::GPU);
     // TODO Implement?
 }
+
+void GPU::GP0MonochromeFourPointPolygonOpaque() {
+    // 0x28
+    uint32_t color = gp0 & 0x00FFFFFF;
+
+    uint32_t vertex1 = gp0Parameters[0];
+    uint32_t vertex2 = gp0Parameters[1];
+    uint32_t vertex3 = gp0Parameters[2];
+    uint32_t vertex4 = gp0Parameters[3];
+
+    Log::log(std::format("GP0 - MonochromeFourPointPolygonOpaque(0x{:06X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X})",
+                         color,
+                         vertex1, vertex2, vertex3, vertex4), Log::Type::GPU);
+
+    // TODO Render
+}
+
+void GPU::GP0TexturedFourPointPolygonOpaqueTextureBlending() {
+    // 0x2C
+    uint32_t color = gp0 & 0x00FFFFFF;
+
+    uint32_t texCoord1 = gp0Parameters[1];
+    uint32_t texCoord2 = gp0Parameters[3];
+    uint32_t texCoord3 = gp0Parameters[5];
+    uint32_t texCoord4 = gp0Parameters[7];
+
+    uint32_t vertex1 = gp0Parameters[0];
+    uint32_t vertex2 = gp0Parameters[2];
+    uint32_t vertex3 = gp0Parameters[4];
+    uint32_t vertex4 = gp0Parameters[6];
+
+    Log::log(std::format("GP0 - TexturedFourPointPolygonOpaqueTextureBlending(0x{:06X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X})",
+                         color,
+                         vertex1, texCoord1,
+                         vertex2, texCoord2,
+                         vertex3, texCoord3,
+                         vertex4, texCoord4), Log::Type::GPU);
+
+    // TODO Render
+}
+
+void GPU::GP0ShadedThreePointPolygonOpaque() {
+    // 0x30
+    uint32_t color1 = gp0 & 0x00FFFFFF;
+    uint32_t color2 = gp0Parameters[1];
+    uint32_t color3 = gp0Parameters[3];
+
+    uint32_t vertex1 = gp0Parameters[0];
+    uint32_t vertex2 = gp0Parameters[2];
+    uint32_t vertex3 = gp0Parameters[4];
+
+    Log::log(std::format("GP0 - ShadedThreePointPolygonOpaque(0x{:06X}, 0x{:08X}, 0x{:06X}, 0x{:08X}, 0x{:06X}, 0x{:08X})",
+                         color1, vertex1,
+                         color2, vertex2,
+                         color3, vertex3), Log::Type::GPU);
+
+    // TODO Render
+}
+
+void GPU::GP0ShadedFourPointPolygonOpaque() {
+    // 0x38
+    uint32_t color1 = gp0 & 0x00FFFFFF;
+    uint32_t color2 = gp0Parameters[1];
+    uint32_t color3 = gp0Parameters[3];
+    uint32_t color4 = gp0Parameters[5];
+
+    uint32_t vertex1 = gp0Parameters[0];
+    uint32_t vertex2 = gp0Parameters[2];
+    uint32_t vertex3 = gp0Parameters[4];
+    uint32_t vertex4 = gp0Parameters[6];
+
+    Log::log(std::format("GP0 - ShadedFourPointPolygonOpaque(0x{:06X}, 0x{:08X}, 0x{:06X}, 0x{:08X}, 0x{:06X}, 0x{:08X}, 0x{:06X}, 0x{:08X})",
+                         color1, vertex1,
+                         color2, vertex2,
+                         color3, vertex3,
+                         color4, vertex4), Log::Type::GPU);
+
+    // TODO Render
+}
+
 
 void GPU::GP0CopyRectangleToVRAM() {
     // 0xA0
@@ -720,23 +806,6 @@ void GPU::GP0MaskBitSetting() {
 
     setGPUStatusRegisterBit(GPUSTAT_SET_MASK, setMaskWhileDrawing);
     setGPUStatusRegisterBit(GPUSTAT_DRAW_PIXELS, checkMaskBeforeDraw);
-}
-
-void GPU::GP0MonochromeFourPointPolygonOpaque() {
-    // 0x28
-    uint32_t color = gp0 & 0x00FFFFFF;
-
-    // TODO Check that there are at least four elements in the queue
-    uint32_t vertex1 = gp0Parameters[0];
-    uint32_t vertex2 = gp0Parameters[1];
-    uint32_t vertex3 = gp0Parameters[2];
-    uint32_t vertex4 = gp0Parameters[3];
-
-    Log::log(std::format("GP0 - MonochromeFourPointPolygonOpaque(0x{:06X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X})",
-                         color,
-                         vertex1, vertex2, vertex3, vertex4), Log::Type::GPU);
-
-    // TODO Render
 }
 
 void GPU::GP1ResetGPU() {

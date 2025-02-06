@@ -206,6 +206,14 @@ private:
     void GP0NOP();
     // 0x01
     void GP0ClearCache();
+    // 0x28
+    void GP0MonochromeFourPointPolygonOpaque();
+    // 0x2C
+    void GP0TexturedFourPointPolygonOpaqueTextureBlending();
+    // 0x30
+    void GP0ShadedThreePointPolygonOpaque();
+    // 0x38
+    void GP0ShadedFourPointPolygonOpaque();
     // 0xA0
     void GP0CopyRectangleToVRAM();
     // 0xC0
@@ -222,9 +230,6 @@ private:
     void GP0SetDrawingOffset();
     // 0xE6
     void GP0MaskBitSetting();
-
-    // 0x28
-    void GP0MonochromeFourPointPolygonOpaque();
 
     // 0x00
     void GP1ResetGPU();
