@@ -41,13 +41,13 @@ void Log::log(const std::string &message, Type type) {
         case Type::REGISTER_PC_WRITE:
         case Type::REGISTER_PC_READ:
         case Type::MISC:
-            //if (logEnabled) {
-            //    std::cerr << message;
-            //}
+            if (logEnabled) {
+                std::cerr << message;
+            }
             break;
         case Type::BUS:
             if (busLogEnabled) {
-                std::cerr << message << std::endl;
+                std::cerr << message;
             }
         default:
             break;

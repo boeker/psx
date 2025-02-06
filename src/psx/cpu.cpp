@@ -38,9 +38,13 @@ void CPU::step() {
     instructionPC = delaySlotPC;
     instruction = delaySlot;
     isBranchDelaySlot = delaySlotIsBranchDelaySlot;
-    if (instructionPC == 0x80030000) {
-        //Log::logEnabled = true;
-    }
+    //if (instructionPC == 0x80030000) {
+    //    Log::logEnabled = true;
+    //}
+    //if (instructionPC == 0x8004442C) {
+    //    Log::logEnabled = true;
+    //    Log::busLogEnabled = true;
+    //}
     //if (instructionPC == 0xBFC01918) {
     //    std::cerr << regs << std::endl;
     //}
