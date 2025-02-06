@@ -291,8 +291,10 @@ void DMA::transferToGPU() {
             uint32_t nextAddress = (address & 0xFF000000) | (header & 0x00FFFFFF);
 
             uint32_t numberOfWords = header >> 24;
-            //Log::log(std::format("Channel 2 (GPU) transfer: node contains {:d} words",
-            //                     numberOfWords), Log::Type::DMA);
+            if (numberOfWords > 0) {
+                Log::log(std::format("Channel 2 (GPU) transfer: node contains {:d} words",
+                                     numberOfWords), Log::Type::DMA);
+            }
 
             for (uint32_t i = 0; i < numberOfWords; ++i) {
                 if (memoryAddressStep == 0) {
@@ -307,9 +309,11 @@ void DMA::transferToGPU() {
                 bus->gpu.receiveGP0Data(word);
             }
 
-            // do we have to resume CPU operation?
-
             address = nextAddress;
+
+            // do we have to resume CPU operation?
+            // let's just let the GPU run for now
+            bus->gpu.catchUpToCPU(numberOfWords);
 
         } while ((address & 0x00FFFFFF) != 0x00FFFFFF);
 
