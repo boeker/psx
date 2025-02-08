@@ -1,7 +1,11 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <memory>
+
 #include <QtWidgets/QMainWindow>
+
+#include "emuthread.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -18,6 +22,8 @@ public:
 
 private:
     Ui::MainWindow *ui;
+
+    std::shared_ptr<EmuThread> emuthread;
 };
 
 #endif

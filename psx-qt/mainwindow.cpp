@@ -3,12 +3,13 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
-      ui(new Ui::MainWindow)
-{
+      ui(new Ui::MainWindow) {
     ui->setupUi(this);
+
+    emuthread = std::make_shared<EmuThread>();
+    emuthread->start();
 }
 
-MainWindow::~MainWindow()
-{
+MainWindow::~MainWindow() {
     delete ui;
 }
