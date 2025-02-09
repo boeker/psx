@@ -1,4 +1,8 @@
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS
+    Gui
+    OpenGL
+    Widgets
+)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -13,6 +17,8 @@ target_sources(psx-qt PRIVATE
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui
+    openglwindow.cpp
+    openglwindow.h
 )
 
 target_include_directories(psx-qt PRIVATE
@@ -22,6 +28,8 @@ target_include_directories(psx-qt PRIVATE
 )
 
 target_link_libraries(psx-qt PRIVATE
+    Qt6::Gui
+    Qt6::OpenGL
     Qt6::Widgets
     psx
 )
