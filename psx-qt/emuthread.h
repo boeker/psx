@@ -2,6 +2,10 @@
 #define EMUTHREAD_H
 
 #include <QThread>
+#include <QOpenGLFunctions>
+#include <QOpenGLVertexArrayObject>
+#include <QOpenGLBuffer>
+#include <QOpenGLShaderProgram>
 
 class OpenGLWindow;
 
@@ -9,7 +13,7 @@ class EmuThread : public QThread {
     Q_OBJECT
 
 public:
-    EmuThread();
+    EmuThread(QObject *parent = nullptr);
     virtual ~EmuThread();
 
 protected:
@@ -17,6 +21,13 @@ protected:
 
 private:
     OpenGLWindow *window;
+    QOpenGLContext *openglContext;
+
+    QOpenGLVertexArrayObject vao;
+    QOpenGLBuffer vbo;
+    QOpenGLShaderProgram *program;
+
+    void createWindow();
 };
 
 #endif
