@@ -27,6 +27,7 @@ target_sources(psx PRIVATE
     memory.h
     registers.cpp
     registers.h
+    screen.h
     spu.cpp
     spu.h
     timers.cpp
