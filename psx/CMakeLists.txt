@@ -37,6 +37,8 @@ target_sources(psx PRIVATE
 )
 
 target_include_directories(psx PRIVATE
+    "${CMAKE_SOURCE_DIR}"
     "${CMAKE_SOURCE_DIR}/include"
+    "${CMAKE_SOURCE_DIR}/psx"
 )
 

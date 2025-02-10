@@ -32,8 +32,8 @@ void EmuThread::createWindow() {
 
 void EmuThread::run() {
     createWindow();
-
     PSX::GLRender render;
+
     while (true) {
         render.draw();
         window->swapBuffers();
