@@ -6,10 +6,19 @@ MainWindow::MainWindow(QWidget *parent)
       ui(new Ui::MainWindow) {
     ui->setupUi(this);
 
-    emuthread = std::make_shared<EmuThread>();
-    emuthread->start();
+    openGLWindow = new OpenGLWindow();
+
+	openGLWindow->resize(640, 480);
+    openGLWindow->show();
+    openGLWindow->initialize();
+
+    //emuthread = std::make_shared<EmuThread>();
+    //emuthread->start();
 }
 
 MainWindow::~MainWindow() {
+    openGLWindow->close();
+    delete openGLWindow;
+
     delete ui;
 }

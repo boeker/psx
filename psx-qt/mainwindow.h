@@ -6,6 +6,7 @@
 #include <QtWidgets/QMainWindow>
 
 #include "emuthread.h"
+#include "openglwindow.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -23,6 +24,7 @@ public:
 private:
     Ui::MainWindow *ui;
 
+    OpenGLWindow *openGLWindow;
     std::shared_ptr<EmuThread> emuthread;
 };
 
