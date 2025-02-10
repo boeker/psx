@@ -1,4 +1,5 @@
 find_package(Qt6 REQUIRED COMPONENTS
+    Core
     Gui
     OpenGL
     Widgets
@@ -23,11 +24,13 @@ target_sources(psx-qt PRIVATE
 
 target_include_directories(psx-qt PRIVATE
     "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/include"
     "${CMAKE_SOURCE_DIR}/psx"
     "${CMAKE_SOURCE_DIR}/psx-qt"
 )
 
 target_link_libraries(psx-qt PRIVATE
+    Qt6::Core
     Qt6::Gui
     Qt6::OpenGL
     Qt6::Widgets

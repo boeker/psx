@@ -1,20 +1,24 @@
 #include "emuthread.h"
 
+#include <QDebug>
 #include <QSurfaceFormat>
 
 #include "openglwindow.h"
 #include "psx/core.h"
+#include "psx/gl/glrender.h"
+
+QOpenGLContext *EmuThread::openglContext;
 
 EmuThread::EmuThread(QObject *parent)
     : QThread(parent) {
 }
 
 EmuThread::~EmuThread() {
-    openglContext->makeCurrent(window);
+    //openglContext->makeCurrent(window);
 
-    vao.destroy();
-    vbo.destroy();
-    delete program;
+    //vao.destroy();
+    //vbo.destroy();
+    //delete program;
 }
 
 void EmuThread::createWindow() {
@@ -33,55 +37,63 @@ void EmuThread::createWindow() {
     openglContext->create();
     openglContext->makeCurrent(window);
 
-    glViewport(0, 0, window->width(), window->height());
+    if (!gladLoadGLLoader((GLADloadproc)&EmuThread::getProcAddress)) {
+        qDebug() << "Failed to initialize GLAD";
+        return;
+    }
 
-    program = new QOpenGLShaderProgram();
-    program->addShaderFromSourceFile(QOpenGLShader::Vertex,
-                                     "shaders/shader.vs");
+    //glViewport(0, 0, window->width(), window->height());
 
-    program->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                     "shaders/shader.fs");
-    program->link();
+    //program = new QOpenGLShaderProgram();
+    //program->addShaderFromSourceFile(QOpenGLShader::Vertex,
+    //                                 "shaders/shader.vs");
 
-	float vertices[] = {
-		-0.5f, -0.5f, 0.0f,
-		 0.5f, -0.5f, 0.0f,
-		 0.0f,  0.5f, 0.0f
-	};
+    //program->addShaderFromSourceFile(QOpenGLShader::Fragment,
+    //                                 "shaders/shader.fs");
+    //program->link();
 
-	vbo = QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-	vbo.create();
-	vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+	//float vertices[] = {
+	//	-0.5f, -0.5f, 0.0f,
+	//	 0.5f, -0.5f, 0.0f,
+	//	 0.0f,  0.5f, 0.0f
+	//};
 
-	vbo.bind();
-	vbo.allocate(vertices, sizeof(vertices));
+	//vbo = QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+	//vbo.create();
+	//vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
 
-    vao.create();
-	vao.bind();
+	//vbo.bind();
+	//vbo.allocate(vertices, sizeof(vertices));
 
-	program->enableAttributeArray(0);
-	program->setAttributeBuffer(0, GL_FLOAT, 0, 3);
+    //vao.create();
+	//vao.bind();
 
-    vbo.release();
-    vao.release();
+	//program->enableAttributeArray(0);
+	//program->setAttributeBuffer(0, GL_FLOAT, 0, 3);
+
+    //vbo.release();
+    //vao.release();
 }
 
 void EmuThread::run() {
     createWindow();
 
-    unsigned int c = 0;
-    while (true) {
-        c++;
-        glClearColor((c % 1000) / 1000.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+    PSX::GLRender render;
+    render.draw();
+    openglContext->swapBuffers(window);
+    //unsigned int c = 0;
+    //while (true) {
+    //    c++;
+    //    glClearColor((c % 1000) / 1000.0f, 0.0f, 0.0f, 1.0f);
+    //    glClear(GL_COLOR_BUFFER_BIT);
 
-        program->bind();
-        vao.bind();
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        vao.release();
+    //    program->bind();
+    //    vao.bind();
+    //    glDrawArrays(GL_TRIANGLES, 0, 3);
+    //    vao.release();
 
-        openglContext->swapBuffers(window);
-    }
+    //    openglContext->swapBuffers(window);
+    //}
 
     //PSX::Core core;
 

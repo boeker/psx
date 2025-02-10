@@ -16,6 +16,9 @@ target_sources(psx PRIVATE
     dma.cpp
     dma.h
     exceptions/exceptions.h
+    gl/glad.cpp
+    gl/glrender.cpp
+    gl/glrender.h
     gpu.cpp
     gpu.h
     interrupts.cpp
@@ -30,5 +33,9 @@ target_sources(psx PRIVATE
     timers.h
     util/log.cpp
     util/log.h
+)
+
+target_include_directories(psx PRIVATE
+    "${CMAKE_SOURCE_DIR}/include"
 )
 
