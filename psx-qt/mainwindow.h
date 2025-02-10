@@ -25,7 +25,7 @@ private:
     Ui::MainWindow *ui;
 
     OpenGLWindow *openGLWindow;
-    std::shared_ptr<EmuThread> emuthread;
+    EmuThread *emuthread;
 };
 
 #endif

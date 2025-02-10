@@ -3,6 +3,8 @@
 
 #include <QThread>
 
+class OpenGLWindow;
+
 class EmuThread : public QThread {
     Q_OBJECT
 
@@ -12,6 +14,9 @@ public:
 
 protected:
     void run();
+
+private:
+    OpenGLWindow *window;
 };
 
 #endif

@@ -55,23 +55,23 @@ void OpenGLWindow::initialize() {
 }
 
 void OpenGLWindow::render() {
-	glViewport(0, 0, width(), height());
+	//glViewport(0, 0, width(), height());
 
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	//glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	//glClear(GL_COLOR_BUFFER_BIT);
 
-	program->bind();
-	vao.bind();
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-	vao.release();
+	//program->bind();
+	//vao.bind();
+	//glDrawArrays(GL_TRIANGLES, 0, 3);
+	//vao.release();
 
-    openglContext->swapBuffers(this);
+    //openglContext->swapBuffers(this);
 }
 
 bool OpenGLWindow::event(QEvent *event) {
     switch (event->type()) {
         case QEvent::UpdateRequest:
-            render();
+            //render();
             return true;
         default:
             return QWindow::event(event);
@@ -79,5 +79,5 @@ bool OpenGLWindow::event(QEvent *event) {
 }
 
 void OpenGLWindow::exposeEvent(QExposeEvent *event) {
-    render();
+    //render();
 }
