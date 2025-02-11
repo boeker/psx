@@ -91,10 +91,12 @@ public:
 };
 
 class Bus;
+class Screen;
 
 class GPU {
 private:
     Bus *bus;
+    Screen *screen;
 
     enum State {
         IDLE,
@@ -171,6 +173,7 @@ public:
     GPU(Bus *bus);
     virtual ~GPU();
     void reset();
+    void setScreen(Screen *screen);
 
     void catchUpToCPU(uint32_t cpuCycles);
     void decodeAndExecuteGP1();

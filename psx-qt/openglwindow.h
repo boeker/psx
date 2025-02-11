@@ -7,7 +7,7 @@
 
 class QOpenGLContext;
 
-class OpenGLWindow : public QWindow, PSX::Screen {
+class OpenGLWindow : public QWindow, public PSX::Screen {
     Q_OBJECT
 
 public:

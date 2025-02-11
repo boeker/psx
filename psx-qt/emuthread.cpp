@@ -32,14 +32,16 @@ void EmuThread::createWindow() {
 
 void EmuThread::run() {
     createWindow();
+
+    PSX::Core core;
+    core.bus.gpu.setScreen(window);
+
     PSX::GLRender render;
 
     while (true) {
         render.draw();
         window->swapBuffers();
     }
-
-    //PSX::Core core;
 
     //core.run();
 }
