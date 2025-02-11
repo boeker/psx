@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "bus.h"
+#include "gl/glrender.h"
 #include "screen.h"
 #include "exceptions/exceptions.h"
 #include "util/log.h"
@@ -82,6 +83,7 @@ std::ostream& operator<<(std::ostream &os, const GPU &gpu) {
 
 GPU::GPU(Bus *bus) {
     this->bus = bus;
+    this->render = nullptr;
     this->screen = nullptr;
 
     vram = new uint8_t[VRAM_SIZE];
@@ -114,8 +116,14 @@ void GPU::reset() {
     drawingAreaY2 = 0;
 }
 
+void GPU::setRender(GLRender *render) {
+    this->render = render;
+    render->draw();
+}
+
 void GPU::setScreen(Screen *screen) {
     this->screen = screen;
+    screen->swapBuffers();
 }
 
 void GPU::catchUpToCPU(uint32_t cpuCycles) {

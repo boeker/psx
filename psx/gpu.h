@@ -91,11 +91,13 @@ public:
 };
 
 class Bus;
+class GLRender;
 class Screen;
 
 class GPU {
 private:
     Bus *bus;
+    GLRender *render;
     Screen *screen;
 
     enum State {
@@ -173,6 +175,7 @@ public:
     GPU(Bus *bus);
     virtual ~GPU();
     void reset();
+    void setRender(GLRender *render);
     void setScreen(Screen *screen);
 
     void catchUpToCPU(uint32_t cpuCycles);
