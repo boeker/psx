@@ -1,7 +1,6 @@
 find_package(Qt6 REQUIRED COMPONENTS
     Core
     Gui
-    OpenGL
     Widgets
 )
 
@@ -32,7 +31,6 @@ target_include_directories(psx-qt PRIVATE
 target_link_libraries(psx-qt PRIVATE
     Qt6::Core
     Qt6::Gui
-    Qt6::OpenGL
     Qt6::Widgets
     psx
 )
