@@ -91,10 +91,16 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 
-#build folder
+#build folders
 build/
 debug/
 release/
+
+#profiling
+flamegraph.html
+gecko_profile.json
+perf.data
+perf.data.old
 
 ### CMake Patch ###
 CMakeUserPresets.json
