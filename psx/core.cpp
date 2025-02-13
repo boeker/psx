@@ -30,6 +30,7 @@ void Core::emulateBlock() {
         bus.cpu.cycles -= CPU_VBLANK_FREQUENCY;
 
         bus.interrupts.notifyAboutVBLANK();
+        bus.gpu.notifyAboutVBLANK();
     }
 }
 

@@ -6,6 +6,8 @@
 #include <sstream>
 
 #include "bus.h"
+#include "gl/glrender.h"
+#include "screen.h"
 #include "exceptions/exceptions.h"
 #include "util/log.h"
 
@@ -81,6 +83,8 @@ std::ostream& operator<<(std::ostream &os, const GPU &gpu) {
 
 GPU::GPU(Bus *bus) {
     this->bus = bus;
+    this->render = nullptr;
+    this->screen = nullptr;
 
     vram = new uint8_t[VRAM_SIZE];
 
@@ -110,6 +114,16 @@ void GPU::reset() {
 
     drawingAreaX2 = 0;
     drawingAreaY2 = 0;
+}
+
+void GPU::setRender(GLRender *render) {
+    this->render = render;
+    render->clear();
+}
+
+void GPU::setScreen(Screen *screen) {
+    this->screen = screen;
+    screen->swapBuffers();
 }
 
 void GPU::catchUpToCPU(uint32_t cpuCycles) {
@@ -219,6 +233,12 @@ uint32_t GPU::sendGP0Data() {
         default:
             return 0;
     }
+}
+
+void GPU::notifyAboutVBLANK() {
+    Log::log(std::format("VBLANK"), Log::Type::GPU);
+    //render->clear();
+    screen->swapBuffers();
 }
 
 void GPU::decodeAndExecuteGP1() {
@@ -604,7 +624,41 @@ void GPU::GP0MonochromeFourPointPolygonOpaque() {
                          color,
                          vertex1, vertex2, vertex3, vertex4), Log::Type::GPU);
 
-    // TODO Render
+    uint8_t r = color & 0x000000FF;
+    uint8_t g = (color >> 8) & 0x000000FF;
+    uint8_t b = (color >> 16) & 0x000000FF;
+
+    Triangle triangle;
+    triangle.x1 = vertex1 & 0x000007FF;
+    triangle.x1 = ((triangle.x1 >> 10) ? 0xF800 : 0x0000) + triangle.x1;
+    triangle.y1 = (vertex1 >> 16) & 0x000007FF;
+    triangle.y1 = ((triangle.y1 >> 10) ? 0xF800 : 0x0000) + triangle.y1;
+    triangle.x2 = vertex2 & 0x000007FF;
+    triangle.x2 = ((triangle.x2 >> 10) ? 0xF800 : 0x0000) + triangle.x2;
+    triangle.y2 = (vertex2 >> 16) & 0x000007FF;
+    triangle.y2 = ((triangle.y2 >> 10) ? 0xF800 : 0x0000) + triangle.y2;
+    triangle.x3 = vertex3 & 0x000007FF;
+    triangle.x3 = ((triangle.x3 >> 10) ? 0xF800 : 0x0000) + triangle.x3;
+    triangle.y3 = (vertex3 >> 16) & 0x000007FF;
+    triangle.y3 = ((triangle.y3 >> 10) ? 0xF800 : 0x0000) + triangle.y3;
+    triangle.r1 = r;
+    triangle.g1 = g;
+    triangle.b1 = b;
+    triangle.r2 = r;
+    triangle.g2 = g;
+    triangle.b2 = b;
+    triangle.r3 = r;
+    triangle.g3 = g;
+    triangle.b3 = b;
+
+    Triangle triangle2 = triangle;
+    triangle2.x1 = vertex4 & 0x000007FF;
+    triangle2.x1 = ((triangle2.x1 >> 10) ? 0xF800 : 0x0000) + triangle2.x1;
+    triangle2.y1 = (vertex4 >> 16) & 0x000007FF;
+    triangle2.y1 = ((triangle2.y1 >> 10) ? 0xF800 : 0x0000) + triangle2.y1;
+
+    render->drawTriangle(triangle);
+    render->drawTriangle(triangle2);
 }
 
 void GPU::GP0TexturedFourPointPolygonOpaqueTextureBlending() {

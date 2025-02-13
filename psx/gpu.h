@@ -91,10 +91,14 @@ public:
 };
 
 class Bus;
+class GLRender;
+class Screen;
 
 class GPU {
 private:
     Bus *bus;
+    GLRender *render;
+    Screen *screen;
 
     enum State {
         IDLE,
@@ -171,6 +175,8 @@ public:
     GPU(Bus *bus);
     virtual ~GPU();
     void reset();
+    void setRender(GLRender *render);
+    void setScreen(Screen *screen);
 
     void catchUpToCPU(uint32_t cpuCycles);
     void decodeAndExecuteGP1();
@@ -190,6 +196,8 @@ public:
     bool transferToGPURequested();
     void receiveGP0Data(uint32_t word);
     uint32_t sendGP0Data();
+
+    void notifyAboutVBLANK();
 
 private:
     std::string getGPUStatusRegisterExplanation() const;

@@ -41,8 +41,6 @@ BIOS
 *.i*86
 *.x86_64
 *.hex
-/main
-/psx
 
 # Debug files
 *.dSYM/
@@ -79,6 +77,31 @@ dkms.conf
 *.lai
 
 # Executables
+
+### CMake ###
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+#build folder
+build/
+debug/
+release/
+
+### CMake Patch ###
+CMakeUserPresets.json
+
+# External projects
+*-prefix/
+
 
 # End of https://www.toptal.com/developers/gitignore/api/c,c++
 
