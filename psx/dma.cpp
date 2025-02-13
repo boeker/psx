@@ -52,8 +52,7 @@ template <>
 void DMA::write(uint32_t address, uint32_t value) {
     assert ((address >= 0x1F801080) && (address <= 0x1F8010FF));
 
-    Log::log(std::format("write 0x{:08X} -> @0x{:08X}",
-                         value, address), Log::Type::DMA_WRITE);
+    LOG_DMA_WRITE(std::format("write 0x{:08X} -> @0x{:08X}", value, address));
 
     if ((address & 0xFFFFFFF0) == 0x1F8010F0) { // 0x1F8010Fx: DPCR or DICR
         if (address == 0x1F8010F0) {
@@ -105,7 +104,7 @@ template <>
 uint32_t DMA::read(uint32_t address) {
     assert ((address >= 0x1F801080) && (address <= 0x1F8010FF));
 
-    Log::log(std::format("read @0x{:08X}", address), Log::Type::DMA_WRITE);
+    LOG_DMA_WRITE(std::format("read @0x{:08X}", address));
 
     if ((address & 0xFFFFFFF0) == 0x1F8010F0) { // 0x1F8010Fx: DPCR or DICR
         if (address == 0x1F8010F0) {
@@ -153,7 +152,7 @@ void DMA::handlePendingTransfers() {
     uint32_t channel;
     uint32_t priority;
 
-    Log::log(std::format("Checking for pending DMA transfers"), Log::Type::DMA);
+    LOG_DMA(std::format("Checking for pending DMA transfers"));
 
     do {
         channel = 7;
@@ -177,7 +176,7 @@ void DMA::handlePendingTransfers() {
 
         if (priority != 8) {
             // initiate transfer
-            Log::log(std::format("Pending DMA transfer: channel {:d}", channel), Log::Type::DMA);
+            LOG_DMA(std::format("Pending DMA transfer: channel {:d}", channel));
             transfer(channel);
         }
 
@@ -214,15 +213,15 @@ void DMA::transfer(uint32_t channel) {
             transferOTC();
             break;
         default:
-            Log::log(std::format("Channel {:d}: transfer not implemented",
-                                 channel,
-                                 CHANNEL_NAMES[channel]), Log::Type::DMA);
+            LOG_DMA(std::format("Channel {:d}: transfer not implemented",
+                                channel,
+                                CHANNEL_NAMES[channel]));
     }
 
-    Log::log(std::format("Channel {:d} ({:s}) channel control: {:s}",
-                         channel,
-                         CHANNEL_NAMES[channel],
-                         getDCHRExplanation(channel)), Log::Type::DMA);
+    LOG_DMA(std::format("Channel {:d} ({:s}) channel control: {:s}",
+                        channel,
+                        CHANNEL_NAMES[channel],
+                        getDCHRExplanation(channel)));
 }
 
 void DMA::transferOTC() {
@@ -232,9 +231,9 @@ void DMA::transferOTC() {
         blocks = 0x10000;
     }
 
-    Log::log(std::format("Channel 6 (OTC) transfer: 0x{:08X} blocks to @0x{:08X}",
-                         blocks,
-                         baseAddress), Log::Type::DMA);
+    LOG_DMA(std::format("Channel 6 (OTC) transfer: 0x{:08X} blocks to @0x{:08X}",
+                        blocks,
+                        baseAddress));
 
     // Clear start/trigger on beginning of transfer
     dmaChannelControl[6] = dmaChannelControl[6] & ~(1 << DCHR_START_TRIGGER);
@@ -255,7 +254,7 @@ void DMA::transferOTC() {
 
     // Set interrupt flag
     if ((dmaInterruptRegister >> DICR_ENABLE_FLAG_DMA6) & 1) {
-        Log::log(std::format("Channel 6 (OTC) setting IRQ flag"));
+        LOG_DMA(std::format("Channel 6 (OTC) setting IRQ flag"));
 
         dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_FLAG_DMA6);
         processDICRUpdate();
@@ -263,21 +262,21 @@ void DMA::transferOTC() {
 }
 
 void DMA::transferToGPU() {
-    Log::log(std::format("Channel 2 (GPU) transfer: to GPU"), Log::Type::DMA);
+    LOG_DMA(std::format("Channel 2 (GPU) transfer: to GPU"));
     uint32_t syncMode = (dmaChannelControl[2] >> DCHR_SYNC_MODE0) & 3;
     uint32_t memoryAddressStep = (dmaChannelControl[2] >> DCHR_MEMORY_ADDRESS_STEP) & 1;
     bool choppingEnabled = (dmaChannelControl[2] >> DCHR_CHOPPING_ENABLE) & 1;
 
     if (choppingEnabled) {
-        Log::log(std::format("Channel 2 (GPU) transfer: chopping enabled but not implemented"), Log::Type::DMA);
+        LOG_DMA(std::format("Channel 2 (GPU) transfer: chopping enabled but not implemented"));
     }
 
     if (syncMode == 2) { // linked-list mode
         // a list of commands is sent to the GPU
         uint32_t address = dmaBaseAddress[2];
 
-        Log::log(std::format("Channel 2 (GPU) transfer: linked-list transfer @0x{:08X}",
-                             address), Log::Type::DMA);
+        LOG_DMA(std::format("Channel 2 (GPU) transfer: linked-list transfer @0x{:08X}",
+                            address));
 
         // Clear start/trigger on beginning of transfer
         dmaChannelControl[2] = dmaChannelControl[2] & ~(1 << DCHR_START_TRIGGER);
@@ -292,8 +291,8 @@ void DMA::transferToGPU() {
 
             uint32_t numberOfWords = header >> 24;
             if (numberOfWords > 0) {
-                Log::log(std::format("Channel 2 (GPU) transfer: node contains {:d} words",
-                                     numberOfWords), Log::Type::DMA);
+                LOG_DMA(std::format("Channel 2 (GPU) transfer: node contains {:d} words",
+                                    numberOfWords));
             }
 
             for (uint32_t i = 0; i < numberOfWords; ++i) {
@@ -304,8 +303,8 @@ void DMA::transferToGPU() {
                 }
 
                 uint32_t word = bus->read<uint32_t>(address);
-                Log::log(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
-                                     word), Log::Type::DMA_IO);
+                LOG_DMA_IO(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
+                                       word));
                 bus->gpu.receiveGP0Data(word);
             }
 
@@ -325,7 +324,7 @@ void DMA::transferToGPU() {
 
         // Set interrupt flag
         if ((dmaInterruptRegister >> DICR_ENABLE_FLAG_DMA2) & 1) {
-            Log::log(std::format("Channel 2 (GPU) setting IRQ flag"));
+            LOG_DMA(std::format("Channel 2 (GPU) setting IRQ flag"));
 
             dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_FLAG_DMA2);
             processDICRUpdate();
@@ -334,8 +333,8 @@ void DMA::transferToGPU() {
     } else if (syncMode == 1) {
         uint32_t address = dmaBaseAddress[2];
 
-        Log::log(std::format("Channel 2 (GPU) transfer: block transfer @0x{:08X}",
-                             address), Log::Type::DMA);
+        LOG_DMA(std::format("Channel 2 (GPU) transfer: block transfer @0x{:08X}",
+                            address));
 
         // Clear start/trigger on beginning of transfer
         dmaChannelControl[2] = dmaChannelControl[2] & ~(1 << DCHR_START_TRIGGER);
@@ -344,14 +343,14 @@ void DMA::transferToGPU() {
         uint32_t numberOfBlocks = (dmaBlockControl[2] >> 16) & 0x0000FFFF;
 
         for (uint32_t i = 0; i < numberOfBlocks; ++i) {
-            Log::log(std::format("Channel 2 (GPU) transfer: start of block 0x{:08X}",
-                                 address), Log::Type::DMA);
+            LOG_DMA(std::format("Channel 2 (GPU) transfer: start of block 0x{:08X}",
+                                address));
 
             uint32_t previousAddress = address; // to update base address register
             for (uint32_t j = 0; j < blockSize; ++j) {
                 uint32_t word = bus->read<uint32_t>(address);
-                Log::log(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
-                                     word), Log::Type::DMA_IO);
+                LOG_DMA_IO(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
+                                       word));
 
                 bus->gpu.receiveGP0Data(word);
 
@@ -377,26 +376,26 @@ void DMA::transferToGPU() {
 
         // Set interrupt flag
         if ((dmaInterruptRegister >> DICR_ENABLE_FLAG_DMA2) & 1) {
-            Log::log(std::format("Channel 2 (GPU) setting IRQ flag"));
+            LOG_DMA(std::format("Channel 2 (GPU) setting IRQ flag"));
 
             dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_FLAG_DMA2);
             processDICRUpdate();
         }
 
     } else {
-        Log::log(std::format("Transfer to GPU: sync mode {:d} not implemented", syncMode), Log::Type::DMA);
+        LOG_DMA(std::format("Transfer to GPU: sync mode {:d} not implemented", syncMode));
     }
 }
 
 void DMA::transferFromGPU() {
-    Log::log(std::format("Transfer from GPU not implemented"), Log::Type::DMA);
+    LOG_DMA(std::format("Transfer from GPU not implemented"));
 }
 
 
 void DMA::updateControlRegister(uint32_t value) {
     dmaControlRegister = value;
 
-    Log::log(std::format("DPCR updated: {:s}", getDPCRExplanation()), Log::Type::DMA_WRITE);
+    LOG_DMA_WRITE(std::format("DPCR updated: {:s}", getDPCRExplanation()));
 
     handlePendingTransfers();
 }
@@ -425,7 +424,7 @@ void DMA::updateInterruptRegister(uint32_t value) {
         bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_DMA);
     }
 
-    Log::log(std::format("DICR updated: {:s}", getDICRExplanation()), Log::Type::DMA_WRITE);
+    LOG_DMA_WRITE(std::format("DICR updated: {:s}", getDICRExplanation()));
 }
 
 void DMA::processDICRUpdate() {
@@ -441,10 +440,10 @@ void DMA::updateBaseAddress(uint32_t channel, uint32_t value) {
     assert (channel <= 6);
     dmaBaseAddress[channel] = value & 0xFFFFFFFC; // word-align address
 
-    Log::log(std::format("Channel {:d} ({:s}) base address updated: 0x{:08X}",
+    LOG_DMA(std::format("Channel {:d} ({:s}) base address updated: 0x{:08X}",
                          channel,
                          CHANNEL_NAMES[channel],
-                         dmaBaseAddress[channel]), Log::Type::DMA);
+                         dmaBaseAddress[channel]));
 }
 
 void DMA::updateBlockControl(uint32_t channel, uint32_t value) {
@@ -453,10 +452,10 @@ void DMA::updateBlockControl(uint32_t channel, uint32_t value) {
 
     uint16_t blockSize = value & 0x0000FFFF;
     uint16_t blocks = value >> 16;
-    Log::log(std::format("Channel {:d} ({:s}) block control updated: 0x{:04X} blocks of 0x{:04X} words",
+    LOG_DMA(std::format("Channel {:d} ({:s}) block control updated: 0x{:04X} blocks of 0x{:04X} words",
                          channel,
                          CHANNEL_NAMES[channel],
-                         blocks, blockSize), Log::Type::DMA);
+                         blocks, blockSize));
 }
 
 void DMA::updateChannelControl(uint32_t channel, uint32_t value) {
@@ -479,10 +478,10 @@ void DMA::updateChannelControl(uint32_t channel, uint32_t value) {
     //uint32_t choppingCPUWindowSize = (value >> 20) & 7;
     //bool startBusy = (value >> 24) & 1;
     //bool startTrigger = (value >> (28 >> 1);
-    Log::log(std::format("Channel {:d} ({:s}) channel control updated: {:s}",
-                         channel,
-                         CHANNEL_NAMES[channel],
-                         getDCHRExplanation(channel)), Log::Type::DMA);
+    LOG_DMA(std::format("Channel {:d} ({:s}) channel control updated: {:s}",
+                        channel,
+                        CHANNEL_NAMES[channel],
+                        getDCHRExplanation(channel)));
 
 
     uint32_t dchr = dmaChannelControl[channel];
@@ -490,9 +489,9 @@ void DMA::updateChannelControl(uint32_t channel, uint32_t value) {
         && (dmaControlRegister & (1 << (4*channel + 3)))) {
 
         if (dchr & (1 << DCHR_START_TRIGGER)) { // manual start requested
-            Log::log(std::format("Channel {:d} ({:s}) immediate transfer requested",
-                                 channel,
-                                 CHANNEL_NAMES[channel]), Log::Type::DMA);
+            LOG_DMA(std::format("Channel {:d} ({:s}) immediate transfer requested",
+                                channel,
+                                CHANNEL_NAMES[channel]));
             transfer(channel);
 
         } else { // check for data request

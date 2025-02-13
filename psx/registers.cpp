@@ -23,7 +23,7 @@ std::ostream& operator<<(std::ostream &os, const Registers &registers) {
     os << "hi\t" << std::format("0x{:08X}", registers.hi);
     os << ", ";
     os << "lo\t\t" << std::format("0x{:08X}", registers.lo);
-    
+
     return os;
 }
 
@@ -64,36 +64,35 @@ void Registers::reset() {
 }
 
 uint32_t Registers::getPC() {
-    Log::log(std::format(" {{pc -> 0x{:08X}}}", this->pc), Log::Type::REGISTER_PC_READ);
+    LOG_REG_PC_READ(std::format(" {{pc -> 0x{:08X}}}", this->pc));
 
     return this->pc;
 }
 
 void Registers::setPC(uint32_t pc) {
     if (pc != this->pc + 4) {
-        Log::log(std::format(" {{0x{:08X} -> pc}}", pc), Log::Type::REGISTER_PC_WRITE);
+        LOG_REG_PC_WRITE(std::format(" {{0x{:08X} -> pc}}", pc));
     } else {
-        Log::log(std::format(" {{pc}}"), Log::Type::REGISTER_PC_WRITE);
+        LOG_REG_PC_WRITE(std::format(" {{pc}}"));
     }
 
     this->pc = pc;
 }
 
 uint32_t Registers::getRegister(uint8_t rt) {
-    Log::log(std::format(" {{"), Log::Type::REGISTER_READ);
+    LOG_REG_READ(std::format(" {{"));
     assert (rt < 32);
     uint32_t word = registers[rt];
 
-    Log::log(std::format("{:s} -> 0x{:08X}}}",
-                         getRegisterName(rt), word), Log::Type::REGISTER_READ);
+    LOG_REG_READ(std::format("{:s} -> 0x{:08X}}}",
+                         getRegisterName(rt), word));
 
     return word;
 }
 
 void Registers::setRegister(uint8_t rt, uint32_t value) {
     assert (rt < 32);
-    Log::log(std::format(" {{0x{:08X} -> {:s}}}", value, getRegisterName(rt)),
-             Log::Type::REGISTER_WRITE);
+    LOG_REG_WRITE(std::format(" {{0x{:08X} -> {:s}}}", value, getRegisterName(rt)));
 
     if (rt > 0) {
         registers[rt] = value;
@@ -101,27 +100,25 @@ void Registers::setRegister(uint8_t rt, uint32_t value) {
 }
 
 uint32_t Registers::getHi() {
-    Log::log(std::format(" {{hi -> 0x{:08X}}}", this->hi), Log::Type::REGISTER_READ);
+    LOG_REG_READ(std::format(" {{hi -> 0x{:08X}}}", this->hi));
 
     return this->hi;
 }
 
 void Registers::setHi(uint32_t value) {
-    Log::log(std::format(" {{0x{:08X} -> hi}}", value),
-             Log::Type::REGISTER_WRITE);
+    LOG_REG_WRITE(std::format(" {{0x{:08X} -> hi}}", value));
 
     this->hi = value;
 }
 
 uint32_t Registers::getLo() {
-    Log::log(std::format(" {{lo -> 0x{:08X}}}", this->lo), Log::Type::REGISTER_READ);
+    LOG_REG_READ(std::format(" {{lo -> 0x{:08X}}}", this->lo));
 
     return this->lo;
 }
 
 void Registers::setLo(uint32_t value) {
-    Log::log(std::format(" {{0x{:08X} -> lo}}", value),
-             Log::Type::REGISTER_WRITE);
+    LOG_REG_WRITE(std::format(" {{0x{:08X} -> lo}}", value));
 
     this->lo = value;
 }

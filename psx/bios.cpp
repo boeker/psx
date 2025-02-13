@@ -30,7 +30,7 @@ void Bios::readFromFile(const std::string &file) {
     if (!biosFile.good()) {
         throw exceptions::FileReadError("BIOS file \"" + file + "\"not found");
     }
-    
+
     biosFile.read(reinterpret_cast<char*>(bios), BIOS_SIZE);
 
     if (biosFile.fail()) {

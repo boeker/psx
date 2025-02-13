@@ -14,7 +14,7 @@ void SPU::reset() {
 
 template <typename T>
 void SPU::write(uint32_t address, T value) {
-    Log::log(std::format("SPU unimplemented: write @0x{:08X}", address), Log::Type::SPU);
+    LOG_SPU(std::format("SPU unimplemented: write @0x{:08X}", address));
 }
 
 template void SPU::write(uint32_t address, uint32_t value);
@@ -23,7 +23,7 @@ template void SPU::write(uint32_t address, uint8_t value);
 
 template <typename T>
 T SPU::read(uint32_t address) {
-    Log::log(std::format("SPU unimplemented: read @0x{:08X}", address), Log::Type::SPU);
+    LOG_SPU(std::format("SPU unimplemented: read @0x{:08X}", address));
     return 0;
 }
 

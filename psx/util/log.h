@@ -18,41 +18,6 @@ protected:
     const std::string descriptor;
     bool lineBreaks;
     bool enabled;
-
-public:
-    enum Type {
-        BUS,
-        CPU,
-        MEMORY,
-        REGISTER_READ,
-        REGISTER_WRITE,
-        REGISTER_PC_READ,
-        REGISTER_PC_WRITE,
-        CP0_REGISTER_READ,
-        CP0_REGISTER_WRITE,
-        CDROM,
-        GPU,
-        GPU_IO,
-        GPU_VRAM,
-        SPU,
-        MDEC,
-        DMA,
-        DMA_WRITE,
-        DMA_IO,
-        TIMERS,
-        PERIPHERAL,
-        INTERRUPTS,
-        INTERRUPTS_IO,
-        EXCEPTION,
-        EXCEPTION_VERBOSE,
-        MISC,
-        WARNING,
-    };
-
-    static bool logEnabled;
-    static bool busLogEnabled;
-
-    static void log(const std::string &message, Type type = MISC);
 };
 
 class ConsoleLog : public Log {
@@ -76,9 +41,12 @@ struct ConsoleLogPack {
     ConsoleLog exceptionVerbose;
     ConsoleLog gpu;
     ConsoleLog gpuIO;
+    ConsoleLog gpuVBLANK;
     ConsoleLog gpuVRAM;
+    ConsoleLog instructions;
     ConsoleLog interrupts;
     ConsoleLog interruptsIO;
+    ConsoleLog interruptsVerbose;
     ConsoleLog mdec;
     ConsoleLog memory;
     ConsoleLog misc;
@@ -97,31 +65,34 @@ extern ConsoleLogPack consoleLogPack;
 #define MACRO_LOG(log) consoleLogPack.log.isEnabled() && consoleLogPack.log.print
 
 #define LOG_BUS             MACRO_LOG(bus)
-#define LOG_CPU             MACRO_LOG(cpu);
-#define LOG_CDROM           MACRO_LOG(cdrom);
-#define LOG_CP0_REG_READ    MACRO_LOG(cp0RegisterRead);
-#define LOG_CP0_REG_WRITE   MACRO_LOG(cp0RegisterWrite);
-#define LOG_DMA             MACRO_LOG(dma);
-#define LOG_DMA_WRITE       MACRO_LOG(dmaWrite);
-#define LOG_DMA_IO          MACRO_LOG(dmaIO);
-#define LOG_EXC             MACRO_LOG(exception);
-#define LOG_EXC_VERB        MACRO_LOG(exceptionVerbose);
-#define LOG_GPU             MACRO_LOG(gpu);
-#define LOG_GPU_IO          MACRO_LOG(gpuIO);
-#define LOG_GPU_VRAM        MACRO_LOG(gpuVRAM);
-#define LOG_INT             MACRO_LOG(interrupts);
-#define LOG_INT_IO          MACRO_LOG(interruptsIO);
-#define LOG_MDEC            MACRO_LOG(mdec);
-#define LOG_MEM             MACRO_LOG(memory);
-#define LOG_MISC            MACRO_LOG(misc);
-#define LOG_PER             MACRO_LOG(peripheral);
-#define LOG_REG_READ        MACRO_LOG(registerRead);
-#define LOG_REG_WRITE       MACRO_LOG(registerWrite);
-#define LOG_REG_PC_READ     MACRO_LOG(registerPCRead);
-#define LOG_REG_PC_WRITE    MACRO_LOG(registerPCWrite);
-#define LOG_SPU             MACRO_LOG(spu);
-#define LOG_TMR             MACRO_LOG(timers);
-#define LOG_WAR             MACRO_LOG(warning);
+#define LOG_CPU             MACRO_LOG(cpu)
+#define LOG_CDROM           MACRO_LOG(cdrom)
+#define LOG_CP0_REG_READ    MACRO_LOG(cp0RegisterRead)
+#define LOG_CP0_REG_WRITE   MACRO_LOG(cp0RegisterWrite)
+#define LOG_DMA             MACRO_LOG(dma)
+#define LOG_DMA_WRITE       MACRO_LOG(dmaWrite)
+#define LOG_DMA_IO          MACRO_LOG(dmaIO)
+#define LOG_EXC             MACRO_LOG(exception)
+#define LOG_EXC_VERB        MACRO_LOG(exceptionVerbose)
+#define LOG_GPU             MACRO_LOG(gpu)
+#define LOG_GPU_IO          MACRO_LOG(gpuIO)
+#define LOG_GPU_VBLANK      MACRO_LOG(gpuVBLANK)
+#define LOG_GPU_VRAM        MACRO_LOG(gpuVRAM)
+#define LOG_INS             MACRO_LOG(instructions)
+#define LOG_INT             MACRO_LOG(interrupts)
+#define LOG_INT_IO          MACRO_LOG(interruptsIO)
+#define LOG_INT_VERB        MACRO_LOG(interruptsVerbose)
+#define LOG_MDEC            MACRO_LOG(mdec)
+#define LOG_MEM             MACRO_LOG(memory)
+#define LOG_MISC            MACRO_LOG(misc)
+#define LOG_PER             MACRO_LOG(peripheral)
+#define LOG_REG_READ        MACRO_LOG(registerRead)
+#define LOG_REG_WRITE       MACRO_LOG(registerWrite)
+#define LOG_REG_PC_READ     MACRO_LOG(registerPCRead)
+#define LOG_REG_PC_WRITE    MACRO_LOG(registerPCWrite)
+#define LOG_SPU             MACRO_LOG(spu)
+#define LOG_TMR             MACRO_LOG(timers)
+#define LOG_WAR             MACRO_LOG(warning)
 
 }
 

@@ -38,7 +38,7 @@ GLRender::GLRender() {
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
-        Log::log(std::format("Vertex shader compilation failed: {:s}", infoLog));
+        LOG_WAR(std::format("Vertex shader compilation failed: {:s}", infoLog));
     }
 
     // fragment shader
@@ -49,7 +49,7 @@ GLRender::GLRender() {
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
-        Log::log(std::format("Fragment shader compilation failed: {:s}", infoLog));
+        LOG_WAR(std::format("Fragment shader compilation failed: {:s}", infoLog));
     }
 
     // link shaders
@@ -61,7 +61,7 @@ GLRender::GLRender() {
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(program, 512, nullptr, infoLog);
-        Log::log(std::format("Program linking failed: {:s}", infoLog));
+        LOG_WAR(std::format("Program linking failed: {:s}", infoLog));
     }
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);

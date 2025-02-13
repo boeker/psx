@@ -61,7 +61,7 @@ std::ostream& operator<<(std::ostream &os, const CP0Registers &registers) {
         os << ",\n";
     }
     os << std::endl;
-    
+
     os << "SR: " << registers.getSRExplanation() << std::endl;
     os << "Cause: " << registers.getCauseExplanation() << std::endl;
 
@@ -107,20 +107,19 @@ void CP0Registers::reset() {
 }
 
 uint32_t CP0Registers::getCP0Register(uint8_t rt) {
-    Log::log(std::format(" {{"), Log::Type::CP0_REGISTER_READ);
+    LOG_CP0_REG_READ(std::format(" {{"));
     assert (rt < 32);
 
     uint32_t word = cp0Registers[rt];
-    Log::log(std::format("{:s} -> 0x{:08X}}}",
-                         getCP0RegisterName(rt), word), Log::Type::CP0_REGISTER_READ);
+    LOG_CP0_REG_READ(std::format("{:s} -> 0x{:08X}}}",
+                                 getCP0RegisterName(rt), word));
 
     return word;
 }
 
 void CP0Registers::setCP0Register(uint8_t rt, uint32_t value) {
     assert (rt < 32);
-    Log::log(std::format(" {{0x{:08X} -> {:s}}}", value, getCP0RegisterName(rt)),
-             Log::Type::CP0_REGISTER_WRITE);
+    LOG_CP0_REG_WRITE(std::format(" {{0x{:08X} -> {:s}}}", value, getCP0RegisterName(rt)));
     cp0Registers[rt] = value;
 }
 
