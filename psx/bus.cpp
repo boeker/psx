@@ -47,7 +47,7 @@ Bus::~Bus() {
 
 template <typename T>
 T Bus::read(uint32_t address) {
-    Log::log(std::format(" [@0x{:08X} -> ", address), Log::Type::BUS);
+    LOG_BUS(std::format(" [@0x{:08X} -> ", address));
     T value = 0;
 
     if ((address & 0x1FE00000) == 0x00000000) { // Main RAM
