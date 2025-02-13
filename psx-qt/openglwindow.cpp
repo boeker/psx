@@ -34,7 +34,8 @@ void OpenGLWindow::createContext() {
 }
 
 void OpenGLWindow::setUpViewport() {
-    glViewport(0, 0, width(), height());
+    const qreal scalingFactor = devicePixelRatio();
+    glViewport(0, 0, scalingFactor * width(), scalingFactor * height());
 }
 
 void OpenGLWindow::swapBuffers() {

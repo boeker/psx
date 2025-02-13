@@ -197,6 +197,8 @@ public:
     void receiveGP0Data(uint32_t word);
     uint32_t sendGP0Data();
 
+    void notifyAboutVBLANK();
+
 private:
     std::string getGPUStatusRegisterExplanation() const;
     std::string getGPUStatusRegisterExplanation2() const;

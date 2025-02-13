@@ -93,6 +93,8 @@ _deps
 
 #build folder
 build/
+debug/
+release/
 
 ### CMake Patch ###
 CMakeUserPresets.json
