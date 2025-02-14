@@ -92,7 +92,7 @@ extern ConsoleLogPack consoleLogPack;
 #define LOG_REG_PC_WRITE    MACRO_LOG(registerPCWrite)
 #define LOG_SPU             MACRO_LOG(spu)
 #define LOG_TMR             MACRO_LOG(timers)
-#define LOG_WAR             MACRO_LOG(warning)
+#define LOG_WRN             MACRO_LOG(warning)
 
 }
 

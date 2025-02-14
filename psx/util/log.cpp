@@ -63,7 +63,7 @@ ConsoleLogPack::ConsoleLogPack()
       registerPCWrite("CPU", false),
       spu("SPU", false),
       timers("TMR", false),
-      warning("WAR", true) {
+      warning("WRN", true) {
     bus.disableLineBreaks();
     cpu.disableLineBreaks();
     cp0RegisterRead.disableLineBreaks();

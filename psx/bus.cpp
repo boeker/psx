@@ -61,7 +61,7 @@ T Bus::read(uint32_t address) {
     } else if ((address & 0x1F800000) == 0x1F000000) { // Expansion Region 1
         //uint32_t offset = address & 0x007FFFFF;
 
-        LOG_WAR(std::format("Unimplemented Expansion Region 1 read @0x{:08X}", address));
+        LOG_WRN(std::format("Unimplemented Expansion Region 1 read @0x{:08X}", address));
 
     } else if ((address & 0x1FFFFC00) == 0x1F8FFC00) { // D-Cache (Scratchpad)
         // Also in KSEG1 for now
@@ -72,7 +72,7 @@ T Bus::read(uint32_t address) {
             value = memory.readMemoryControlRegisters<T>(address);
 
         } else if ((address >= 0x1F801040) && (address <= 0x1F80105F)) {
-            LOG_WAR(std::format("Unimplemented peripheral read @0x{:08X}", address));
+            LOG_WRN(std::format("Unimplemented peripheral read @0x{:08X}", address));
 
         } else if ((address >= 0x1F801070) && (address <= 0x1F801077)) {
             value = interrupts.read<T>(address);
@@ -84,19 +84,19 @@ T Bus::read(uint32_t address) {
             value = timers.read<T>(address);
 
         } else if ((address >= 0x1F801800) && (address <= 0x1F801803)) {
-            LOG_WAR(std::format("Unimplemented CDROM read @0x{:08X}", address));
+            LOG_WRN(std::format("Unimplemented CDROM read @0x{:08X}", address));
 
         } else if ((address >= 0x1F801810) && (address <= 0x1F801817)) {
             value = gpu.read<T>(address);
 
         } else if ((address >= 0x1F801820) && (address <= 0x1F801827)) {
-            LOG_WAR(std::format("Unimplemented MDEC read @0x{:08X}", address));
+            LOG_WRN(std::format("Unimplemented MDEC read @0x{:08X}", address));
 
         } else if ((address >= 0x1F801C00) && (address <= 0x1F801FFF)) {
             value = spu.read<T>(address);
 
         } else {
-            //LOG_WAR(std::format("Unimplemented Expansion Region 1 read @0x{:08X}", address));
+            //LOG_WRN(std::format("Unimplemented Expansion Region 1 read @0x{:08X}", address));
             throw exceptions::AddressOutOfBounds(std::format(
                 "Read from unimplemented IO register @0x{:08X}", address));
         }
@@ -107,7 +107,7 @@ T Bus::read(uint32_t address) {
         //    LOG_GPU("~Dual Serial Port~");
         //}
 
-        LOG_WAR(std::format("Unimplemented Expansion Region 2 read @0x{:08X}", address));
+        LOG_WRN(std::format("Unimplemented Expansion Region 2 read @0x{:08X}", address));
 
         //uint32_t offset = 0x00001000 + (address & 0x00000FFF);
 
@@ -157,7 +157,7 @@ void Bus::write (uint32_t address, T value) {
             memory.writeMemoryControlRegisters<T>(address, value);
 
         } else if ((address >= 0x1F801040) && (address <= 0x1F80105F)) {
-            LOG_WAR(std::format("Unimplemented peripheral write @0x{:08X}", address));
+            LOG_WRN(std::format("Unimplemented peripheral write @0x{:08X}", address));
 
         } else if ((address >= 0x1F801070) && (address <= 0x1F801077)) {
             interrupts.write<T>(address, value);
@@ -169,13 +169,13 @@ void Bus::write (uint32_t address, T value) {
             timers.write<T>(address, value);
 
         } else if ((address >= 0x1F801800) && (address <= 0x1F801803)) {
-            LOG_WAR(std::format("Unimplemented CDROM write @0x{:08X}", address));
+            LOG_WRN(std::format("Unimplemented CDROM write @0x{:08X}", address));
 
         } else if ((address >= 0x1F801810) && (address <= 0x1F801817)) {
             gpu.write<T>(address, value);
 
         } else if ((address >= 0x1F801820) && (address <= 0x1F801827)) {
-            LOG_WAR(std::format("Unimplemented MDEC write @0x{:08X}", address));
+            LOG_WRN(std::format("Unimplemented MDEC write @0x{:08X}", address));
 
         } else if ((address >= 0x1F801C00) && (address <= 0x1F801FFF)) {
             spu.write<T>(address, value);
@@ -195,13 +195,13 @@ void Bus::write (uint32_t address, T value) {
             std::cout << std::format("Boot status: 0x{:02X}", 0xFF & value) << std::endl;
 
         } else {
-            LOG_WAR(std::format("Unimplemented Expansion Region 2 write @0x{:08X}", address));
+            LOG_WRN(std::format("Unimplemented Expansion Region 2 write @0x{:08X}", address));
         }
 
         //uint32_t offset = 0x00001000 + (address & 0x00000FFF);
     } else if ((address & 0x1FF80000) == 0x1FC00000) { // Bios ROM
         // Bios is read only
-        LOG_WAR(std::format("Write to Bios @0x{:08X}", address));
+        LOG_WRN(std::format("Write to Bios @0x{:08X}", address));
         return;
 
     } else if (address == 0xFFFE0130) { // Cache Control Register
