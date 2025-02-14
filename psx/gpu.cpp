@@ -9,6 +9,7 @@
 #include "gl/glrender.h"
 #include "screen.h"
 #include "exceptions/exceptions.h"
+#include "util/bit.h"
 #include "util/log.h"
 
 using namespace util;
@@ -613,115 +614,85 @@ void GPU::GP0ClearCache() {
 
 void GPU::GP0MonochromeFourPointPolygonOpaque() {
     // 0x28
-    uint32_t color = gp0 & 0x00FFFFFF;
+    Color c(gp0);
 
-    uint32_t vertex1 = gp0Parameters[0];
-    uint32_t vertex2 = gp0Parameters[1];
-    uint32_t vertex3 = gp0Parameters[2];
-    uint32_t vertex4 = gp0Parameters[3];
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[1]);
+    Vertex v3(gp0Parameters[2]);
+    Vertex v4(gp0Parameters[3]);
 
-    LOG_GPU(std::format("GP0 - MonochromeFourPointPolygonOpaque(0x{:06X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X})",
-                         color,
-                         vertex1, vertex2, vertex3, vertex4));
+    LOG_GPU(std::format("GP0 - MonochromeFourPointPolygonOpaque({}, {}, {}, {}, {})",
+                        c, v1, v2, v3, v4));
 
-    uint8_t r = color & 0x000000FF;
-    uint8_t g = (color >> 8) & 0x000000FF;
-    uint8_t b = (color >> 16) & 0x000000FF;
+    Triangle t(v1, c, v2, c, v3, c);
+    Triangle t2(v2, c, v3, c, v4, c);
 
-    Triangle triangle;
-    triangle.x1 = vertex1 & 0x000007FF;
-    triangle.x1 = ((triangle.x1 >> 10) ? 0xF800 : 0x0000) + triangle.x1;
-    triangle.y1 = (vertex1 >> 16) & 0x000007FF;
-    triangle.y1 = ((triangle.y1 >> 10) ? 0xF800 : 0x0000) + triangle.y1;
-    triangle.x2 = vertex2 & 0x000007FF;
-    triangle.x2 = ((triangle.x2 >> 10) ? 0xF800 : 0x0000) + triangle.x2;
-    triangle.y2 = (vertex2 >> 16) & 0x000007FF;
-    triangle.y2 = ((triangle.y2 >> 10) ? 0xF800 : 0x0000) + triangle.y2;
-    triangle.x3 = vertex3 & 0x000007FF;
-    triangle.x3 = ((triangle.x3 >> 10) ? 0xF800 : 0x0000) + triangle.x3;
-    triangle.y3 = (vertex3 >> 16) & 0x000007FF;
-    triangle.y3 = ((triangle.y3 >> 10) ? 0xF800 : 0x0000) + triangle.y3;
-    triangle.r1 = r;
-    triangle.g1 = g;
-    triangle.b1 = b;
-    triangle.r2 = r;
-    triangle.g2 = g;
-    triangle.b2 = b;
-    triangle.r3 = r;
-    triangle.g3 = g;
-    triangle.b3 = b;
-
-    Triangle triangle2 = triangle;
-    triangle2.x1 = vertex4 & 0x000007FF;
-    triangle2.x1 = ((triangle2.x1 >> 10) ? 0xF800 : 0x0000) + triangle2.x1;
-    triangle2.y1 = (vertex4 >> 16) & 0x000007FF;
-    triangle2.y1 = ((triangle2.y1 >> 10) ? 0xF800 : 0x0000) + triangle2.y1;
-
-    render->drawTriangle(triangle);
-    render->drawTriangle(triangle2);
+    render->drawTriangle(t);
+    render->drawTriangle(t2);
 }
 
 void GPU::GP0TexturedFourPointPolygonOpaqueTextureBlending() {
     // 0x2C
-    uint32_t color = gp0 & 0x00FFFFFF;
+    Color c(gp0);
 
     uint32_t texCoord1 = gp0Parameters[1];
     uint32_t texCoord2 = gp0Parameters[3];
     uint32_t texCoord3 = gp0Parameters[5];
     uint32_t texCoord4 = gp0Parameters[7];
 
-    uint32_t vertex1 = gp0Parameters[0];
-    uint32_t vertex2 = gp0Parameters[2];
-    uint32_t vertex3 = gp0Parameters[4];
-    uint32_t vertex4 = gp0Parameters[6];
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[2]);
+    Vertex v3(gp0Parameters[4]);
+    Vertex v4(gp0Parameters[6]);
 
-    LOG_GPU(std::format("GP0 - TexturedFourPointPolygonOpaqueTextureBlending(0x{:06X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X})",
-                         color,
-                         vertex1, texCoord1,
-                         vertex2, texCoord2,
-                         vertex3, texCoord3,
-                         vertex4, texCoord4));
+    LOG_GPU(std::format("GP0 - TexturedFourPointPolygonOpaqueTextureBlending({}, {}, 0x{:08X}, {}, 0x{:08X}, {}, 0x{:08X}, {}, 0x{:08X})",
+                         c, v1, texCoord1, v2, texCoord2, v3, texCoord3, v4, texCoord4));
 
-    // TODO Render
+    Triangle t(v1, c, v2, c, v3, c);
+    Triangle t2(v2, c, v3, c, v4, c);
+
+    // TODO use texture
+    render->drawTriangle(t);
+    render->drawTriangle(t2);
 }
 
 void GPU::GP0ShadedThreePointPolygonOpaque() {
     // 0x30
-    uint32_t color1 = gp0 & 0x00FFFFFF;
-    uint32_t color2 = gp0Parameters[1];
-    uint32_t color3 = gp0Parameters[3];
+    Color c1(gp0);
+    Color c2(gp0Parameters[1]);
+    Color c3(gp0Parameters[3]);
 
-    uint32_t vertex1 = gp0Parameters[0];
-    uint32_t vertex2 = gp0Parameters[2];
-    uint32_t vertex3 = gp0Parameters[4];
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[2]);
+    Vertex v3(gp0Parameters[4]);
 
-    LOG_GPU(std::format("GP0 - ShadedThreePointPolygonOpaque(0x{:06X}, 0x{:08X}, 0x{:06X}, 0x{:08X}, 0x{:06X}, 0x{:08X})",
-                         color1, vertex1,
-                         color2, vertex2,
-                         color3, vertex3));
+    LOG_GPU(std::format("GP0 - ShadedThreePointPolygonOpaque({}, {}, {}, {}, {}, {})",
+                         c1, v1, c2, v2, c3, v3));
 
-    // TODO Render
+    Triangle t(v1, c1, v2, c2, v3, c3);
+    render->drawTriangle(t);
 }
 
 void GPU::GP0ShadedFourPointPolygonOpaque() {
     // 0x38
-    uint32_t color1 = gp0 & 0x00FFFFFF;
-    uint32_t color2 = gp0Parameters[1];
-    uint32_t color3 = gp0Parameters[3];
-    uint32_t color4 = gp0Parameters[5];
+    Color c1(gp0);
+    Color c2(gp0Parameters[1]);
+    Color c3(gp0Parameters[3]);
+    Color c4(gp0Parameters[5]);
 
-    uint32_t vertex1 = gp0Parameters[0];
-    uint32_t vertex2 = gp0Parameters[2];
-    uint32_t vertex3 = gp0Parameters[4];
-    uint32_t vertex4 = gp0Parameters[6];
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[2]);
+    Vertex v3(gp0Parameters[4]);
+    Vertex v4(gp0Parameters[6]);
 
-    LOG_GPU(std::format("GP0 - ShadedFourPointPolygonOpaque(0x{:06X}, 0x{:08X}, 0x{:06X}, 0x{:08X}, 0x{:06X}, 0x{:08X}, 0x{:06X}, 0x{:08X})",
-                         color1, vertex1,
-                         color2, vertex2,
-                         color3, vertex3,
-                         color4, vertex4));
+    LOG_GPU(std::format("GP0 - ShadedFourPointPolygonOpaque({}, {}, {}, {}, {}, {}, {}, {})",
+                         c1, v1, c2, v2, c3, v3, c4, v4));
 
-    // TODO Render
+    Triangle t(v1, c1, v2, c2, v3, c3);
+    Triangle t2(v2, c2, v3, c3, v4, c4);
+
+    render->drawTriangle(t);
+    render->drawTriangle(t2);
 }
 
 

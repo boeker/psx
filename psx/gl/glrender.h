@@ -3,12 +3,9 @@
 
 #include <cstdint>
 
-namespace PSX {
+#include "gl/common.h"
 
-struct Triangle {
-    int16_t x1, y1, x2, y2, x3, y3;
-    uint8_t r1, g1, b1, r2, g2, b2, r3, g3, b3;
-};
+namespace PSX {
 
 class GLRender {
 public:

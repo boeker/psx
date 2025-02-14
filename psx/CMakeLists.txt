@@ -16,6 +16,7 @@ target_sources(psx PRIVATE
     dma.cpp
     dma.h
     exceptions/exceptions.h
+    gl/common.h
     gl/glad.cpp
     gl/glrender.cpp
     gl/glrender.h
@@ -32,6 +33,7 @@ target_sources(psx PRIVATE
     spu.h
     timers.cpp
     timers.h
+    util/bit.h
     util/log.cpp
     util/log.h
 )

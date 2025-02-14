@@ -87,12 +87,12 @@ GLRender::~GLRender() {
     glDeleteProgram(program);
 }
 
-void GLRender::drawTriangle(const Triangle &triangle) {
+void GLRender::drawTriangle(const Triangle &t) {
     std::cout << "drawTriangle()" << std::endl;
     float vertices[] =  {
-        triangle.x1/1024.0f, triangle.y1/1024.0f, 0.0f, triangle.r1/255.0f, triangle.g1/255.0f, triangle.b1/255.0f,
-        triangle.x2/1024.0f, triangle.y2/1024.0f, 0.0f, triangle.r2/255.0f, triangle.g2/255.0f, triangle.b2/255.0f,
-        triangle.x3/1024.0f, triangle.y3/1024.0f, 0.0f, triangle.r3/255.0f, triangle.g3/255.0f, triangle.b3/255.0f
+        t.v1.x/1024.0f, t.v1.y/1024.0f, 0.0f, t.c1.r/255.0f, t.c1.g/255.0f, t.c1.b/255.0f,
+        t.v2.x/1024.0f, t.v2.y/1024.0f, 0.0f, t.c2.r/255.0f, t.c2.g/255.0f, t.c2.b/255.0f,
+        t.v3.x/1024.0f, t.v3.y/1024.0f, 0.0f, t.c3.r/255.0f, t.c3.g/255.0f, t.c3.b/255.0f
     };
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
