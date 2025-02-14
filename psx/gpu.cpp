@@ -919,27 +919,33 @@ void GPU::GP1StartOfDisplayArea() {
     // 0x05
     uint32_t parameter = gp1 & 0x00FFFFFF;
 
-    LOG_GPU(std::format("GP1 - StartOfDisplayArena(0x{:06X})", parameter));
     startOfDisplayAreaX = parameter & 0x000003FF;
-    startOfDisplayAreaY = parameter & 0x0007FC00;
+    startOfDisplayAreaY = (parameter >> 10) & 0x000001FF;
+
+    LOG_GPU(std::format("GP1 - StartOfDisplayArena({:d}, {:d})",
+                        startOfDisplayAreaX, startOfDisplayAreaY));
 }
 
 void GPU::GP1HorizontalDisplayRange() {
     // 0x06
     uint32_t parameter = gp1 & 0x00FFFFFF;
 
-    LOG_GPU(std::format("GP1 - HorizontalDisplayRange(0x{:06X})", parameter));
     horizontalDisplayRangeX1 = parameter & 0x00000FFF;
-    horizontalDisplayRangeX2 = parameter & 0x00FFF000;
+    horizontalDisplayRangeX2 = (parameter >> 12) & 0x00000FFF;
+
+    LOG_GPU(std::format("GP1 - HorizontalDisplayRange(0x{:03X}, 0x{:03X})",
+                        horizontalDisplayRangeX1, horizontalDisplayRangeX2));
 }
 
 void GPU::GP1VerticalDisplayRange() {
     // 0x07
     uint32_t parameter = gp1 & 0x00FFFFFF;
 
-    LOG_GPU(std::format("GP1 - VerticalDisplayRange(0x{:06X})", parameter));
     verticalDisplayRangeY1 = parameter & 0x000003FF;
-    verticalDisplayRangeY2 = parameter & 0x0003FC00;
+    verticalDisplayRangeY2 = (parameter >> 10) & 0x000003FF;
+
+    LOG_GPU(std::format("GP1 - VerticalDisplayRange(0x{:03X}, 0x{:03X})",
+                        verticalDisplayRangeY1, verticalDisplayRangeY2));
 }
 
 void GPU::GP1DisplayMode() {

@@ -37,7 +37,7 @@ namespace PSX {
 #define GPUSTAT_DISPLAY_AREA_COLOR_DEPTH 21
 // Video mode (0 = NTSC/60Hz, 1 = PAL/50Hz)
 #define GPUSTAT_VIDEO_MODE 20
-// Vertical Resolution (0 = 240, 1 = 480 if vertical interlace enabled) 
+// Vertical Resolution (0 = 240, 1 = 480 if vertical interlace enabled)
 #define GPUSTAT_VERTICAL_RESOLUTION 19
 // Horizontal resolution (0 = 256/320/512/640, 1 = 368)
 #define GPUSTAT_HORIZONTAL_RESOLUTION2 18
