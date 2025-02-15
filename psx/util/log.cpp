@@ -61,6 +61,8 @@ ConsoleLogPack::ConsoleLogPack()
       registerWrite("CPU", false),
       registerPCRead("CPU", false),
       registerPCWrite("CPU", false),
+      renderer("REND", true),
+      rendererVRAM("REND", true),
       spu("SPU", false),
       timers("TMR", false),
       warning("WRN", true) {

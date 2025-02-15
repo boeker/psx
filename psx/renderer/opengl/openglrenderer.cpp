@@ -129,8 +129,8 @@ void OpenGLRenderer::drawTriangle(const Triangle &t) {
 }
 
 void OpenGLRenderer::writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) {
-    LOG_GPU_VRAM(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
-                             value, line, pos));
+    LOG_REND_VRAM(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
+                              value, line, pos));
 
     uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
     vramLine[pos] = value;
@@ -140,8 +140,8 @@ uint16_t OpenGLRenderer::readFromVRAM(uint32_t line, uint32_t pos) {
     uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
     uint16_t value = vramLine[pos];
 
-    LOG_GPU_VRAM(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
-                             line, pos, value));
+    LOG_REND_VRAM(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
+                              line, pos, value));
 
     return value;
 }

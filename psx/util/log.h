@@ -55,6 +55,8 @@ struct ConsoleLogPack {
     ConsoleLog registerWrite;
     ConsoleLog registerPCRead;
     ConsoleLog registerPCWrite;
+    ConsoleLog renderer;
+    ConsoleLog rendererVRAM;
     ConsoleLog spu;
     ConsoleLog timers;
     ConsoleLog warning;
@@ -90,6 +92,8 @@ extern ConsoleLogPack consoleLogPack;
 #define LOG_REG_WRITE       MACRO_LOG(registerWrite)
 #define LOG_REG_PC_READ     MACRO_LOG(registerPCRead)
 #define LOG_REG_PC_WRITE    MACRO_LOG(registerPCWrite)
+#define LOG_REND            MACRO_LOG(renderer)
+#define LOG_REND_VRAM       MACRO_LOG(rendererVRAM)
 #define LOG_SPU             MACRO_LOG(spu)
 #define LOG_TMR             MACRO_LOG(timers)
 #define LOG_WRN             MACRO_LOG(warning)
