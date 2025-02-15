@@ -27,6 +27,8 @@ protected:
 private:
     QOpenGLContext *context;
     static QOpenGLContext *currentContext;
+
+    std::atomic<bool> resizeRequested;
 };
 
 #endif
