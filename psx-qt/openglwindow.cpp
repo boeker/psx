@@ -4,6 +4,8 @@
 #include <QOpenGLContext>
 #include <QDebug>
 
+#include <iostream>
+
 QOpenGLContext *OpenGLWindow::currentContext = nullptr;
 
 OpenGLWindow::OpenGLWindow(QWindow *parent)
@@ -45,6 +47,7 @@ void OpenGLWindow::swapBuffers() {
 bool OpenGLWindow::event(QEvent *event) {
     switch (event->type()) {
         case QEvent::UpdateRequest:
+            // TODO update
             return true;
         default:
             return QWindow::event(event);
@@ -52,4 +55,10 @@ bool OpenGLWindow::event(QEvent *event) {
 }
 
 void OpenGLWindow::exposeEvent(QExposeEvent *event) {
+    // TODO update
 }
+
+void OpenGLWindow::resizeEvent(QResizeEvent *event) {
+    // TODO
+}
+

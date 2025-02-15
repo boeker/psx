@@ -1,5 +1,5 @@
-#ifndef PSX_SCREEN_H
-#define PSX_SCREEN_H
+#ifndef PSX_RENDERER_SCREEN_H
+#define PSX_RENDERER_SCREEN_H
 
 namespace PSX {
 

@@ -5,16 +5,21 @@
 
 namespace PSX {
 
+class Renderer;
+
 class Core {
 public:
     Bus bus;
 
 public:
-    Core();
-    void reset(); 
+    Core(Renderer *renderer);
+    void reset();
 
     void emulateBlock();
     void run();
+
+private:
+    Renderer *renderer;
 };
 
 }

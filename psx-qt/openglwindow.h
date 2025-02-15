@@ -1,9 +1,10 @@
 #ifndef OPENGLWINDOW_H
 #define OPENGLWINDOW_H
 
+#include <atomic>
 #include <QWindow>
 
-#include "psx/screen.h"
+#include "psx/renderer/screen.h"
 
 class QOpenGLContext;
 
@@ -21,6 +22,7 @@ public:
 protected:
     bool event(QEvent *event) override;
     void exposeEvent(QExposeEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
     QOpenGLContext *context;

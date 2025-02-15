@@ -1,10 +1,11 @@
-#include "glrender.h"
+#include "openglrenderer.h"
 
 #include <glad/glad.h>
 #include <format>
 #include <iostream>
 
-#include "psx/util/log.h"
+#include "renderer/screen.h"
+#include "util/log.h"
 
 using namespace util;
 
@@ -27,7 +28,8 @@ const char *fragmentShaderSource = "#version 330 core\n"
     "   FragColor = vec4(ourColor, 1.0f);\n"
     "}\n\0";
 
-GLRender::GLRender() {
+OpenGLRenderer::OpenGLRenderer(Screen *screen)
+    : screen(screen) {
     // vertex shader
     unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
@@ -81,13 +83,13 @@ GLRender::GLRender() {
     glEnableVertexAttribArray(1);
 }
 
-GLRender::~GLRender() {
+OpenGLRenderer::~OpenGLRenderer() {
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteProgram(program);
 }
 
-void GLRender::drawTriangle(const Triangle &t) {
+void OpenGLRenderer::drawTriangle(const Triangle &t) {
     std::cout << "drawTriangle()" << std::endl;
     float vertices[] =  {
         t.v1.x/320.0f - 1.0f, t.v1.y/240.0f - 1.0f, 0.0f, t.c1.r/255.0f, t.c1.g/255.0f, t.c1.b/255.0f,
@@ -107,12 +109,16 @@ void GLRender::drawTriangle(const Triangle &t) {
     //glBindVertexArray(0);
 }
 
-void GLRender::draw() {
+void OpenGLRenderer::draw() {
 }
 
-void GLRender::clear() {
+void OpenGLRenderer::clear() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void OpenGLRenderer::swapBuffers() {
+    screen->swapBuffers();
 }
 
 }

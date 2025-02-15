@@ -1,5 +1,5 @@
-#ifndef GL_COMMON_H
-#define GL_COMMON_H
+#ifndef PSX_RENDERER_RENDERER_H
+#define PSX_RENDERER_RENDERER_H
 
 #include <format>
 
@@ -44,6 +44,16 @@ struct Triangle {
     }
 };
 
+class Renderer {
+public:
+    Renderer() = default;
+    Renderer(const Renderer &) = delete;
+    virtual ~Renderer() = default;
+
+    virtual void clear() = 0;
+    virtual void drawTriangle(const Triangle &triangle) = 0;
+    virtual void swapBuffers() = 0;
+};
 
 }
 

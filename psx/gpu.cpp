@@ -6,8 +6,7 @@
 #include <sstream>
 
 #include "bus.h"
-#include "gl/glrender.h"
-#include "screen.h"
+#include "renderer/renderer.h"
 #include "exceptions/exceptions.h"
 #include "util/bit.h"
 #include "util/log.h"
@@ -84,8 +83,7 @@ std::ostream& operator<<(std::ostream &os, const GPU &gpu) {
 
 GPU::GPU(Bus *bus) {
     this->bus = bus;
-    this->render = nullptr;
-    this->screen = nullptr;
+    this->renderer = nullptr;
 
     vram = new uint8_t[VRAM_SIZE];
 
@@ -117,14 +115,8 @@ void GPU::reset() {
     drawingAreaY2 = 0;
 }
 
-void GPU::setRender(GLRender *render) {
-    this->render = render;
-    render->clear();
-}
-
-void GPU::setScreen(Screen *screen) {
-    this->screen = screen;
-    screen->swapBuffers();
+void GPU::setRenderer(Renderer *renderer) {
+    this->renderer = renderer;
 }
 
 void GPU::catchUpToCPU(uint32_t cpuCycles) {
@@ -238,8 +230,7 @@ uint32_t GPU::sendGP0Data() {
 
 void GPU::notifyAboutVBLANK() {
     LOG_GPU_VBLANK(std::format("VBLANK"));
-    //render->clear();
-    screen->swapBuffers();
+    renderer->swapBuffers();
 }
 
 void GPU::decodeAndExecuteGP1() {
@@ -627,8 +618,8 @@ void GPU::GP0MonochromeFourPointPolygonOpaque() {
     Triangle t(v1, c, v2, c, v3, c);
     Triangle t2(v2, c, v3, c, v4, c);
 
-    render->drawTriangle(t);
-    render->drawTriangle(t2);
+    renderer->drawTriangle(t);
+    renderer->drawTriangle(t2);
 }
 
 void GPU::GP0TexturedFourPointPolygonOpaqueTextureBlending() {
@@ -652,8 +643,8 @@ void GPU::GP0TexturedFourPointPolygonOpaqueTextureBlending() {
     Triangle t2(v2, c, v3, c, v4, c);
 
     // TODO use texture
-    render->drawTriangle(t);
-    render->drawTriangle(t2);
+    renderer->drawTriangle(t);
+    renderer->drawTriangle(t2);
 }
 
 void GPU::GP0ShadedThreePointPolygonOpaque() {
@@ -670,7 +661,7 @@ void GPU::GP0ShadedThreePointPolygonOpaque() {
                          c1, v1, c2, v2, c3, v3));
 
     Triangle t(v1, c1, v2, c2, v3, c3);
-    render->drawTriangle(t);
+    renderer->drawTriangle(t);
 }
 
 void GPU::GP0ShadedFourPointPolygonOpaque() {
@@ -691,8 +682,8 @@ void GPU::GP0ShadedFourPointPolygonOpaque() {
     Triangle t(v1, c1, v2, c2, v3, c3);
     Triangle t2(v2, c2, v3, c3, v4, c4);
 
-    render->drawTriangle(t);
-    render->drawTriangle(t2);
+    renderer->drawTriangle(t);
+    renderer->drawTriangle(t2);
 }
 
 

@@ -5,7 +5,7 @@
 
 #include "openglwindow.h"
 #include "psx/core.h"
-#include "psx/gl/glrender.h"
+#include "psx/renderer/opengl/openglrenderer.h"
 
 EmuThread::EmuThread(QObject *parent)
     : QThread(parent) {
@@ -33,10 +33,8 @@ void EmuThread::createWindow() {
 void EmuThread::run() {
     createWindow();
 
-    PSX::Core core;
-    PSX::GLRender render;
-    core.bus.gpu.setRender(&render);
-    core.bus.gpu.setScreen(window);
+    PSX::OpenGLRenderer renderer(window);
+    PSX::Core core(&renderer);
 
     core.run();
 }

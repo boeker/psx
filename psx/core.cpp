@@ -3,9 +3,13 @@
 #include <format>
 #include <iostream>
 
+#include "renderer/renderer.h"
+
 namespace PSX {
 
-Core::Core() {
+Core::Core(Renderer *renderer)
+    : renderer(renderer) {
+    bus.gpu.setRenderer(renderer);
     reset();
 
     bus.bios.readFromFile("BIOS/SCPH1001.BIN");
@@ -13,6 +17,9 @@ Core::Core() {
 
 void Core::reset() {
     bus.reset();
+
+    renderer->clear();
+    renderer->swapBuffers();
 }
 
 void Core::emulateBlock() {

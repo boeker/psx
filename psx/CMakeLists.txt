@@ -16,10 +16,6 @@ target_sources(psx PRIVATE
     dma.cpp
     dma.h
     exceptions/exceptions.h
-    gl/common.h
-    gl/glad.cpp
-    gl/glrender.cpp
-    gl/glrender.h
     gpu.cpp
     gpu.h
     interrupts.cpp
@@ -28,7 +24,13 @@ target_sources(psx PRIVATE
     memory.h
     registers.cpp
     registers.h
-    screen.h
+    renderer/null/nullrenderer.cpp
+    renderer/null/nullrenderer.h
+    renderer/opengl/glad.cpp
+    renderer/opengl/openglrenderer.cpp
+    renderer/opengl/openglrenderer.h
+    renderer/renderer.h
+    renderer/screen.h
     spu.cpp
     spu.h
     timers.cpp
