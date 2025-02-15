@@ -50,9 +50,13 @@ public:
     Renderer(const Renderer &) = delete;
     virtual ~Renderer() = default;
 
+    virtual void reset() = 0;
     virtual void clear() = 0;
-    virtual void drawTriangle(const Triangle &triangle) = 0;
     virtual void swapBuffers() = 0;
+    virtual void drawTriangle(const Triangle &triangle) = 0;
+
+    virtual void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) = 0;
+    virtual uint16_t readFromVRAM(uint32_t line, uint32_t pos) = 0;
 };
 
 }

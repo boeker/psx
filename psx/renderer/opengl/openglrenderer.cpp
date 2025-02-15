@@ -1,6 +1,7 @@
 #include "openglrenderer.h"
 
 #include <glad/glad.h>
+#include <cstring>
 #include <format>
 #include <iostream>
 
@@ -30,6 +31,9 @@ const char *fragmentShaderSource = "#version 330 core\n"
 
 OpenGLRenderer::OpenGLRenderer(Screen *screen)
     : screen(screen) {
+
+    vram = new uint8_t[VRAM_SIZE];
+
     // vertex shader
     unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
@@ -84,9 +88,24 @@ OpenGLRenderer::OpenGLRenderer(Screen *screen)
 }
 
 OpenGLRenderer::~OpenGLRenderer() {
+    delete[] vram;
+
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteProgram(program);
+}
+
+void OpenGLRenderer::reset() {
+    std::memset(vram, 0, VRAM_SIZE);
+}
+
+void OpenGLRenderer::clear() {
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void OpenGLRenderer::swapBuffers() {
+    screen->swapBuffers();
 }
 
 void OpenGLRenderer::drawTriangle(const Triangle &t) {
@@ -109,17 +128,24 @@ void OpenGLRenderer::drawTriangle(const Triangle &t) {
     //glBindVertexArray(0);
 }
 
-void OpenGLRenderer::draw() {
+void OpenGLRenderer::writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) {
+    LOG_GPU_VRAM(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
+                             value, line, pos));
+
+    uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
+    vramLine[pos] = value;
 }
 
-void OpenGLRenderer::clear() {
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+uint16_t OpenGLRenderer::readFromVRAM(uint32_t line, uint32_t pos) {
+    uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
+    uint16_t value = vramLine[pos];
+
+    LOG_GPU_VRAM(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
+                             line, pos, value));
+
+    return value;
 }
 
-void OpenGLRenderer::swapBuffers() {
-    screen->swapBuffers();
-}
 
 }
 

@@ -8,8 +8,6 @@
 
 namespace PSX {
 
-#define VRAM_SIZE (1024 * 1024)
-
 // Even/odd lines in interlace mode (0 = even or vblank, 1 = odd)
 #define GPUSTAT_INTERLACE_EVEN_ODD 31
 // DMA Direction (0 = off, 1 = FIFO, 2 = CPU to GP0, 3 = GPUREAD to CPU)
@@ -107,8 +105,6 @@ private:
     };
     State state;
 
-    uint8_t *vram;
-
     // 1F801810
     // Write GP0     Send GP0 Commands/Packets (Rendering and VRAM Access)
     // Read  GPUREAD Receive responses to GP0(C0h) and GP1(10h) commands
@@ -178,8 +174,6 @@ public:
     void catchUpToCPU(uint32_t cpuCycles);
     void decodeAndExecuteGP1();
 
-    void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value);
-    uint16_t readFromVRAM(uint32_t line, uint32_t pos);
     void advanceCurrentDestinationPosition();
     void advanceCurrentSourcePosition();
 

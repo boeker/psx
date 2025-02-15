@@ -1,7 +1,6 @@
 #include "gpu.h"
 
 #include <cassert>
-#include <cstring>
 #include <format>
 #include <sstream>
 
@@ -85,17 +84,13 @@ GPU::GPU(Bus *bus) {
     this->bus = bus;
     this->renderer = nullptr;
 
-    vram = new uint8_t[VRAM_SIZE];
-
     reset();
 }
 
 GPU::~GPU() {
-    delete[] vram;
 }
 
 void GPU::reset() {
-    std::memset(vram, 0, VRAM_SIZE);
     state = State::IDLE;
 
     gp0 = 0;
@@ -169,9 +164,9 @@ void GPU::receiveGP0Data(uint32_t word) {
         case State::TRANSFER_TO_VRAM:
             LOG_GPU_IO(std::format("To VRAM: Remaining words: {:d}", transferToVRAMRemainingWords));
 
-            writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word >> 16));
+            renderer->writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word >> 16));
             advanceCurrentDestinationPosition();
-            writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word & 0x0000FFFF));
+            renderer->writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word & 0x0000FFFF));
             advanceCurrentDestinationPosition();
 
             transferToVRAMRemainingWords--;
@@ -216,9 +211,9 @@ uint32_t GPU::sendGP0Data() {
                 LOG_GPU(std::format("State::IDLE"));
             }
 
-            value1 = readFromVRAM(sourceCurrentY, sourceCurrentX);
+            value1 = renderer->readFromVRAM(sourceCurrentY, sourceCurrentX);
             advanceCurrentSourcePosition();
-            value2 = readFromVRAM(sourceCurrentY, sourceCurrentX);
+            value2 = renderer->readFromVRAM(sourceCurrentY, sourceCurrentX);
             advanceCurrentSourcePosition();
 
             return (value1 << 16) | value2;
@@ -272,24 +267,6 @@ void GPU::decodeAndExecuteGP1() {
 
     LOG_GPU(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation()));
     LOG_GPU(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation2()));
-}
-
-void GPU::writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) {
-    LOG_GPU_VRAM(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
-                             value, line, pos));
-
-    uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
-    vramLine[pos] = value;
-}
-
-uint16_t GPU::readFromVRAM(uint32_t line, uint32_t pos) {
-    uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
-    uint16_t value = vramLine[pos];
-
-    LOG_GPU_VRAM(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
-                             line, pos, value));
-
-    return value;
 }
 
 void GPU::advanceCurrentDestinationPosition() {

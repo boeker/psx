@@ -7,6 +7,8 @@
 
 namespace PSX {
 
+#define VRAM_SIZE (1024 * 1024)
+
 class Screen;
 
 class OpenGLRenderer : public Renderer {
@@ -14,13 +16,17 @@ public:
     OpenGLRenderer(Screen *screen);
     virtual ~OpenGLRenderer();
 
-    void draw();
+    void reset() override;
     void clear() override;
-    void drawTriangle(const Triangle &triangle) override;
     void swapBuffers() override;
+    void drawTriangle(const Triangle &triangle) override;
+
+    void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) override;
+    uint16_t readFromVRAM(uint32_t line, uint32_t pos) override;
 
 private:
     Screen *screen;
+    uint8_t *vram;
 
     unsigned int program;
     unsigned int vbo;
