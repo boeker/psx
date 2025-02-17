@@ -12,24 +12,27 @@ QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
 }
+class QFileSystemModel;
 QT_END_NAMESPACE
+
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(const QString &biosPath, QWidget *parent = nullptr);
     ~MainWindow();
-
-    void setBiosPath(const QString &biosPath);
 
 public slots:
     void startEmulation();
+    void stopEmulation();
+
+private:
+    void createConnections();
 
 private:
     Ui::MainWindow *ui;
-
-    QString biosPath;
+    QFileSystemModel *biosFSModel;
 
     OpenGLWindow *openGLWindow;
     EmuThread *emuthread;

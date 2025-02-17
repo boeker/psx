@@ -27,7 +27,6 @@ void EmuThread::createWindow() {
 
     window->createContext();
     window->setUpViewport();
-
 }
 
 void EmuThread::setBiosPath(const QString &biosPath) {

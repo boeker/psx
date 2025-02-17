@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     parser.addVersionOption();
 
     QCommandLineOption biosOption(QStringList() << "b" << "bios",
-                                  "Load bios file <bios>.",
+                                  "Select bios file <bios>.",
                                   "bios");
     parser.addOption(biosOption);
 
@@ -24,13 +24,15 @@ int main(int argc, char *argv[]) {
 
     parser.process(app);
 
-    MainWindow mainWindow;
-    mainWindow.show();
+
+    QString biosPath;
 
     if (parser.isSet(biosOption)) {
-        QString biosPath = parser.value(biosOption);
-        mainWindow.setBiosPath(biosPath);
+        biosPath = parser.value(biosOption);
     }
+
+    MainWindow mainWindow(biosPath, nullptr);
+    mainWindow.show();
 
     if (parser.isSet(startOption)) {
         // start emulation on start up
