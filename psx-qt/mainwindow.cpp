@@ -18,8 +18,11 @@ MainWindow::MainWindow(QWidget *parent)
     ui->treeView->setModel(fsModel);
     ui->treeView->setRootIndex(fsModel->index(dir.path()));
 
-    QObject::connect(ui->actionToolbarStart, &QAction::triggered,
-                     this, &MainWindow::startEmulation);
+    connect(ui->actionToolbarStart, &QAction::triggered,
+            this, &MainWindow::startEmulation);
+
+    connect(ui->actionExit, &QAction::triggered,
+            QCoreApplication::instance(), &QCoreApplication::quit);
 }
 
 MainWindow::~MainWindow() {
