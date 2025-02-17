@@ -18,6 +18,9 @@ EmuThread::EmuThread(QObject *parent)
 }
 
 EmuThread::~EmuThread() {
+    delete core;
+    delete renderer;
+    delete window;
 }
 
 void EmuThread::createWindow() {

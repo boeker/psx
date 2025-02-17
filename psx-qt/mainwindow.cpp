@@ -38,10 +38,7 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
-    if (emuThread != nullptr) {
-        pauseEmulation();
-        emuThread->wait();
-    }
+    stopEmulation();
 
     delete ui;
 }
@@ -65,7 +62,7 @@ void MainWindow::createConnections() {
 }
 
 void MainWindow::initializeEmuThread() {
-    emuThread = new EmuThread(this);
+    emuThread = new EmuThread();
 
     QString selectedBios = biosFSModel->filePath(ui->treeView->currentIndex());
     emuThread->setBiosPath(selectedBios);
@@ -90,6 +87,7 @@ void MainWindow::continueEmulation() {
 
     ui->actionStart->setEnabled(false);
     ui->actionPause->setEnabled(true);
+    ui->actionStop->setEnabled(true);
 
     emuThread->start();
 }
@@ -103,5 +101,19 @@ void MainWindow::pauseEmulation() {
 }
 
 void MainWindow::stopEmulation() {
+    ui->actionToolbarStart->setText("Start");
+    ui->actionToolbarStop->setEnabled(false);
+
+    ui->actionStart->setEnabled(true);
+    ui->actionPause->setEnabled(false);
+    ui->actionStop->setEnabled(false);
+
+    if (emuThread != nullptr) {
+        emuThread->pauseEmulation();
+        emuThread->wait();
+
+        delete emuThread;
+        emuThread = nullptr;
+    }
 }
 
