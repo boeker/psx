@@ -23,8 +23,12 @@ public:
     MainWindow(const QString &biosPath, QWidget *parent = nullptr);
     ~MainWindow();
 
+    void initializeEmuThread();
+
 public slots:
-    void startEmulation();
+    void startPauseEmulation();
+    void continueEmulation();
+    void pauseEmulation();
     void stopEmulation();
 
 private:
@@ -35,7 +39,7 @@ private:
     QFileSystemModel *biosFSModel;
 
     OpenGLWindow *openGLWindow;
-    EmuThread *emuthread;
+    EmuThread *emuThread;
 };
 
 #endif

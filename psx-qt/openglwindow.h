@@ -24,7 +24,7 @@ protected:
     void exposeEvent(QExposeEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
 
-private:
+public:
     QOpenGLContext *context;
     static QOpenGLContext *currentContext;
 

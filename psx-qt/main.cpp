@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
         // start emulation on start up
         // calling this function directly causes a crash
         // "xdg_surface has never been configured"
-        QTimer::singleShot(0, &mainWindow, &MainWindow::startEmulation);
+        QTimer::singleShot(0, &mainWindow, &MainWindow::startPauseEmulation);
     }
 
     return app.exec();

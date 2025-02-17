@@ -30,19 +30,27 @@ void Core::emulateBlock() {
     cyclesTaken = bus.cpu.cycles - cyclesTaken;
 
     bus.gpu.catchUpToCPU(cyclesTaken);
+}
 
-    if (bus.cpu.cycles >= CPU_VBLANK_FREQUENCY) {
-        bus.cpu.cycles -= CPU_VBLANK_FREQUENCY;
+void Core::emulateUntilVBLANK() {
+    while (true) {
+        emulateBlock();
 
-        bus.interrupts.notifyAboutVBLANK();
-        bus.gpu.notifyAboutVBLANK();
+        if (bus.cpu.cycles >= CPU_VBLANK_FREQUENCY) {
+            bus.cpu.cycles -= CPU_VBLANK_FREQUENCY;
+
+            bus.interrupts.notifyAboutVBLANK();
+            bus.gpu.notifyAboutVBLANK();
+
+            break;
+        }
     }
 }
 
 void Core::run() {
     try {
         while (true) {
-            emulateBlock();
+            emulateUntilVBLANK();
         }
 
     } catch (const std::runtime_error &e) {

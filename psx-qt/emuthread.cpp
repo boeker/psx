@@ -1,6 +1,7 @@
 #include "emuthread.h"
 
 #include <QDebug>
+#include <QOpenGLContext>
 #include <QSurfaceFormat>
 
 #include "openglwindow.h"
@@ -8,7 +9,12 @@
 #include "psx/renderer/opengl/openglrenderer.h"
 
 EmuThread::EmuThread(QObject *parent)
-    : QThread(parent) {
+    : QThread(parent),
+      window(nullptr),
+      renderer(nullptr),
+      core(nullptr),
+      initialized(false),
+      paused(true) {
 }
 
 EmuThread::~EmuThread() {
@@ -29,18 +35,36 @@ void EmuThread::createWindow() {
     window->setUpViewport();
 }
 
+void EmuThread::createPSXCore() {
+    renderer = new PSX::OpenGLRenderer(window);
+    core = new PSX::Core(renderer);
+    core->bus.bios.readFromFile(biosPath.toStdString());
+}
+
 void EmuThread::setBiosPath(const QString &biosPath) {
     this->biosPath = biosPath;
 }
 
+void EmuThread::pauseEmulation() {
+    paused.store(true);
+}
+
+bool EmuThread::emulationIsPaused() {
+    return paused.load();
+}
+
 void EmuThread::run() {
-    createWindow();
+    if (!initialized) {
+        createWindow();
+        createPSXCore();
+        initialized = true;
+    }
 
-    PSX::OpenGLRenderer renderer(window);
-    PSX::Core core(&renderer);
-
-    core.bus.bios.readFromFile(biosPath.toStdString());
-
-    core.run();
+    window->context->makeCurrent(window);
+    paused.store(false);
+    while (!paused.load()) {
+        core->emulateUntilVBLANK();
+    }
+    window->context->doneCurrent();
 }
 

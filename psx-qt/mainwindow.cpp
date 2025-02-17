@@ -6,7 +6,8 @@
 
 MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     : QMainWindow(parent),
-      ui(new Ui::MainWindow) {
+      ui(new Ui::MainWindow),
+      emuThread(nullptr) {
     ui->setupUi(this);
 
     QDir dir = QDir::currentPath();
@@ -37,6 +38,11 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
+    if (emuThread != nullptr) {
+        pauseEmulation();
+        emuThread->wait();
+    }
+
     delete ui;
 }
 
@@ -45,9 +51,12 @@ void MainWindow::createConnections() {
             QCoreApplication::instance(), &QCoreApplication::quit);
 
     connect(ui->actionStart, &QAction::triggered,
-            this, &MainWindow::startEmulation);
+            this, &MainWindow::startPauseEmulation);
     connect(ui->actionToolbarStart, &QAction::triggered,
-            this, &MainWindow::startEmulation);
+            this, &MainWindow::startPauseEmulation);
+
+    connect(ui->actionPause, &QAction::triggered,
+            this, &MainWindow::startPauseEmulation);
 
     connect(ui->actionStop, &QAction::triggered,
             this, &MainWindow::stopEmulation);
@@ -55,12 +64,42 @@ void MainWindow::createConnections() {
             this, &MainWindow::stopEmulation);
 }
 
-void MainWindow::startEmulation() {
-    QString selectedBios = biosFSModel->filePath(ui->treeView->currentIndex());
+void MainWindow::initializeEmuThread() {
+    emuThread = new EmuThread(this);
 
-    emuthread = new EmuThread(this);
-    emuthread->setBiosPath(selectedBios);
-    emuthread->start();
+    QString selectedBios = biosFSModel->filePath(ui->treeView->currentIndex());
+    emuThread->setBiosPath(selectedBios);
+}
+
+void MainWindow::startPauseEmulation() {
+    if (emuThread == nullptr) {
+        initializeEmuThread();
+    }
+
+    if (emuThread->emulationIsPaused()) {
+        continueEmulation();
+
+    } else {
+        pauseEmulation();
+    }
+}
+
+void MainWindow::continueEmulation() {
+    ui->actionToolbarStart->setText("Pause");
+    ui->actionToolbarStop->setEnabled(true);
+
+    ui->actionStart->setEnabled(false);
+    ui->actionPause->setEnabled(true);
+
+    emuThread->start();
+}
+
+void MainWindow::pauseEmulation() {
+    ui->actionToolbarStart->setText("Start");
+    ui->actionStart->setEnabled(true);
+    ui->actionPause->setEnabled(false);
+
+    emuThread->pauseEmulation();
 }
 
 void MainWindow::stopEmulation() {

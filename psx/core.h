@@ -16,6 +16,7 @@ public:
     void reset();
 
     void emulateBlock();
+    void emulateUntilVBLANK();
     void run();
 
 private:
