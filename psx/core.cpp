@@ -11,8 +11,6 @@ Core::Core(Renderer *renderer)
     : renderer(renderer) {
     bus.gpu.setRenderer(renderer);
     reset();
-
-    bus.bios.readFromFile("BIOS/SCPH1001.BIN");
 }
 
 void Core::reset() {

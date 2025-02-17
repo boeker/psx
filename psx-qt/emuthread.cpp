@@ -30,11 +30,17 @@ void EmuThread::createWindow() {
 
 }
 
+void EmuThread::setBiosPath(const QString &biosPath) {
+    this->biosPath = biosPath;
+}
+
 void EmuThread::run() {
     createWindow();
 
     PSX::OpenGLRenderer renderer(window);
     PSX::Core core(&renderer);
+
+    core.bus.bios.readFromFile(biosPath.toStdString());
 
     core.run();
 }

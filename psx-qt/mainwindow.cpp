@@ -3,11 +3,11 @@
 
 #include <QDir>
 #include <QFileSystemModel>
-#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
-      ui(new Ui::MainWindow) {
+      ui(new Ui::MainWindow),
+      biosPath("") {
     ui->setupUi(this);
 
     QDir dir = QDir::currentPath();
@@ -20,18 +20,18 @@ MainWindow::MainWindow(QWidget *parent)
 
     QObject::connect(ui->actionToolbarStart, &QAction::triggered,
                      this, &MainWindow::startEmulation);
-
-    // start emulation on start up
-    // calling this function directly causes a crash
-    // "xdg_surface has never been configured"
-    QTimer::singleShot(0, this, SLOT(startEmulation()));
 }
 
 MainWindow::~MainWindow() {
     delete ui;
 }
 
+void MainWindow::setBiosPath(const QString &biosPath) {
+    this->biosPath = biosPath;
+}
+
 void MainWindow::startEmulation() {
     emuthread = new EmuThread(this);
+    emuthread->setBiosPath(biosPath);
     emuthread->start();
 }

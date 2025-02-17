@@ -21,11 +21,15 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void setBiosPath(const QString &biosPath);
+
 public slots:
     void startEmulation();
 
 private:
     Ui::MainWindow *ui;
+
+    QString biosPath;
 
     OpenGLWindow *openGLWindow;
     EmuThread *emuthread;

@@ -13,10 +13,13 @@ public:
     EmuThread(QObject *parent = nullptr);
     virtual ~EmuThread();
 
+    void setBiosPath(const QString &biosPath);
+
 protected:
     void run();
 
 private:
+    QString biosPath;
     OpenGLWindow *window;
 
     void createWindow();
