@@ -21,6 +21,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+public slots:
+    void startEmulation();
+
 private:
     Ui::MainWindow *ui;
 
