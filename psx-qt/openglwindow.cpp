@@ -13,27 +13,15 @@ OpenGLWindow::OpenGLWindow(QWindow *parent)
       context(nullptr),
       resizeRequested(false) {
     setSurfaceType(QWindow::OpenGLSurface);
+    show();
+    createContext();
 }
 
 OpenGLWindow::~OpenGLWindow() {
 }
 
-void OpenGLWindow::createContext() {
-    qDebug() << "Creating OpenGL context";
-    context = new QOpenGLContext(this);
-    context->setFormat(requestedFormat());
-    context->create();
-    context->makeCurrent(this);
-
-    qDebug() << "Initializing GLAD";
-    currentContext = context;
-    auto getProcAddress = [](const char *name) -> QFunctionPointer {
-        return currentContext->getProcAddress(name);
-    };
-
-    if (!gladLoadGLLoader((GLADloadproc)+getProcAddress)) {
-        qDebug() << "Failed to initialize GLAD";
-    }
+QOpenGLContext* OpenGLWindow::getContext() {
+    return context;
 }
 
 void OpenGLWindow::setUpViewport() {
@@ -77,5 +65,27 @@ void OpenGLWindow::exposeEvent(QExposeEvent *event) {
 
 void OpenGLWindow::resizeEvent(QResizeEvent *event) {
     resizeRequested.store(true);
+}
+
+void OpenGLWindow::closeEvent(QCloseEvent *event) {
+    emit closed();
+}
+
+void OpenGLWindow::createContext() {
+    qDebug() << "Creating OpenGL context";
+    context = new QOpenGLContext(this);
+    context->setFormat(requestedFormat());
+    context->create();
+    context->makeCurrent(this);
+
+    qDebug() << "Initializing GLAD";
+    currentContext = context;
+    auto getProcAddress = [](const char *name) -> QFunctionPointer {
+        return currentContext->getProcAddress(name);
+    };
+
+    if (!gladLoadGLLoader((GLADloadproc)+getProcAddress)) {
+        qDebug() << "Failed to initialize GLAD";
+    }
 }
 

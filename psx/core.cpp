@@ -7,17 +7,16 @@
 
 namespace PSX {
 
-Core::Core(Renderer *renderer)
-    : renderer(renderer) {
-    bus.gpu.setRenderer(renderer);
+Core::Core() {
     reset();
+}
+
+void Core::setRenderer(Renderer *renderer) {
+    bus.gpu.setRenderer(renderer);
 }
 
 void Core::reset() {
     bus.reset();
-
-    renderer->clear();
-    renderer->swapBuffers();
 }
 
 void Core::emulateBlock() {

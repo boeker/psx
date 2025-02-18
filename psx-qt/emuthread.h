@@ -5,7 +5,6 @@
 #include <QThread>
 
 class OpenGLWindow;
-class QOpenGLContext;
 
 namespace PSX {
 class Core;
@@ -16,28 +15,32 @@ class EmuThread : public QThread {
     Q_OBJECT
 
 public:
-    EmuThread(QObject *parent = nullptr);
+    EmuThread(QObject *parent = nullptr, PSX::Core *core = nullptr);
     virtual ~EmuThread();
 
-    void setBiosPath(const QString &biosPath);
     void pauseEmulation();
     bool emulationIsPaused();
+
+    OpenGLWindow* getOpenGLWindow();
+
+public slots:
+    void openGLWindowClosed();
+
+signals:
+    void emulationShouldStop();
 
 protected:
     void run();
 
 private:
-    QString biosPath;
-
-    OpenGLWindow *window;
-    PSX::OpenGLRenderer *renderer;
     PSX::Core *core;
+
+    void initialize();
     bool initialized;
+    OpenGLWindow *openGLWindow;
+    PSX::OpenGLRenderer *renderer;
 
     std::atomic<bool> paused;
-
-    void createWindow();
-    void createPSXCore();
 };
 
 #endif

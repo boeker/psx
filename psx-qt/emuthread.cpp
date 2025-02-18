@@ -8,44 +8,17 @@
 #include "psx/core.h"
 #include "psx/renderer/opengl/openglrenderer.h"
 
-EmuThread::EmuThread(QObject *parent)
+EmuThread::EmuThread(QObject *parent, PSX::Core *core)
     : QThread(parent),
-      window(nullptr),
-      renderer(nullptr),
-      core(nullptr),
+      core(core),
       initialized(false),
+      openGLWindow(nullptr),
       paused(true) {
 }
 
 EmuThread::~EmuThread() {
-    delete core;
     delete renderer;
-    delete window;
-}
-
-void EmuThread::createWindow() {
-	QSurfaceFormat format;
-	format.setRenderableType(QSurfaceFormat::OpenGL);
-	format.setProfile(QSurfaceFormat::CoreProfile);
-	format.setVersion(3,3);
-
-    window = new OpenGLWindow();
-    window->setFormat(format);
-	window->resize(640, 480);
-    window->show();
-
-    window->createContext();
-    window->setUpViewport();
-}
-
-void EmuThread::createPSXCore() {
-    renderer = new PSX::OpenGLRenderer(window);
-    core = new PSX::Core(renderer);
-    core->bus.bios.readFromFile(biosPath.toStdString());
-}
-
-void EmuThread::setBiosPath(const QString &biosPath) {
-    this->biosPath = biosPath;
+    delete openGLWindow;
 }
 
 void EmuThread::pauseEmulation() {
@@ -56,18 +29,50 @@ bool EmuThread::emulationIsPaused() {
     return paused.load();
 }
 
+OpenGLWindow* EmuThread::getOpenGLWindow() {
+    return openGLWindow;
+}
+
+void EmuThread::openGLWindowClosed() {
+    emit emulationShouldStop();
+}
+
 void EmuThread::run() {
     if (!initialized) {
-        createWindow();
-        createPSXCore();
-        initialized = true;
+        initialize();
     }
 
-    window->context->makeCurrent(window);
+    openGLWindow->show();
+    QOpenGLContext *context = openGLWindow->getContext();
+    context->makeCurrent(openGLWindow);
+    openGLWindow->setUpViewport();
+
     paused.store(false);
     while (!paused.load()) {
         core->emulateUntilVBLANK();
     }
-    window->context->doneCurrent();
+
+    context->doneCurrent();
+}
+
+void EmuThread::initialize() {
+    // create OpenGLWindow
+    QSurfaceFormat format;
+    format.setRenderableType(QSurfaceFormat::OpenGL);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    format.setVersion(3,3);
+
+    openGLWindow = new OpenGLWindow();
+    openGLWindow->setFormat(format);
+    openGLWindow->resize(640, 480);
+
+    connect(openGLWindow, &OpenGLWindow::closed,
+            this, &EmuThread::openGLWindowClosed);
+
+    // create OpenGLRenderer
+    renderer = new PSX::OpenGLRenderer(openGLWindow);
+    core->setRenderer(renderer);
+
+    initialized = true;
 }
 

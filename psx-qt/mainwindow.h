@@ -16,6 +16,11 @@ class EmuThread;
 class OpenGLWindow;
 class VRAMViewerWindow;
 
+namespace PSX {
+class Core;
+class OpenGLRenderer;
+}
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -23,24 +28,29 @@ public:
     MainWindow(const QString &biosPath, QWidget *parent = nullptr);
     ~MainWindow();
 
-    void initializeEmuThread();
-
 public slots:
     void startPauseEmulation();
     void continueEmulation();
     void pauseEmulation();
     void stopEmulation();
 
-private:
-    void createConnections();
+protected:
+    void closeEvent(QCloseEvent *event) override;
 
 private:
+    void makeConnections();
+
+private:
+    // Main Window stuff
     Ui::MainWindow *ui;
     QFileSystemModel *biosFSModel;
 
-    OpenGLWindow *openGLWindow;
+    // Emulation stuff
+    bool running;
+    PSX::Core *core;
     EmuThread *emuThread;
 
+    // VRAM Viewer Window
     VRAMViewerWindow *vramViewerWindow;
 };
 

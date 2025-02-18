@@ -108,6 +108,11 @@ void GPU::reset() {
 
     drawingAreaX2 = 0;
     drawingAreaY2 = 0;
+
+    if (renderer) {
+        renderer->clear();
+        renderer->swapBuffers();
+    }
 }
 
 void GPU::setRenderer(Renderer *renderer) {

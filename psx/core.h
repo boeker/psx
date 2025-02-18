@@ -12,15 +12,13 @@ public:
     Bus bus;
 
 public:
-    Core(Renderer *renderer);
+    Core();
     void reset();
 
+    void setRenderer(Renderer *renderer);
     void emulateBlock();
     void emulateUntilVBLANK();
     void run();
-
-private:
-    Renderer *renderer;
 };
 
 }

@@ -16,15 +16,20 @@ public:
     ~OpenGLWindow();
 
     void createContext();
+    QOpenGLContext* getContext();
     void setUpViewport();
     void swapBuffers() override;
+
+signals:
+    void closed();
 
 protected:
     bool event(QEvent *event) override;
     void exposeEvent(QExposeEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
-public:
+private:
     QOpenGLContext *context;
     static QOpenGLContext *currentContext;
 

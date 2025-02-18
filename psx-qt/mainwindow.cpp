@@ -3,21 +3,26 @@
 
 #include <QDir>
 #include <QFileSystemModel>
+#include <QOpenGLContext>
 
 #include "emuthread.h"
 #include "openglwindow.h"
 #include "vramviewerwindow.h"
 
+#include "psx/core.h"
+
 MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     : QMainWindow(parent),
       ui(new Ui::MainWindow),
-      openGLWindow(nullptr),
+      biosFSModel(nullptr),
+      running(false),
+      core(nullptr),
       emuThread(nullptr),
       vramViewerWindow(nullptr) {
     ui->setupUi(this);
 
+    // Bios Picker
     QDir dir = QDir::currentPath();
-
     biosFSModel = new QFileSystemModel(ui->treeView);
     biosFSModel->setRootPath(dir.path());
     ui->treeView->setModel(biosFSModel);
@@ -40,18 +45,29 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
         }
     }
 
+    // Core
+    core = new PSX::Core();
+
+    // Emulation thread
+    emuThread = new EmuThread(this, core);
+
+    // Windows
     vramViewerWindow = new VRAMViewerWindow(this);
 
-    createConnections();
+    // Connections
+    makeConnections();
 }
 
 MainWindow::~MainWindow() {
-    stopEmulation();
+    if (running) {
+        stopEmulation();
+    }
 
     delete ui;
+    delete core;
 }
 
-void MainWindow::createConnections() {
+void MainWindow::makeConnections() {
     connect(ui->actionExit, &QAction::triggered,
             QCoreApplication::instance(), &QCoreApplication::quit);
 
@@ -68,23 +84,23 @@ void MainWindow::createConnections() {
     connect(ui->actionToolbarStop, &QAction::triggered,
             this, &MainWindow::stopEmulation);
 
+    connect(emuThread, &EmuThread::emulationShouldStop,
+            this, &MainWindow::stopEmulation);
+
     connect(ui->actionVRAMViewer, &QAction::toggled,
             vramViewerWindow, &QWidget::setVisible);
-
     connect(vramViewerWindow, &VRAMViewerWindow::closed,
             ui->actionVRAMViewer, &QAction::toggle);
 }
 
-void MainWindow::initializeEmuThread() {
-    emuThread = new EmuThread();
-
-    QString selectedBios = biosFSModel->filePath(ui->treeView->currentIndex());
-    emuThread->setBiosPath(selectedBios);
-}
-
 void MainWindow::startPauseEmulation() {
-    if (emuThread == nullptr) {
-        initializeEmuThread();
+    if (!running) {
+        core->reset();
+
+        QString selectedBios = biosFSModel->filePath(ui->treeView->currentIndex());
+        core->bus.bios.readFromFile(selectedBios.toStdString());
+
+        running = true;
     }
 
     if (emuThread->emulationIsPaused()) {
@@ -96,6 +112,7 @@ void MainWindow::startPauseEmulation() {
 }
 
 void MainWindow::continueEmulation() {
+    qDebug() << "Starting emulation";
     ui->actionToolbarStart->setText("Pause");
     ui->actionToolbarStop->setEnabled(true);
 
@@ -122,12 +139,15 @@ void MainWindow::stopEmulation() {
     ui->actionPause->setEnabled(false);
     ui->actionStop->setEnabled(false);
 
-    if (emuThread != nullptr) {
-        emuThread->pauseEmulation();
-        emuThread->wait();
+    emuThread->pauseEmulation();
+    emuThread->wait();
+    running = false;
 
-        delete emuThread;
-        emuThread = nullptr;
-    }
+    emuThread->getOpenGLWindow()->hide();
+    qDebug() << "Stopped emulation";
+}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+    stopEmulation();
 }
 
