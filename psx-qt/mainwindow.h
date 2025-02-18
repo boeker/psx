@@ -5,9 +5,6 @@
 
 #include <QtWidgets/QMainWindow>
 
-#include "emuthread.h"
-#include "openglwindow.h"
-
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -15,6 +12,9 @@ class MainWindow;
 class QFileSystemModel;
 QT_END_NAMESPACE
 
+class EmuThread;
+class OpenGLWindow;
+class VRAMViewerWindow;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -40,6 +40,8 @@ private:
 
     OpenGLWindow *openGLWindow;
     EmuThread *emuThread;
+
+    VRAMViewerWindow *vramViewerWindow;
 };
 
 #endif

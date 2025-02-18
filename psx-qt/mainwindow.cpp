@@ -4,10 +4,16 @@
 #include <QDir>
 #include <QFileSystemModel>
 
+#include "emuthread.h"
+#include "openglwindow.h"
+#include "vramviewerwindow.h"
+
 MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     : QMainWindow(parent),
       ui(new Ui::MainWindow),
-      emuThread(nullptr) {
+      openGLWindow(nullptr),
+      emuThread(nullptr),
+      vramViewerWindow(nullptr) {
     ui->setupUi(this);
 
     QDir dir = QDir::currentPath();
@@ -34,6 +40,8 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
         }
     }
 
+    vramViewerWindow = new VRAMViewerWindow(this);
+
     createConnections();
 }
 
@@ -59,6 +67,12 @@ void MainWindow::createConnections() {
             this, &MainWindow::stopEmulation);
     connect(ui->actionToolbarStop, &QAction::triggered,
             this, &MainWindow::stopEmulation);
+
+    connect(ui->actionVRAMViewer, &QAction::toggled,
+            vramViewerWindow, &QWidget::setVisible);
+
+    connect(vramViewerWindow, &VRAMViewerWindow::closed,
+            ui->actionVRAMViewer, &QAction::toggle);
 }
 
 void MainWindow::initializeEmuThread() {
