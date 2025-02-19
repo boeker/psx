@@ -132,19 +132,21 @@ void MainWindow::pauseEmulation() {
 }
 
 void MainWindow::stopEmulation() {
-    ui->actionToolbarStart->setText("Start");
-    ui->actionToolbarStop->setEnabled(false);
+    if (running) {
+        ui->actionToolbarStart->setText("Start");
+        ui->actionToolbarStop->setEnabled(false);
 
-    ui->actionStart->setEnabled(true);
-    ui->actionPause->setEnabled(false);
-    ui->actionStop->setEnabled(false);
+        ui->actionStart->setEnabled(true);
+        ui->actionPause->setEnabled(false);
+        ui->actionStop->setEnabled(false);
 
-    emuThread->pauseEmulation();
-    emuThread->wait();
-    running = false;
+        emuThread->pauseEmulation();
+        emuThread->wait();
+        running = false;
 
-    emuThread->getOpenGLWindow()->hide();
-    qDebug() << "Stopped emulation";
+        emuThread->getOpenGLWindow()->hide();
+        qDebug() << "Stopped emulation";
+    }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
