@@ -10,6 +10,7 @@ namespace PSX {
 #define VRAM_SIZE (1024 * 1024)
 
 class Screen;
+class Shader;
 
 class OpenGLRenderer : public Renderer {
 public:
@@ -18,6 +19,7 @@ public:
 
     void reset() override;
     void clear() override;
+    void computeViewport();
     void swapBuffers() override;
     void drawTriangle(const Triangle &triangle) override;
 
@@ -31,6 +33,16 @@ private:
     unsigned int program;
     unsigned int vbo;
     unsigned int vao;
+
+    unsigned int vramFramebuffer;
+    unsigned int vramTexture;
+    unsigned int quadVAO;
+    unsigned int quadVBO;
+
+    Shader *screenShader;
+
+    int viewportX, viewportY;
+    int viewportWidth, viewportHeight;
 };
 
 }

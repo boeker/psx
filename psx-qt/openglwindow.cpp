@@ -24,6 +24,14 @@ QOpenGLContext* OpenGLWindow::getContext() {
     return context;
 }
 
+int OpenGLWindow::getHeight() {
+    return height();
+}
+
+int OpenGLWindow::getWidth() {
+    return width();
+}
+
 void OpenGLWindow::setUpViewport() {
     int windowWidth = width();
     int windowHeight = height();

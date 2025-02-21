@@ -4,7 +4,7 @@
 
 namespace util {
 
-bool Log::loggingEnabled = true;
+bool Log::loggingEnabled = false;
 
 Log::Log(const std::string &descriptor, bool enabled)
     : descriptor(descriptor), lineBreaks(true), enabled(enabled) {

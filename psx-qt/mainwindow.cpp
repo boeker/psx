@@ -52,16 +52,14 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     emuThread = new EmuThread(this, core);
 
     // Windows
-    vramViewerWindow = new VRAMViewerWindow(this);
+    vramViewerWindow = new VRAMViewerWindow(this, core);
 
     // Connections
     makeConnections();
 }
 
 MainWindow::~MainWindow() {
-    if (running) {
-        stopEmulation();
-    }
+    stopEmulation();
 
     delete ui;
     delete core;

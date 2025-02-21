@@ -17,7 +17,9 @@ public:
 
     void createContext();
     QOpenGLContext* getContext();
-    void setUpViewport();
+    int getHeight() override;
+    int getWidth() override;
+    void setUpViewport() override;
     void swapBuffers() override;
 
 signals:

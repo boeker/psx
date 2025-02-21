@@ -19,6 +19,8 @@ target_sources(psx-qt PRIVATE
     mainwindow.ui
     openglwindow.cpp
     openglwindow.h
+    vramviewer.cpp
+    vramviewer.h
     vramviewerwindow.cpp
     vramviewerwindow.h
     vramviewerwindow.ui

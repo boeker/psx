@@ -26,9 +26,13 @@ target_sources(psx PRIVATE
     registers.h
     renderer/null/nullrenderer.cpp
     renderer/null/nullrenderer.h
+    renderer/opengl/gl.cpp
+    renderer/opengl/gl.h
     renderer/opengl/glad.cpp
     renderer/opengl/openglrenderer.cpp
     renderer/opengl/openglrenderer.h
+    renderer/opengl/shader.cpp
+    renderer/opengl/shader.h
     renderer/renderer.h
     renderer/screen.h
     spu.cpp

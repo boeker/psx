@@ -9,11 +9,15 @@ class VRAMViewerWindow;
 }
 QT_END_NAMESPACE
 
+namespace PSX {
+class Core;
+}
+
 class VRAMViewerWindow : public QDialog {
     Q_OBJECT
 
 public:
-    explicit VRAMViewerWindow(QWidget *parent = nullptr);
+    explicit VRAMViewerWindow(QWidget *parent = nullptr, PSX::Core *core = nullptr);
     ~VRAMViewerWindow();
 
     void closeEvent(QCloseEvent *event) override;
@@ -23,6 +27,8 @@ signals:
 
 private:
     Ui::VRAMViewerWindow *ui;
+
+    PSX::Core *core;
 };
 
 #endif

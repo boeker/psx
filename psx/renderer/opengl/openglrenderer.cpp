@@ -7,6 +7,8 @@
 
 #include "renderer/screen.h"
 #include "util/log.h"
+#include "shader.h"
+#include "gl.h"
 
 using namespace util;
 
@@ -78,6 +80,13 @@ OpenGLRenderer::OpenGLRenderer(Screen *screen)
     glBindVertexArray(vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    float vertices[] =  {
+        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    };
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
     // position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
@@ -85,6 +94,80 @@ OpenGLRenderer::OpenGLRenderer(Screen *screen)
     // color attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(1);
+
+
+    // store VRAM in a texture
+    glGenFramebuffers(1, &vramFramebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
+
+    glCheckError();
+
+    // texture attachment
+    glGenTextures(1, &vramTexture);
+    glBindTexture(GL_TEXTURE_2D, vramTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, vramTexture, 0);
+
+    glCheckError();
+
+    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    //unsigned int rbo;
+    //glGenRenderbuffers(1, &rbo);
+    //glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    //glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 1024, 512); // use a single renderbuffer object for both a depth AND stencil buffer.
+    //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+
+    glCheckError();
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+
+
+
+    // fill the vram texture with red for debugging purposes
+    glViewport(0, 32, 640, 480);
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glCheckError();
+
+    // quad
+    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+        // positions   // texCoords
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+    };
+
+    glCheckError();
+
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+    glCheckError();
+
+    screenShader = new Shader("shaders/screen.vs", "shaders/screen.fs");
+    screenShader->use();
+    screenShader->setInt("screenTexture", 0);
+
+    glCheckError();
 }
 
 OpenGLRenderer::~OpenGLRenderer() {
@@ -100,16 +183,64 @@ void OpenGLRenderer::reset() {
 }
 
 void OpenGLRenderer::clear() {
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    //glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void OpenGLRenderer::computeViewport() {
+    // compute where to place vram framebuffer on screen
+    int windowHeight = screen->getHeight();
+    int windowWidth = screen->getWidth();
+
+    int height = windowHeight;
+    int width = (windowHeight / 3) * 4;
+    if (width > windowWidth) {
+        height = (windowWidth / 4) * 3;
+        width = windowWidth;
+    }
+
+    viewportWidth = width;
+    viewportHeight = height;
+    viewportX = (windowWidth - width) / 2;
+    viewportY = (windowHeight - height) / 2;
 }
 
 void OpenGLRenderer::swapBuffers() {
+    glCheckError();
+
+    //screen->setUpViewport();
+
+    // render (part of) vram texture to screen (default framebuffer)
+    // use default framebuffer
+    //screenShader->use();
+    //glBindVertexArray(quadVAO);
+    //glBindTexture(GL_TEXTURE_2D, vramTexture);
+    //glDrawArrays(GL_TRIANGLES, 0, 6);
+
+
+    // compute viewport coordinates from window size
+    computeViewport();
+
+    // blit vram framebuffer to default framebuffer
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, vramFramebuffer);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 32, 640, 512,
+                      viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight,
+                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glCheckError();
+
+    // swap buffers
     screen->swapBuffers();
+
+    glCheckError();
 }
 
 void OpenGLRenderer::drawTriangle(const Triangle &t) {
-    std::cout << "drawTriangle()" << std::endl;
+    glCheckError();
+
+    glViewport(0, 32, 640, 480);
+    glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
+
     float vertices[] =  {
         t.v1.x/320.0f - 1.0f, t.v1.y/240.0f - 1.0f, 0.0f, t.c1.r/255.0f, t.c1.g/255.0f, t.c1.b/255.0f,
         t.v2.x/320.0f - 1.0f, t.v2.y/240.0f - 1.0f, 0.0f, t.c2.r/255.0f, t.c2.g/255.0f, t.c2.b/255.0f,
@@ -124,8 +255,11 @@ void OpenGLRenderer::drawTriangle(const Triangle &t) {
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
     // unbind VBO and VAO
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // unbind framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void OpenGLRenderer::writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) {
