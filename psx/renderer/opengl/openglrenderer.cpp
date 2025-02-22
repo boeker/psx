@@ -208,22 +208,25 @@ void OpenGLRenderer::computeViewport() {
 void OpenGLRenderer::swapBuffers() {
     glCheckError();
 
-    //screen->setUpViewport();
+    // compute viewport coordinates from window size
+    computeViewport();
 
-    // render (part of) vram texture to screen (default framebuffer)
-    // use default framebuffer
+    // set new viewport
+    glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
+
+    //// render (part of) vram texture to screen (default framebuffer)
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
     //screenShader->use();
     //glBindVertexArray(quadVAO);
     //glBindTexture(GL_TEXTURE_2D, vramTexture);
     //glDrawArrays(GL_TRIANGLES, 0, 6);
+    //glCheckError();
 
-
-    // compute viewport coordinates from window size
-    computeViewport();
 
     // blit vram framebuffer to default framebuffer
     glBindFramebuffer(GL_READ_FRAMEBUFFER, vramFramebuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    //glBlitFramebuffer(0, 0, 1024, 512,
     glBlitFramebuffer(0, 32, 640, 512,
                       viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight,
                       GL_COLOR_BUFFER_BIT, GL_NEAREST);
