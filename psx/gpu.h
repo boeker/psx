@@ -113,6 +113,9 @@ private:
     uint8_t gp0Command;
     uint8_t neededParams;
     std::vector<uint32_t> gp0Parameters;
+
+
+    // transfer to VRAM
     uint32_t transferToVRAMRemainingWords;
     uint32_t destinationX;
     uint32_t destinationY;
@@ -120,6 +123,9 @@ private:
     uint32_t destinationSizeY;
     uint32_t destinationCurrentX;
     uint32_t destinationCurrentY;
+    std::vector<uint8_t> toVRAMBuffer;
+
+    // transfer from VRAM
     uint32_t transferToCPURemainingWords;
     uint32_t sourceX;
     uint32_t sourceY;

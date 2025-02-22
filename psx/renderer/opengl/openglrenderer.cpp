@@ -226,9 +226,10 @@ void OpenGLRenderer::swapBuffers() {
     // blit vram framebuffer to default framebuffer
     glBindFramebuffer(GL_READ_FRAMEBUFFER, vramFramebuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    //glBlitFramebuffer(0, 0, 1024, 512,
-    glBlitFramebuffer(0, 32, 640, 512,
-                      viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight,
+    glBlitFramebuffer(0, 0, 1024, 512,
+    //glBlitFramebuffer(0, 32, 640, 512,
+                      //viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight,
+                      viewportX, viewportY + viewportHeight, viewportX + viewportWidth, viewportY, // flip texture along y-axis
                       GL_COLOR_BUFFER_BIT, GL_NEAREST);
     glCheckError();
 
@@ -241,7 +242,7 @@ void OpenGLRenderer::swapBuffers() {
 void OpenGLRenderer::drawTriangle(const Triangle &t) {
     glCheckError();
 
-    glViewport(0, 32, 640, 480);
+    glViewport(0, 0, 640, 480);
     glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
 
     float vertices[] =  {
@@ -266,8 +267,8 @@ void OpenGLRenderer::drawTriangle(const Triangle &t) {
 }
 
 void OpenGLRenderer::writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) {
-    LOG_REND_VRAM(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
-                              value, line, pos));
+    //LOG_REND_VRAM(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
+    //                          value, line, pos));
 
     uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
     vramLine[pos] = value;
@@ -277,12 +278,19 @@ uint16_t OpenGLRenderer::readFromVRAM(uint32_t line, uint32_t pos) {
     uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
     uint16_t value = vramLine[pos];
 
-    LOG_REND_VRAM(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
-                              line, pos, value));
+    //LOG_REND_VRAM(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
+    //                          line, pos, value));
 
     return value;
 }
 
+void OpenGLRenderer::writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) {
+    LOG_REND_VRAM(std::format("VRAM write to {:d}, {:d} of size {:d}x{:d}",
+                              x, y, width, height));
+
+    glBindTexture(GL_TEXTURE_2D, vramTexture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+}
 
 }
 

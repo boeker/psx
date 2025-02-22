@@ -57,6 +57,8 @@ public:
 
     virtual void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) = 0;
     virtual uint16_t readFromVRAM(uint32_t line, uint32_t pos) = 0;
+
+    virtual void writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) = 0;
 };
 
 }

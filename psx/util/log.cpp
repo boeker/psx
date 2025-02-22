@@ -4,7 +4,7 @@
 
 namespace util {
 
-bool Log::loggingEnabled = false;
+bool Log::loggingEnabled = true;
 
 Log::Log(const std::string &descriptor, bool enabled)
     : descriptor(descriptor), lineBreaks(true), enabled(enabled) {
@@ -40,7 +40,7 @@ ConsoleLogPack::ConsoleLogPack()
       cdrom("CDROM", false),
       cp0RegisterRead("CPU", false),
       cp0RegisterWrite("CPU", false),
-      dma("DMA", true),
+      dma("DMA", false),
       dmaWrite("DMA", false),
       dmaIO("DMA", false),
       exception("EXC", true),
