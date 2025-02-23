@@ -169,9 +169,9 @@ void GPU::receiveGP0Data(uint32_t word) {
         case State::TRANSFER_TO_VRAM:
             LOG_GPU_IO(std::format("To VRAM: Remaining words: {:d}", transferToVRAMRemainingWords));
 
-            renderer->writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word >> 16));
-            advanceCurrentDestinationPosition();
             renderer->writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word & 0x0000FFFF));
+            advanceCurrentDestinationPosition();
+            renderer->writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word >> 16));
             advanceCurrentDestinationPosition();
 
             //toVRAMBuffer.push_back((word >> 24) & 0xFF);
@@ -250,9 +250,9 @@ uint32_t GPU::sendGP0Data() {
                 LOG_GPU(std::format("State::IDLE"));
             }
 
-            value1 = renderer->readFromVRAM(sourceCurrentY, sourceCurrentX);
-            advanceCurrentSourcePosition();
             value2 = renderer->readFromVRAM(sourceCurrentY, sourceCurrentX);
+            advanceCurrentSourcePosition();
+            value1 = renderer->readFromVRAM(sourceCurrentY, sourceCurrentX);
             advanceCurrentSourcePosition();
 
             return (value1 << 16) | value2;
@@ -497,24 +497,25 @@ uint8_t* GPU::decodeTexture(uint16_t texpage, uint16_t palette) {
                 uint16_t halfword = renderer->readFromVRAM(y, x);
 
                 uint8_t p1 = halfword & 0xF;
+                uint8_t p2 = (halfword >> 4) & 0xF;
+                uint8_t p3 = (halfword >> 8) & 0xF;
+                uint8_t p4 = (halfword >> 12) & 0xF;
+
                 decodedTexture.push_back(colors[4*p1+0]);
                 decodedTexture.push_back(colors[4*p1+1]);
                 decodedTexture.push_back(colors[4*p1+2]);
                 decodedTexture.push_back(colors[4*p1+3]);
 
-                uint8_t p2 = (halfword >> 4) & 0xF;
                 decodedTexture.push_back(colors[4*p2+0]);
                 decodedTexture.push_back(colors[4*p2+1]);
                 decodedTexture.push_back(colors[4*p2+2]);
                 decodedTexture.push_back(colors[4*p2+3]);
 
-                uint8_t p3 = (halfword >> 8) & 0xF;
                 decodedTexture.push_back(colors[4*p3+0]);
                 decodedTexture.push_back(colors[4*p3+1]);
                 decodedTexture.push_back(colors[4*p3+2]);
                 decodedTexture.push_back(colors[4*p3+3]);
 
-                uint8_t p4 = (halfword >> 12) & 0xF;
                 decodedTexture.push_back(colors[4*p4+0]);
                 decodedTexture.push_back(colors[4*p4+1]);
                 decodedTexture.push_back(colors[4*p4+2]);
