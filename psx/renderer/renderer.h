@@ -21,6 +21,16 @@ struct Color {
     }
 };
 
+struct TextureCoordinate {
+    uint8_t x;
+    uint8_t y;
+
+    TextureCoordinate(uint32_t coordinate) {
+        x = coordinate & 0xFF;
+        y = (coordinate >> 8) & 0xFF;
+    }
+};
+
 struct Vertex {
     int16_t x;
     int16_t y;
@@ -44,6 +54,20 @@ struct Triangle {
     }
 };
 
+struct TexturedTriangle {
+    Color c;
+    Vertex v1;
+    TextureCoordinate tc1;
+    Vertex v2;
+    TextureCoordinate tc2;
+    Vertex v3;
+    TextureCoordinate tc3;
+
+    TexturedTriangle(Color c, Vertex v1, TextureCoordinate tc1, Vertex v2, TextureCoordinate tc2, Vertex v3, TextureCoordinate tc3)
+        : c(c), v1(v1), tc1(tc1), v2(v2), tc2(tc2), v3(v3), tc3(tc3) {
+    }
+};
+
 class Renderer {
 public:
     Renderer() = default;
@@ -54,6 +78,8 @@ public:
     virtual void clear() = 0;
     virtual void swapBuffers() = 0;
     virtual void drawTriangle(const Triangle &triangle) = 0;
+    virtual void loadTexture(uint8_t *textureData) = 0;
+    virtual void drawTexturedTriangle(const TexturedTriangle &triangle) = 0;
 
     virtual void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) = 0;
     virtual uint16_t readFromVRAM(uint32_t line, uint32_t pos) = 0;
@@ -77,6 +103,15 @@ struct std::formatter<PSX::Vertex> : std::formatter<string_view> {
     auto format(const PSX::Vertex& v, std::format_context& ctx) const {
         std::string temp;
         std::format_to(std::back_inserter(temp), "({}, {})", v.x, v.y);
+        return std::formatter<string_view>::format(temp, ctx);
+    }
+};
+
+template <>
+struct std::formatter<PSX::TextureCoordinate> : std::formatter<string_view> {
+    auto format(const PSX::TextureCoordinate& tc, std::format_context& ctx) const {
+        std::string temp;
+        std::format_to(std::back_inserter(temp), "({}, {})", tc.x, tc.y);
         return std::formatter<string_view>::format(temp, ctx);
     }
 };

@@ -462,6 +462,80 @@ void GPU::setGPUStatusRegisterBit(uint32_t bit, uint32_t value) {
     gpuStatusRegister = (gpuStatusRegister & ~(1 << bit)) | ((value & 1) << bit);
 }
 
+uint8_t* GPU::decodeTexture(uint16_t texpage, uint16_t palette) {
+    LOG_GPU(std::format("Decoding texture"));
+    decodedTexture.clear();
+
+    uint32_t xBase = (texpage & 0xF) * 64; // in halfwords
+    uint32_t yBase = ((texpage >> 4) & 1) * 256; // in lines
+    uint8_t semiTransparency = (texpage >> 5) & 3;
+    uint8_t texturePageColors = (texpage >> 7) & 3;
+    uint8_t textureDisable = (texpage >> 11) & 1;
+
+    uint32_t xPalette = (palette & 0x3F) * 16; // in halfwords
+    uint32_t yPalette = (palette >> 6) & 0x1FF; // in lines
+
+    LOG_GPU(std::format("XBase[{:d}], YBase[{:d}], Semi Transparency[{:d}], Texture Page Colors[{:d}], Texture Disable[{:d}], XPalette[{:d}], YPalette[{:d}]", xBase, yBase, semiTransparency, texturePageColors, textureDisable, xPalette, yPalette));
+
+    if (texturePageColors == 0) { // 4-bit colors
+        uint8_t colors[64];
+        for (uint32_t x = 0; x < 16; ++x) {
+            uint16_t halfword = renderer->readFromVRAM(yPalette, xPalette + x);
+            uint8_t r = halfword & 0x1F;
+            uint8_t g = (halfword >> 5) & 0x1F;
+            uint8_t b = (halfword >> 10) & 0x1F;
+            uint8_t semiTransparency = (halfword >> 15) & 1;
+
+            colors[4*x+0] = r << 3;
+            colors[4*x+1] = g << 3;
+            colors[4*x+2] = b << 3;
+            colors[4*x+3] = semiTransparency * 128;
+        }
+
+        for (uint32_t y = yBase; y < yBase + 256; ++y) {
+            for (uint32_t x = xBase; x < xBase + 64; ++x) {
+                uint16_t halfword = renderer->readFromVRAM(y, x);
+
+                uint8_t p1 = halfword & 0xF;
+                decodedTexture.push_back(colors[4*p1+0]);
+                decodedTexture.push_back(colors[4*p1+1]);
+                decodedTexture.push_back(colors[4*p1+2]);
+                decodedTexture.push_back(colors[4*p1+3]);
+
+                uint8_t p2 = (halfword >> 4) & 0xF;
+                decodedTexture.push_back(colors[4*p2+0]);
+                decodedTexture.push_back(colors[4*p2+1]);
+                decodedTexture.push_back(colors[4*p2+2]);
+                decodedTexture.push_back(colors[4*p2+3]);
+
+                uint8_t p3 = (halfword >> 8) & 0xF;
+                decodedTexture.push_back(colors[4*p3+0]);
+                decodedTexture.push_back(colors[4*p3+1]);
+                decodedTexture.push_back(colors[4*p3+2]);
+                decodedTexture.push_back(colors[4*p3+3]);
+
+                uint8_t p4 = (halfword >> 12) & 0xF;
+                decodedTexture.push_back(colors[4*p4+0]);
+                decodedTexture.push_back(colors[4*p4+1]);
+                decodedTexture.push_back(colors[4*p4+2]);
+                decodedTexture.push_back(colors[4*p4+3]);
+            }
+        }
+
+    } else {
+        LOG_GPU(std::format("Texture format not implemented"));
+    }
+
+    LOG_GPU(std::format("Decoded texture size: {:d} bytes", decodedTexture.size()));
+
+    if (decodedTexture.size() > 0) {
+        return &decodedTexture[0];
+
+    } else {
+        return nullptr;
+    }
+}
+
 const GPU::Command GPU::gp0Commands[] = {
     // 0x00
     &GPU::GP0NOP,
@@ -642,25 +716,30 @@ void GPU::GP0TexturedFourPointPolygonOpaqueTextureBlending() {
     // 0x2C
     Color c(gp0);
 
-    uint32_t texCoord1 = gp0Parameters[1];
-    uint32_t texCoord2 = gp0Parameters[3];
-    uint32_t texCoord3 = gp0Parameters[5];
-    uint32_t texCoord4 = gp0Parameters[7];
-
     Vertex v1(gp0Parameters[0]);
     Vertex v2(gp0Parameters[2]);
     Vertex v3(gp0Parameters[4]);
     Vertex v4(gp0Parameters[6]);
 
-    LOG_GPU(std::format("GP0 - TexturedFourPointPolygonOpaqueTextureBlending({}, {}, 0x{:08X}, {}, 0x{:08X}, {}, 0x{:08X}, {}, 0x{:08X})",
-                         c, v1, texCoord1, v2, texCoord2, v3, texCoord3, v4, texCoord4));
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t texpage = gp0Parameters[3] >> 16;
 
-    Triangle t(v1, c, v2, c, v3, c);
-    Triangle t2(v2, c, v3, c, v4, c);
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    TextureCoordinate tc2(gp0Parameters[3] & 0xFFFF);
+    TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
+    TextureCoordinate tc4(gp0Parameters[7] & 0xFFFF);
 
-    // TODO use texture
-    renderer->drawTriangle(t);
-    renderer->drawTriangle(t2);
+    LOG_GPU(std::format("GP0 - TexturedFourPointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
+                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3, v4, tc4));
+
+    uint8_t *texture = decodeTexture(texpage, palette);
+    renderer->loadTexture(texture);
+
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
 }
 
 void GPU::GP0ShadedThreePointPolygonOpaque() {

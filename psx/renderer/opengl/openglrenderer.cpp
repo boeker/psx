@@ -167,7 +167,41 @@ OpenGLRenderer::OpenGLRenderer(Screen *screen)
     screenShader->use();
     screenShader->setInt("screenTexture", 0);
 
+    textureShader = new Shader("shaders/texture.vs", "shaders/texture.fs");
+    textureShader->use();
+    textureShader->setInt("textureTexture", 0);
+
     glCheckError();
+
+    // texture for rendering textured triangles
+    glGenTextures(1, &textureTexture);
+    glBindTexture(GL_TEXTURE_2D, textureTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glCheckError();
+
+    // vertex array object and vertex buffer object
+    glGenVertexArrays(1, &textureVAO);
+    glGenBuffers(1, &textureVBO);
+    glBindVertexArray(textureVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
+    float textureVertices[] =  {
+        -1.0f, -1.0f, 0.0f, 0.0f, 1.0f,
+        1.0f, -1.0f, 0.0f, 0.0f, 1.0f,
+        1.0f, 1.0f, 0.0f, 0.0f, 1.0f
+    };
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(textureVertices), textureVertices, GL_DYNAMIC_DRAW);
+
+    // position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // texture coordinates
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3* sizeof(float)));
+    glEnableVertexAttribArray(1);
 }
 
 OpenGLRenderer::~OpenGLRenderer() {
@@ -256,6 +290,43 @@ void OpenGLRenderer::drawTriangle(const Triangle &t) {
 
     glUseProgram(program);
     glBindVertexArray(vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    // unbind VBO and VAO
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // unbind framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void OpenGLRenderer::loadTexture(uint8_t *textureData) {
+    glCheckError();
+    glBindTexture(GL_TEXTURE_2D, textureTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glCheckError();
+}
+
+void OpenGLRenderer::drawTexturedTriangle(const TexturedTriangle &t) {
+    glCheckError();
+
+    glViewport(0, 0, 640, 480);
+    glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
+
+    float vertices[] =  {
+        t.v1.x/320.0f - 1.0f, t.v1.y/240.0f - 1.0f, 0.0f, t.tc1.x/255.0f, t.tc1.y/255.0f,
+        t.v2.x/320.0f - 1.0f, t.v2.y/240.0f - 1.0f, 0.0f, t.tc2.x/255.0f, t.tc2.y/255.0f,
+        t.v3.x/320.0f - 1.0f, t.v3.y/240.0f - 1.0f, 0.0f, t.tc3.x/255.0f, t.tc3.y/255.0f
+    };
+
+    glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+
+    textureShader->use();
+    glBindVertexArray(textureVAO);
+    glBindTexture(GL_TEXTURE_2D, textureTexture);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
     // unbind VBO and VAO
