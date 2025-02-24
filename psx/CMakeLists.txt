@@ -7,6 +7,8 @@ target_sources(psx PRIVATE
     bios.h
     bus.cpp
     bus.h
+    cdrom.cpp
+    cdrom.h
     core.cpp
     core.h
     cp0registers.cpp

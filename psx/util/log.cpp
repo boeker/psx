@@ -37,7 +37,7 @@ ConsoleLogPack consoleLogPack;
 ConsoleLogPack::ConsoleLogPack()
     : bus("BUS", false),
       cpu("CPU", false),
-      cdrom("CDROM", false),
+      cdrom("CDROM", true),
       cp0RegisterRead("CPU", false),
       cp0RegisterWrite("CPU", false),
       dma("DMA", false),

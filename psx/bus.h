@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 
+#include "cdrom.h"
 #include "cpu.h"
 #include "memory.h"
 #include "bios.h"
@@ -72,6 +73,7 @@ namespace PSX {
 
 class Bus {
 public:
+    CDROM cdrom;
     CPU cpu;
     Memory memory;
     Bios bios;

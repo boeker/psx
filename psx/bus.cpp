@@ -32,6 +32,7 @@ Bus::Bus()
 }
 
 void Bus::reset() {
+    cdrom.reset();
     cpu.reset();
     memory.reset();
     bios.reset();
@@ -84,7 +85,7 @@ T Bus::read(uint32_t address) {
             value = timers.read<T>(address);
 
         } else if ((address >= 0x1F801800) && (address <= 0x1F801803)) {
-            LOG_WRN(std::format("Unimplemented CDROM read @0x{:08X}", address));
+            value = cdrom.read<T>(address);
 
         } else if ((address >= 0x1F801810) && (address <= 0x1F801817)) {
             value = gpu.read<T>(address);
@@ -169,7 +170,7 @@ void Bus::write (uint32_t address, T value) {
             timers.write<T>(address, value);
 
         } else if ((address >= 0x1F801800) && (address <= 0x1F801803)) {
-            LOG_WRN(std::format("Unimplemented CDROM write @0x{:08X}", address));
+            cdrom.write<T>(address, value);
 
         } else if ((address >= 0x1F801810) && (address <= 0x1F801817)) {
             gpu.write<T>(address, value);
