@@ -489,7 +489,11 @@ uint8_t* GPU::decodeTexture(uint16_t texpage, uint16_t palette) {
             colors[4*x+0] = r << 3;
             colors[4*x+1] = g << 3;
             colors[4*x+2] = b << 3;
-            colors[4*x+3] = semiTransparency * 128;
+
+            colors[4*x+3] = 255;
+            if (semiTransparency == 0 && r == 0 & g == 0 & b == 0) {
+                colors[4*x+3] = 0;
+            }
         }
 
         for (uint32_t y = yBase; y < yBase + 256; ++y) {

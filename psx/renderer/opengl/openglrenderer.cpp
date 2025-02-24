@@ -260,8 +260,8 @@ void OpenGLRenderer::swapBuffers() {
     // blit vram framebuffer to default framebuffer
     glBindFramebuffer(GL_READ_FRAMEBUFFER, vramFramebuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, 1024, 512,
-    //glBlitFramebuffer(0, 32, 640, 512,
+    //glBlitFramebuffer(0, 0, 1024, 512,
+    glBlitFramebuffer(0, 0, 640, 480,
                       //viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight,
                       viewportX, viewportY + viewportHeight, viewportX + viewportWidth, viewportY, // flip texture along y-axis
                       GL_COLOR_BUFFER_BIT, GL_NEAREST);
