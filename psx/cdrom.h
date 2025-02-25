@@ -2,6 +2,7 @@
 #define PSX_CDROM_H
 
 #include <cstdint>
+#include <ostream>
 
 namespace PSX {
 
@@ -22,6 +23,25 @@ namespace PSX {
 #define CDROMSTAT_INDEX1  1
 #define CDROMSTAT_INDEX0  0
 
+class Queue {
+private:
+    uint8_t queue[16];
+    uint8_t in;
+    uint8_t out;
+    uint8_t elements;
+
+    friend std::ostream& operator<<(std::ostream &os, const Queue &queue);
+
+public:
+    Queue();
+    void clear();
+    void push(uint8_t parameter);
+    uint8_t pop();
+    bool isEmpty();
+    bool isFull();
+};
+
+
 class CDROM {
 private:
     // Status Register
@@ -40,9 +60,14 @@ private:
     // 0x1F801803, index 3 read
     uint8_t interruptFlagRegister;
 
+    Queue parameterQueue;
+    Queue responseQueue;
+
 public:
     CDROM();
     void reset();
+
+    void executeCommand(uint8_t command);
 
     uint8_t getStatusRegister();
 

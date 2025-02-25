@@ -7,7 +7,7 @@ namespace util {
 bool Log::loggingEnabled = true;
 
 Log::Log(const std::string &descriptor, bool enabled)
-    : descriptor(descriptor), lineBreaks(true), enabled(enabled) {
+    : descriptor(descriptor), lineBreaks(true), justPrintedLineBreak(true), enabled(enabled) {
 }
 
 bool Log::isEnabled() const {
@@ -26,8 +26,24 @@ ConsoleLog::ConsoleLog(const std::string &descriptor, bool enabled)
 }
 
 bool ConsoleLog::print(const std::string &message) {
-    std::clog << "[" << descriptor << "] " << message
-              << (lineBreaks ? "\n" : "") << std::flush;
+    if (justPrintedLineBreak) {
+        std::clog << "[" << descriptor << "] ";
+        justPrintedLineBreak = false;
+    }
+
+    std::clog << message;
+
+    if (lineBreaks) {
+        std::clog << "\n";
+        justPrintedLineBreak = true;
+
+    } else {
+        if (message.find('\n') != std::string::npos) {
+            justPrintedLineBreak = true;
+        }
+    }
+
+    std::clog << std::flush;
 
     return false;
 }
@@ -54,7 +70,7 @@ ConsoleLogPack::ConsoleLogPack()
       interruptsIO("INT", false),
       interruptsVerbose("INT", false),
       mdec("MDEC", false),
-      memory("MEM", false),
+      memory("MEM", true),
       misc("MISC", false),
       peripheral("PER", false),
       registerRead("CPU", false),

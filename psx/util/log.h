@@ -17,6 +17,7 @@ public:
 protected:
     const std::string descriptor;
     bool lineBreaks;
+    bool justPrintedLineBreak;
     bool enabled;
 };
 
