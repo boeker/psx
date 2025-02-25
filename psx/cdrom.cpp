@@ -6,6 +6,8 @@
 #include "exceptions/exceptions.h"
 #include "util/log.h"
 
+#include "bus.h"
+
 using namespace util;
 
 namespace PSX {
@@ -69,7 +71,9 @@ bool Queue::isFull() {
     return elements == 16;
 }
 
-CDROM::CDROM() {
+CDROM::CDROM(Bus *bus)
+    : bus(bus) {
+
     reset();
 }
 
@@ -92,6 +96,12 @@ void CDROM::executeCommand(uint8_t command) {
             responseQueue.push(1);
             responseQueue.push(1);
 
+            // INT3
+            if ((interruptEnableRegister >> 3) & 1) {
+                interruptFlagRegister = interruptFlagRegister | 3;
+                bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
+            }
+
         } else {
             LOG_CDROM(std::format("Subfunction 0x{:02X} not implemented", subFunction));
         }
@@ -104,7 +114,7 @@ void CDROM::executeCommand(uint8_t command) {
 uint8_t CDROM::getStatusRegister() {
     return (0 << CDROMSTAT_BUSYSTS)
            | (0 << CDROMSTAT_DRQSTS)
-           | (0 << CDROMSTAT_RSLRRDY)
+           | (!responseQueue.isEmpty() << CDROMSTAT_RSLRRDY)
            | (!parameterQueue.isFull() << CDROMSTAT_PRMWRDY)
            | (parameterQueue.isEmpty() << CDROMSTAT_PRMEMPT)
            | (0 << CDROMSTAT_ADPBUSY)
@@ -161,6 +171,8 @@ void CDROM::write(uint32_t address, uint8_t value) {
                 parameterQueue.clear();
             }
 
+            // TODO Clear response queue
+
         } else {
             LOG_CDROM(std::format("Unimplemented write 0x{:0{}X} -> @0x{:08X}, index {:d}", value, 2*sizeof(value), address, index));
         }
@@ -191,6 +203,14 @@ uint8_t CDROM::read(uint32_t address) {
         value = getStatusRegister();
 
         LOG_CDROM(std::format("Read from status register: 0x{:0{}X}", value, 2*sizeof(value)));
+
+    } else if (address == 0x1F801803) {
+        if (index == 1) { // interrupt flag register
+            return interruptFlagRegister | (0xE0); // upper three bits are always 1
+
+        }  else {
+            LOG_CDROM(std::format("Unimplemented read @0x{:08X}, index {:d}", address, index));
+        }
 
     } else {
         LOG_CDROM(std::format("Unimplemented read @0x{:08X}, index {:d}", address, index));

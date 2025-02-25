@@ -41,9 +41,12 @@ public:
     bool isFull();
 };
 
+class Bus;
 
 class CDROM {
 private:
+    Bus *bus;
+
     // Status Register
     // 0x1F801800
     // index is part of the status register
@@ -64,7 +67,7 @@ private:
     Queue responseQueue;
 
 public:
-    CDROM();
+    CDROM(Bus *bus);
     void reset();
 
     void executeCommand(uint8_t command);
