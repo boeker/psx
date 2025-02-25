@@ -87,7 +87,27 @@ void CDROM::reset() {
 }
 
 void CDROM::executeCommand(uint8_t command) {
-    if (command == 0x19) { // test command
+    if (command == 0x01) { // Getstat
+        LOG_CDROM(std::format("Command: Getstat"));
+        //7  Play          Playing CD-DA         ;\only ONE of these bits can be set
+        //6  Seek          Seeking               ; at a time (ie. Read/Play won't get
+        //5  Read          Reading data sectors  ;/set until after Seek completion)
+        //4  ShellOpen     Once shell open (0=Closed, 1=Is/was Open)
+        //3  IdError       (0=Okay, 1=GetID denied) (also set when Setmode.Bit4=1)
+        //2  SeekError     (0=Okay, 1=Seek error)     (followed by Error Byte)
+        //1  Spindle Motor (0=Motor off, or in spin-up phase, 1=Motor on)
+        //0  Error         Invalid Command/parameters (followed by Error Byte)
+
+        responseQueue.push(0); // nothing happening for now
+
+        // INT3
+        if ((interruptEnableRegister >> 3) & 1) {
+            interruptFlagRegister = interruptFlagRegister | 3;
+            bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
+        }
+
+    } else if (command == 0x19) { // Test
+        LOG_CDROM(std::format("Command: Test"));
         uint8_t subFunction = parameterQueue.pop();
 
         if (subFunction == 0x20) { // Get CDROM BIOS date and version
@@ -171,7 +191,8 @@ void CDROM::write(uint32_t address, uint8_t value) {
                 parameterQueue.clear();
             }
 
-            // TODO Clear response queue
+            // Clear response queue
+            responseQueue.clear();
 
         } else {
             LOG_CDROM(std::format("Unimplemented write 0x{:0{}X} -> @0x{:08X}, index {:d}", value, 2*sizeof(value), address, index));
@@ -203,6 +224,15 @@ uint8_t CDROM::read(uint32_t address) {
         value = getStatusRegister();
 
         LOG_CDROM(std::format("Read from status register: 0x{:0{}X}", value, 2*sizeof(value)));
+
+    } else if (address == 0x1F801801) {
+        if (index == 1) { // response
+            value = responseQueue.pop();
+            LOG_CDROM(std::format("Reading response: 0x{:02X}", value));
+
+        }  else {
+            LOG_CDROM(std::format("Unimplemented read @0x{:08X}, index {:d}", address, index));
+        }
 
     } else if (address == 0x1F801803) {
         if (index == 1) { // interrupt flag register
