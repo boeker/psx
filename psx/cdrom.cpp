@@ -84,6 +84,7 @@ void CDROM::reset() {
 
     parameterQueue.clear();
     responseQueue.clear();
+    queuedInterrupt = 0;
 }
 
 void CDROM::executeCommand(uint8_t command) {
@@ -98,10 +99,11 @@ void CDROM::executeCommand(uint8_t command) {
         //1  Spindle Motor (0=Motor off, or in spin-up phase, 1=Motor on)
         //0  Error         Invalid Command/parameters (followed by Error Byte)
 
-        responseQueue.push(0); // nothing happening for now
+        responseQueue.push(1 << 3); // GetID denied for now
+        //responseQueue.push(1 << 4); // ShellOpen for now
 
         // INT3
-        if ((interruptEnableRegister >> 3) & 1) {
+        if ((interruptEnableRegister >> 2) & 1) {
             interruptFlagRegister = interruptFlagRegister | 3;
             bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
         }
@@ -117,7 +119,7 @@ void CDROM::executeCommand(uint8_t command) {
             responseQueue.push(1);
 
             // INT3
-            if ((interruptEnableRegister >> 3) & 1) {
+            if ((interruptEnableRegister >> 2) & 1) {
                 interruptFlagRegister = interruptFlagRegister | 3;
                 bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
             }
@@ -125,6 +127,24 @@ void CDROM::executeCommand(uint8_t command) {
         } else {
             LOG_CDROM(std::format("Subfunction 0x{:02X} not implemented", subFunction));
         }
+
+    } else if (command == 0x1A) { // GetID
+            // INT3 with status first, then INT5
+            responseQueue.push(0);
+            //responseQueue.push(0x11);
+            //responseQueue.push(0x80);
+
+            // INT3
+            if ((interruptEnableRegister >> 2) & 1) {
+                interruptFlagRegister = interruptFlagRegister | 3;
+                bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
+            }
+            //if ((interruptEnableRegister >> 4) & 1) {
+            //    interruptFlagRegister = interruptFlagRegister | 5;
+            //    bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
+            //}
+
+            queuedInterrupt =  5;
 
     } else {
         LOG_CDROM(std::format("Command 0x{:02X} not implemented", command));
@@ -194,6 +214,28 @@ void CDROM::write(uint32_t address, uint8_t value) {
             // Clear response queue
             responseQueue.clear();
 
+            if (queuedInterrupt != 0) {
+                // INT5 for now
+
+                LOG_CDROM(std::format("Writing 2nd response"));
+                // hard-coded answer to GetID
+                responseQueue.push(0x08);
+                responseQueue.push(0x40);
+                responseQueue.push(0x00);
+                responseQueue.push(0x00);
+                responseQueue.push(0x00);
+                responseQueue.push(0x00);
+                responseQueue.push(0x00);
+                responseQueue.push(0x00);
+
+                if ((interruptEnableRegister >> 4) & 1) {
+                    interruptFlagRegister = interruptFlagRegister | 5;
+                    bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
+                }
+
+                queuedInterrupt = 0;
+            }
+
         } else {
             LOG_CDROM(std::format("Unimplemented write 0x{:0{}X} -> @0x{:08X}, index {:d}", value, 2*sizeof(value), address, index));
         }
@@ -227,7 +269,14 @@ uint8_t CDROM::read(uint32_t address) {
 
     } else if (address == 0x1F801801) {
         if (index == 1) { // response
-            value = responseQueue.pop();
+            if (responseQueue.isEmpty()) {
+                LOG_CDROM(std::format("Response queue is empty!"));
+                value = 0;
+
+            } else {
+                value = responseQueue.pop();
+            }
+
             LOG_CDROM(std::format("Reading response: 0x{:02X}", value));
 
         }  else {

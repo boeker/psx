@@ -66,6 +66,8 @@ private:
     Queue parameterQueue;
     Queue responseQueue;
 
+    uint8_t queuedInterrupt;
+
 public:
     CDROM(Bus *bus);
     void reset();
