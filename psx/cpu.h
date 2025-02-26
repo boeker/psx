@@ -5,7 +5,7 @@
 
 #include "registers.h"
 #include "cp0registers.h"
-
+#include "gte.h"
 
 namespace PSX {
 
@@ -32,6 +32,7 @@ class CPU {
 public:
     Registers regs;
     CP0Registers cp0regs;
+    GTE gte;
 
 public:
     CPU(Bus *bus);
@@ -74,6 +75,7 @@ private:
     void UNK();
     void SPECIAL();
     void CP0();
+    void CP2();
     void REGIMM();
     void LUI();
     void ORI();
@@ -141,6 +143,17 @@ private:
     void UNKCP0M();
     void MTC0();
     void MFC0();
+
+    // Opcode CP2 encodes further instructions
+    static const Opcode cp2[];
+    void UNKCP2();
+    void CP2MOVE();
+
+    // CP2 instructions are identified via move field
+    static const Opcode cp2Move[];
+    void UNKCP2M();
+    void CTC2();
+    void MTC2();
 
     // Opcode REGIMM encodes further instructions via rt field
     static const Opcode regimm[];

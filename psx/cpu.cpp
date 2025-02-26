@@ -22,6 +22,7 @@ CPU::CPU(Bus *bus) {
 void CPU::reset() {
     regs.reset();
     cp0regs.reset();
+    gte.reset();
 
     cycles = 0;
 
@@ -158,7 +159,7 @@ const CPU::Opcode CPU::opcodes[] = {
     // 0b001100
     &CPU::ANDI,     &CPU::ORI,      &CPU::UNK,      &CPU::LUI,
     // 0b010000
-    &CPU::CP0,      &CPU::UNK,      &CPU::UNK,      &CPU::UNK,
+    &CPU::CP0,      &CPU::UNK,      &CPU::CP2,      &CPU::UNK,
     // 0b010100
     &CPU::UNK,      &CPU::UNK,      &CPU::UNK,      &CPU::UNK,
     // 0b011000
@@ -272,6 +273,60 @@ const CPU::Opcode CPU::cp0Move[] = {
     &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M
 };
 
+const CPU::Opcode CPU::cp2[] = {
+    // 0b000000
+    &CPU::CP2MOVE,  &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b000100
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b001000
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b001100
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b010000
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b010100
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b011000
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b011100
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b100000
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b100100
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b101000
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b101100
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b110000
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b110100
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b111000
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    // 0b111100
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2
+};
+
+const CPU::Opcode CPU::cp2Move[] = {
+    // 0b00000
+    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,
+    // 0b00100
+    &CPU::MTC2,     &CPU::UNKCP2M,  &CPU::CTC2,     &CPU::UNKCP2M,
+    // 0b01000
+    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,
+    // 0b01100
+    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,
+    // 0b10000
+    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,
+    // 0b10100
+    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,
+    // 0b11000
+    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,
+    // 0b11100
+    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M
+};
+
 const CPU::Opcode CPU::regimm[] = {
     // 0b00000
     &CPU::BLTZ,     &CPU::BGEZ,     &CPU::UNKRGMM,  &CPU::UNKRGMM,
@@ -309,6 +364,14 @@ void CPU::CP0() {
     funct = 0x3F & instruction;
 
     (this->*cp0[funct])();
+}
+
+void CPU::CP2() {
+    // CP2
+    // Operation depends on function field
+    funct = 0x3F & instruction;
+
+    (this->*cp2[funct])();
 }
 
 void CPU::REGIMM() {
@@ -1437,6 +1500,57 @@ void CPU::MFC0() {
                         rd, data));
 
     regs.setRegister(rt, data);
+}
+
+void CPU::UNKCP2() {
+    throw exceptions::UnknownFunctionError(std::format("Unknown CP2 opcode @0x{:x}: instruction 0x{:x} (CP0), function 0b{:06b}", instructionPC, instruction, funct));
+}
+
+
+void CPU::CP2MOVE() {
+    // CP2 Move
+    // Operation depends on function field
+    move = 0x1F & (instruction >> 21);
+
+    (this->*cp2Move[move])();
+}
+
+void CPU::UNKCP2M() {
+    throw exceptions::UnknownOpcodeError(std::format("0x{:x}: instruction 0x{:x} (CP2Move), move 0b{:05b}", instructionPC, instruction, move));
+}
+
+void CPU::CTC2() {
+    // Move Control To Coprocessor 2
+    // T: data <- GPR[rt]
+    // T+1: CCR[2,rd] <- data
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    LOG_INS(std::format("CTC2 {:s},{:d}",
+                         regs.getRegisterName(rt),
+                         rd));
+
+    uint32_t data = regs.getRegister(rt);
+    LOG_INS(std::format(" (0x{:08X} -> CP2 c{:d})",data, rd));
+
+    gte.setControlRegister(rd, data);
+}
+
+void CPU::MTC2() {
+    // Move To Coprocessor 2
+    // T: data <- GPR[rt]
+    // T+1: CPR[2,rd] <- data
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    LOG_INS(std::format("MTC2 {:s},{:d}",
+                         regs.getRegisterName(rt),
+                         rd));
+
+    uint32_t data = regs.getRegister(rt);
+    LOG_INS(std::format(" (0x{:08X} -> CP2 {:d})",data, rd));
+
+    gte.setRegister(rd, data);
 }
 
 void CPU::UNKRGMM() {

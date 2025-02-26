@@ -20,6 +20,8 @@ target_sources(psx PRIVATE
     exceptions/exceptions.h
     gpu.cpp
     gpu.h
+    gte.cpp
+    gte.h
     interrupts.cpp
     interrupts.h
     memory.cpp

@@ -44,6 +44,8 @@ struct ConsoleLogPack {
     ConsoleLog gpuIO;
     ConsoleLog gpuVBLANK;
     ConsoleLog gpuVRAM;
+    ConsoleLog gte;
+    ConsoleLog gteVerbose;
     ConsoleLog instructions;
     ConsoleLog interrupts;
     ConsoleLog interruptsIO;
@@ -81,6 +83,8 @@ extern ConsoleLogPack consoleLogPack;
 #define LOG_GPU_IO          MACRO_LOG(gpuIO)
 #define LOG_GPU_VBLANK      MACRO_LOG(gpuVBLANK)
 #define LOG_GPU_VRAM        MACRO_LOG(gpuVRAM)
+#define LOG_GTE             MACRO_LOG(gte)
+#define LOG_GTE_VERB        MACRO_LOG(gteVerbose)
 #define LOG_INS             MACRO_LOG(instructions)
 #define LOG_INT             MACRO_LOG(interrupts)
 #define LOG_INT_IO          MACRO_LOG(interruptsIO)

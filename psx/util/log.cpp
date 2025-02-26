@@ -65,6 +65,8 @@ ConsoleLogPack::ConsoleLogPack()
       gpuIO("GPU", false),
       gpuVBLANK("GPU", false),
       gpuVRAM("GPU", true),
+      gte("GTE", true),
+      gteVerbose("GTE", true),
       instructions("CPU", false),
       interrupts("INT", true),
       interruptsIO("INT", false),
