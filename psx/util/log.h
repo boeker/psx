@@ -1,6 +1,8 @@
 #ifndef UTIL_LOG_H
 #define UTIL_LOG_H
 
+#include <chrono>
+#include <ostream>
 #include <string>
 
 namespace util {
@@ -13,6 +15,7 @@ public:
     void disableLineBreaks();
 
     static bool loggingEnabled;
+    static std::chrono::time_point<std::chrono::steady_clock> programStart;
 
 protected:
     const std::string descriptor;
@@ -25,6 +28,8 @@ class ConsoleLog : public Log {
 public:
     ConsoleLog(const std::string &descriptor, bool enabled);
     bool print(const std::string &message);
+
+    std::ostream *os;
 };
 
 struct ConsoleLogPack {

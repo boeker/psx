@@ -241,7 +241,7 @@ uint32_t GPU::sendGP0Data() {
 
     switch (state) {
         case State::TRANSFER_TO_CPU:
-            LOG_GPU_IO(std::format("To CPU: Remaining words: {:d}", transferToVRAMRemainingWords));
+            LOG_GPU_IO(std::format("To CPU: Remaining words: {:d}", transferToCPURemainingWords));
             transferToCPURemainingWords--;
 
             if (transferToCPURemainingWords == 0) {
@@ -799,8 +799,8 @@ void GPU::GP0CopyRectangleToVRAM() {
     destinationSizeX = widthAndHeight & 0x0000FFFF;
     destinationSizeY  = widthAndHeight >> 16;
 
-    LOG_GPU(std::format("GP0 - CopyRectangleToVRAM(0x{:08X}, 0x{:08X}) (width {:d}, height {:d})",
-                         destinationCoord, widthAndHeight, destinationSizeX, destinationSizeY));
+    LOG_GPU(std::format("GP0 - CopyRectangleToVRAM({:d}, {:d}, {:d}x{:d})",
+                         destinationX, destinationY, destinationSizeX, destinationSizeY));
 
     // read data from GPUREAD
     transferToVRAMRemainingWords = (destinationSizeX * destinationSizeY) / 2;
@@ -825,8 +825,8 @@ void GPU::GP0CopyRectangleVRAMToCPU() {
     sourceSizeX = widthAndHeight & 0x0000FFFF;
     sourceSizeY = widthAndHeight >> 16;
 
-    LOG_GPU(std::format("GP0 - CopyRectangleVRAMToCPU(0x{:08X}, 0x{:08X}) (width {:d}, height {:d})",
-                         sourceCoord, widthAndHeight, sourceSizeX, sourceSizeY));
+    LOG_GPU(std::format("GP0 - CopyRectangleVRAMToCPU({:d}, {:d}, {:d}x{:d})",
+                         sourceX, sourceY, sourceSizeX, sourceSizeY));
 
     // write data to GPUREAD
     transferToCPURemainingWords = (sourceSizeX * sourceSizeY) / 2;

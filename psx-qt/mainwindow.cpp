@@ -10,6 +10,7 @@
 #include "vramviewerwindow.h"
 
 #include "psx/core.h"
+#include "psx/util/log.h"
 
 MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     : QMainWindow(parent),
@@ -53,6 +54,12 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
 
     // Windows
     vramViewerWindow = new VRAMViewerWindow(this, core);
+
+    // Logging
+    LogBuffer *buffer = new LogBuffer(ui->plainTextEditLog);
+    std::ostream *stream = new std::ostream(buffer);
+    util::consoleLogPack.gpu.os = stream;
+    connect(buffer, &LogBuffer::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
 
     // Connections
     makeConnections();

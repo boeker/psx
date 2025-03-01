@@ -1,9 +1,13 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <iostream>
 #include <memory>
+#include <sstream>
 
 #include <QtWidgets/QMainWindow>
+#include <QtWidgets/QPlainTextEdit>
+#include <QString>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -20,6 +24,28 @@ namespace PSX {
 class Core;
 class OpenGLRenderer;
 }
+
+class LogBuffer : public QObject, public std::stringbuf {
+    Q_OBJECT
+public:
+    LogBuffer(QPlainTextEdit *plainTextEdit)
+    : plainTextEdit(plainTextEdit) {
+    }
+    virtual int sync() {
+        std::clog << this->str();
+        QString qString = QString::fromStdString(this->str());
+
+        emit logString(qString.left(qString.length() - 1));
+        this->str("");
+        return 0;
+    };
+
+signals:
+    void logString(QString string);
+
+private:
+    QPlainTextEdit *plainTextEdit;
+};
 
 class MainWindow : public QMainWindow {
     Q_OBJECT

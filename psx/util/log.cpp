@@ -5,6 +5,7 @@
 namespace util {
 
 bool Log::loggingEnabled = true;
+std::chrono::time_point<std::chrono::steady_clock> Log::programStart = std::chrono::steady_clock::now();
 
 Log::Log(const std::string &descriptor, bool enabled)
     : descriptor(descriptor), lineBreaks(true), justPrintedLineBreak(true), enabled(enabled) {
@@ -22,19 +23,21 @@ void Log::disableLineBreaks() {
     this->lineBreaks = false;
 }
 ConsoleLog::ConsoleLog(const std::string &descriptor, bool enabled)
-    : Log(descriptor, enabled) {
+    : Log(descriptor, enabled),
+      os(&std::clog) {
 }
 
 bool ConsoleLog::print(const std::string &message) {
     if (justPrintedLineBreak) {
-        std::clog << "[" << descriptor << "] ";
+        auto diff = std::chrono::steady_clock::now() - programStart;
+        *os << std::format("{:%S} [{:s}] ", std::chrono::duration_cast<std::chrono::milliseconds>(diff), descriptor);
         justPrintedLineBreak = false;
     }
 
-    std::clog << message;
+    *os << message;
 
     if (lineBreaks) {
-        std::clog << "\n";
+        *os << "\n";
         justPrintedLineBreak = true;
 
     } else {
@@ -43,7 +46,7 @@ bool ConsoleLog::print(const std::string &message) {
         }
     }
 
-    std::clog << std::flush;
+    *os << std::flush;
 
     return false;
 }
@@ -56,13 +59,13 @@ ConsoleLogPack::ConsoleLogPack()
       cdrom("CDROM", true),
       cp0RegisterRead("CPU", false),
       cp0RegisterWrite("CPU", false),
-      dma("DMA", false),
-      dmaWrite("DMA", false),
+      dma("DMA", true),
+      dmaWrite("DMA", true),
       dmaIO("DMA", false),
       exception("EXC", true),
       exceptionVerbose("EXC", false),
       gpu("GPU", true),
-      gpuIO("GPU", false),
+      gpuIO("GPU", true),
       gpuVBLANK("GPU", false),
       gpuVRAM("GPU", true),
       gte("GTE", true),
