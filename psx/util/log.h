@@ -21,7 +21,7 @@ public:
     bool isEnabled() const;
     void setEnabled(bool enabled);
 
-    virtual bool print(const std::string &message, int verbosityLevel = 0) = 0;
+    virtual bool print(const std::string &message) = 0;
 
 protected:
     bool enabled;
@@ -30,7 +30,7 @@ protected:
 class OStreamLog : public Log {
 public:
     OStreamLog(std::ostream &os, const std::string &descriptor, bool enabled);
-    bool print(const std::string &message, int verbosityLevel) override;
+    bool print(const std::string &message) override;
 
 private:
     std::ostream &os;
@@ -41,76 +41,52 @@ private:
 class ConsoleLog : public OStreamLog {
 public:
     ConsoleLog(const std::string &descriptor, bool enabled);
-    bool print(const std::string &message, int verbosityLevel) override;
-
-    void setVerbosityLevel(int verbosityLevel);
-
-private:
-    int verbosityLevel;
 };
 
-//    void disableAutoLineBreaks();
-//    void produceLineBreak();
-
-class FileTrace : public OStreamLog {
+class FileLog : public OStreamLog {
 private:
     static std::ofstream logFile;
 
 public:
-    FileTrace(const std::string &descriptor, bool enabled);
+    FileLog(const std::string &descriptor, bool enabled);
 };
 
-class ThreeWayLog : public Log {
+class ThreeWayLog {
 public:
     ThreeWayLog(const std::string &descriptor, bool enabled);
-    bool print(const std::string &message, int verbosityLevel = 0) override;
+    bool isEnabled() const;
+
+    bool print(const std::string &message);
 
     void installAdditionalLog(std::shared_ptr<Log> log);
 
 private:
+    FileLog fileLog;
     ConsoleLog consoleLog;
-    FileTrace fileTrace;
-
     std::shared_ptr<Log> additionalLog;
 };
 
+#define DECLARE_TWL(name) ThreeWayLog name, name##V, name##T
 
 struct LogPack {
     LogPack();
 
-    ThreeWayLog bus;
-    ThreeWayLog cpu;
-    ThreeWayLog cdrom;
-    ThreeWayLog cp0RegisterRead;
-    ThreeWayLog cp0RegisterWrite;
-    ThreeWayLog dma;
-    ThreeWayLog dmaWrite;
-    ThreeWayLog dmaIO;
-    ThreeWayLog exception;
-    ThreeWayLog exceptionVerbose;
-    ThreeWayLog gpu;
-    ThreeWayLog gpuIO;
-    ThreeWayLog gpuVBLANK;
-    ThreeWayLog gpuVRAM;
-    ThreeWayLog gte;
-    ThreeWayLog gteVerbose;
-    ThreeWayLog instructions;
-    ThreeWayLog interrupts;
-    ThreeWayLog interruptsIO;
-    ThreeWayLog interruptsVerbose;
-    ThreeWayLog mdec;
-    ThreeWayLog memory;
-    ThreeWayLog misc;
-    ThreeWayLog peripheral;
-    ThreeWayLog registerRead;
-    ThreeWayLog registerWrite;
-    ThreeWayLog registerPCRead;
-    ThreeWayLog registerPCWrite;
-    ThreeWayLog renderer;
-    ThreeWayLog rendererVRAM;
-    ThreeWayLog spu;
-    ThreeWayLog timers;
-    ThreeWayLog warning;
+    DECLARE_TWL(bus);
+    DECLARE_TWL(cdrom);
+    DECLARE_TWL(cpu);
+    DECLARE_TWL(dma);
+    DECLARE_TWL(exceptions);
+    DECLARE_TWL(gpu);
+    DECLARE_TWL(gte);
+    DECLARE_TWL(interrupts);
+    DECLARE_TWL(mdec);
+    DECLARE_TWL(memory);
+    DECLARE_TWL(misc);
+    DECLARE_TWL(peripheral);
+    DECLARE_TWL(renderer);
+    DECLARE_TWL(spu);
+    DECLARE_TWL(timers);
+    DECLARE_TWL(warning);
 };
 
 extern LogPack logPack;
@@ -118,38 +94,68 @@ extern LogPack logPack;
 #define MACRO_LOG(log) logPack.log.isEnabled() && logPack.log.print
 
 #define LOG_BUS             MACRO_LOG(bus)
+#define LOGV_BUS            MACRO_LOG(busV)
+#define LOGT_BUS            MACRO_LOG(busT)
+
 #define LOG_CPU             MACRO_LOG(cpu)
+#define LOGV_CPU            MACRO_LOG(cpuV)
+#define LOGT_CPU            MACRO_LOG(cpuT)
+
 #define LOG_CDROM           MACRO_LOG(cdrom)
-#define LOG_CP0_REG_READ    MACRO_LOG(cp0RegisterRead)
-#define LOG_CP0_REG_WRITE   MACRO_LOG(cp0RegisterWrite)
+#define LOGV_CDROM          MACRO_LOG(cdromV)
+#define LOGT_CDROM          MACRO_LOG(cdromT)
+
 #define LOG_DMA             MACRO_LOG(dma)
-#define LOG_DMA_WRITE       MACRO_LOG(dmaWrite)
-#define LOG_DMA_IO          MACRO_LOG(dmaIO)
-#define LOG_EXC             MACRO_LOG(exception)
-#define LOG_EXC_VERB        MACRO_LOG(exceptionVerbose)
+#define LOGV_DMA            MACRO_LOG(dmaV)
+#define LOGT_DMA            MACRO_LOG(dmaT)
+
+#define LOG_EXC             MACRO_LOG(exceptions)
+#define LOGV_EXC            MACRO_LOG(exceptionsV)
+#define LOGT_EXC            MACRO_LOG(exceptionsT)
+
 #define LOG_GPU             MACRO_LOG(gpu)
-#define LOG_GPU_IO          MACRO_LOG(gpuIO)
-#define LOG_GPU_VBLANK      MACRO_LOG(gpuVBLANK)
-#define LOG_GPU_VRAM        MACRO_LOG(gpuVRAM)
+#define LOGV_GPU            MACRO_LOG(gpuV)
+#define LOGT_GPU            MACRO_LOG(gpuT)
+
 #define LOG_GTE             MACRO_LOG(gte)
-#define LOG_GTE_VERB        MACRO_LOG(gteVerbose)
-#define LOG_INS             MACRO_LOG(instructions)
+#define LOGV_GTE            MACRO_LOG(gteV)
+#define LOGT_GTE            MACRO_LOG(gteT)
+
 #define LOG_INT             MACRO_LOG(interrupts)
-#define LOG_INT_IO          MACRO_LOG(interruptsIO)
-#define LOG_INT_VERB        MACRO_LOG(interruptsVerbose)
+#define LOGV_INT            MACRO_LOG(interruptsV)
+#define LOGT_INT            MACRO_LOG(interruptsT)
+
 #define LOG_MDEC            MACRO_LOG(mdec)
+#define LOGV_MDEC           MACRO_LOG(mdecV)
+#define LOGT_MDEC           MACRO_LOG(mdecT)
+
 #define LOG_MEM             MACRO_LOG(memory)
+#define LOGV_MEM            MACRO_LOG(memoryV)
+#define LOGT_MEM            MACRO_LOG(memoryT)
+
 #define LOG_MISC            MACRO_LOG(misc)
+#define LOGV_MISC           MACRO_LOG(miscV)
+#define LOGT_MISC           MACRO_LOG(miscT)
+
 #define LOG_PER             MACRO_LOG(peripheral)
-#define LOG_REG_READ        MACRO_LOG(registerRead)
-#define LOG_REG_WRITE       MACRO_LOG(registerWrite)
-#define LOG_REG_PC_READ     MACRO_LOG(registerPCRead)
-#define LOG_REG_PC_WRITE    MACRO_LOG(registerPCWrite)
+#define LOGV_PER            MACRO_LOG(peripheralV)
+#define LOGT_PER            MACRO_LOG(peripheralT)
+
 #define LOG_REND            MACRO_LOG(renderer)
-#define LOG_REND_VRAM       MACRO_LOG(rendererVRAM)
+#define LOGV_REND           MACRO_LOG(rendererV)
+#define LOGT_REND           MACRO_LOG(rendererT)
+
 #define LOG_SPU             MACRO_LOG(spu)
+#define LOGV_SPU            MACRO_LOG(spuV)
+#define LOGT_SPU            MACRO_LOG(spuT)
+
 #define LOG_TMR             MACRO_LOG(timers)
+#define LOGV_TMR            MACRO_LOG(timersV)
+#define LOGT_TMR            MACRO_LOG(timersT)
+
 #define LOG_WRN             MACRO_LOG(warning)
+#define LOGV_WRN            MACRO_LOG(warningV)
+#define LOGT_WRN            MACRO_LOG(warningT)
 
 }
 

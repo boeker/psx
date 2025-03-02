@@ -32,7 +32,7 @@ class PlainTextEditLog : public QObject, public util::Log {
 
 public:
     PlainTextEditLog(QPlainTextEdit *plainTextEdit);
-    bool print(const std::string &message, int verbosityLevel) override;
+    bool print(const std::string &message) override;
 
 signals:
     void logString(QString string);

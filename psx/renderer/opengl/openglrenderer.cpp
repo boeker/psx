@@ -338,8 +338,8 @@ void OpenGLRenderer::drawTexturedTriangle(const TexturedTriangle &t) {
 }
 
 void OpenGLRenderer::writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) {
-    //LOG_REND_VRAM(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
-    //                          value, line, pos));
+    LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
+                              value, line, pos));
 
     uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
     vramLine[pos] = value;
@@ -349,14 +349,14 @@ uint16_t OpenGLRenderer::readFromVRAM(uint32_t line, uint32_t pos) {
     uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
     uint16_t value = vramLine[pos];
 
-    //LOG_REND_VRAM(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
-    //                          line, pos, value));
+    LOGT_REND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
+                              line, pos, value));
 
     return value;
 }
 
 void OpenGLRenderer::writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) {
-    LOG_REND_VRAM(std::format("VRAM write to {:d}, {:d} of size {:d}x{:d}",
+    LOGV_REND(std::format("VRAM write to {:d}, {:d} of size {:d}x{:d}",
                               x, y, width, height));
 
     glBindTexture(GL_TEXTURE_2D, vramTexture);

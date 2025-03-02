@@ -16,7 +16,7 @@ PlainTextEditLog::PlainTextEditLog(QPlainTextEdit *plainTextEdit)
       plainTextEdit(plainTextEdit) {
 }
 
-bool PlainTextEditLog::print(const std::string &message, int verbosityLevel) {
+bool PlainTextEditLog::print(const std::string &message) {
         QString qString = QString::fromStdString(message);
         emit logString(qString);
 

@@ -55,11 +55,10 @@ void CPU::step() {
     fetchDelaySlot();
 
     // execute instruction
-    LOG_INS(std::format("@0x{:08X}: ", instructionPC));
+    LOGT_CPU(std::format("@0x{:08X}: ", instructionPC));
     opcode = instruction >> 26;
     assert (opcode <= 0b111111);
     (this->*opcodes[opcode])();
-    LOG_INS("\n");
 
     cycles += 1;
 }
@@ -122,7 +121,7 @@ void CPU::generateException(uint8_t exccode) {
 }
 
 void CPU::checkAndExecuteInterrupts() {
-    LOG_EXC_VERB(std::format("Checking if interrupt exception should be issued"));
+    LOGV_EXC(std::format("Checking if interrupt exception should be issued"));
 
     if (cp0regs.getBit(CP0_REGISTER_SR, SR_BIT_IEC)) {
         uint32_t ip = (cp0regs.getCP0Register(CP0_REGISTER_CAUSE) >> CAUSE_BIT_IP0) & 0xFF;
@@ -132,10 +131,10 @@ void CPU::checkAndExecuteInterrupts() {
             generateException(EXCCODE_INT);
 
         } else {
-            LOG_EXC_VERB(std::format("IEc set but no interrupt enabled and issued"));
+            LOGV_EXC(std::format("IEc set but no interrupt enabled and issued"));
         }
     } else {
-        LOG_EXC_VERB(std::format("IEc not set"));
+        LOGV_EXC(std::format("IEc not set"));
     }
 }
 
@@ -388,7 +387,7 @@ void CPU::LUI() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
 
-    LOG_INS(std::format("LUI {:s},0x{:04X}",
+    LOGT_CPU(std::format("LUI {:s},0x{:04X}",
                          regs.getRegisterName(rt),
                          immediate));
 
@@ -403,7 +402,7 @@ void CPU::ORI() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    LOG_INS(std::format("ORI {:s},{:s},0x{:04x}",
+    LOGT_CPU(std::format("ORI {:s},{:s},0x{:04x}",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
                         immediate));
@@ -421,7 +420,7 @@ void CPU::SW() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("SW {:s},0x{:04X}({:s})",
+    LOGT_CPU(std::format("SW {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
@@ -447,7 +446,7 @@ void CPU::ADDIU() {
     uint32_t immediate = 0xFFFF & instruction;
     uint32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
 
-    LOG_INS(std::format("ADDIU {:s},{:s},0x{:04X}",
+    LOGT_CPU(std::format("ADDIU {:s},{:s},0x{:04X}",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
                         immediate));
@@ -460,7 +459,7 @@ void CPU::J() {
     // T: temp <- target
     // T+1: pc <- pc_{31...28} || temp || 0^2
     uint32_t target = 0x3FFFFFF & instruction;
-    LOG_INS(std::format("J 0x{:08X}", target));
+    LOGT_CPU(std::format("J 0x{:08X}", target));
 
     uint32_t actualTarget = (delaySlotPC & 0xF0000000) | (target << 2);
 
@@ -480,7 +479,7 @@ void CPU::BNE() {
 
     uint32_t target = ((offset >> 15) ? 0xFFFC0000 : 0x00000000) | (offset << 2);
     uint32_t actualTarget = delaySlotPC + target;
-    LOG_INS(std::format("BNE {:s},{:s},0x{:04X} (+0x{:08X}, -> @0x{:08X})",
+    LOGT_CPU(std::format("BNE {:s},{:s},0x{:04X} (+0x{:08X}, -> @0x{:08X})",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
                         offset,
@@ -499,7 +498,7 @@ void CPU::ADDI() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    LOG_INS(std::format("ADDI {:s},{:s},0x{:04X}",
+    LOGT_CPU(std::format("ADDI {:s},{:s},0x{:04X}",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
                         immediate));
@@ -527,7 +526,7 @@ void CPU::LW() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("LW {:s},0x{:04X}({:s})",
+    LOGT_CPU(std::format("LW {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
@@ -553,7 +552,7 @@ void CPU::SH() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("SH {:s},0x{:08X}({:s})",
+    LOGT_CPU(std::format("SH {:s},0x{:08X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
@@ -574,7 +573,7 @@ void CPU::JAL() {
     // T+1: PC <- PC_{31...28} || temp || 0^2
     uint32_t target = 0x03FFFFFF & instruction;
 
-    LOG_INS(std::format("JAL 0x{:06X}", target));
+    LOGT_CPU(std::format("JAL 0x{:06X}", target));
 
     uint32_t actualTarget = (delaySlotPC &  0xF0000000) | (target << 2);
     uint32_t newPC = instructionPC + 8;
@@ -590,7 +589,7 @@ void CPU::ANDI() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
 
-    LOG_INS(std::format("ANDI {:s},{:s},0x{:04X}",
+    LOGT_CPU(std::format("ANDI {:s},{:s},0x{:04X}",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
                         immediate));
@@ -610,7 +609,7 @@ void CPU::SB() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("SB {:s},0x{:04X}({:s})",
+    LOGT_CPU(std::format("SB {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
@@ -632,7 +631,7 @@ void CPU::LB() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("LB {:s},0x{:04X}({:s})",
+    LOGT_CPU(std::format("LB {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
@@ -654,7 +653,7 @@ void CPU::BEQ() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("BEQ {:s},{:s},{:04X}",
+    LOGT_CPU(std::format("BEQ {:s},{:s},{:04X}",
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt),
                         offset));
@@ -665,7 +664,7 @@ void CPU::BEQ() {
 
     uint32_t rsValue = regs.getRegister(rs);
     uint32_t rtValue = regs.getRegister(rt);
-    LOG_INS(std::format(" (0x{:08X} == 0x{:08X}? -0x{:08X}-> pc)",
+    LOGT_CPU(std::format(" (0x{:08X} == 0x{:08X}? -0x{:08X}-> pc)",
                         rsValue, rtValue, actualTarget));
 
     if (rsValue == rtValue) {
@@ -684,7 +683,7 @@ void CPU::BGTZ() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("BGTZ {:s},{:04X}",
+    LOGT_CPU(std::format("BGTZ {:s},{:04X}",
                         regs.getRegisterName(rs),
                         offset));
 
@@ -693,7 +692,7 @@ void CPU::BGTZ() {
     uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = regs.getRegister(rs);
-    LOG_INS(std::format(" (0x{:08X} > 0? -0x{:08X}-> pc)",
+    LOGT_CPU(std::format(" (0x{:08X} > 0? -0x{:08X}-> pc)",
                         rsValue, actualTarget));
 
     if (!(rsValue >> 31) && (rsValue != 0)) {
@@ -712,7 +711,7 @@ void CPU::BLEZ() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("BLEZ {:s},{:04X}",
+    LOGT_CPU(std::format("BLEZ {:s},{:04X}",
                         regs.getRegisterName(rs),
                         offset));
 
@@ -721,7 +720,7 @@ void CPU::BLEZ() {
     uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = regs.getRegister(rs);
-    LOG_INS(std::format(" (0x{:08X} <= 0? -0x{:08X}-> pc)",
+    LOGT_CPU(std::format(" (0x{:08X} <= 0? -0x{:08X}-> pc)",
                         rsValue, actualTarget));
 
     if ((rsValue >> 31) || (rsValue == 0)) {
@@ -742,7 +741,7 @@ void CPU::LBU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("LBU {:s},0x{:04X}({:s})",
+    LOGT_CPU(std::format("LBU {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
@@ -764,7 +763,7 @@ void CPU::SLTI() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
 
-    LOG_INS(std::format("SLTI {:s},{:s},0x{:04x}",
+    LOGT_CPU(std::format("SLTI {:s},{:s},0x{:04x}",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
                         immediate));
@@ -794,7 +793,7 @@ void CPU::SLTIU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
 
-    LOG_INS(std::format("SLTI {:s},{:s},0x{:04x}",
+    LOGT_CPU(std::format("SLTI {:s},{:s},0x{:04x}",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
                         immediate));
@@ -822,7 +821,7 @@ void CPU::LHU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("LHU {:s},0x{:04X}({:s})",
+    LOGT_CPU(std::format("LHU {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
@@ -845,7 +844,7 @@ void CPU::LH() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("LH {:s},0x{:04X}({:s})",
+    LOGT_CPU(std::format("LH {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
@@ -871,7 +870,7 @@ void CPU::LWL() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("LWL {:s},0x{:04X}({:s})",
+    LOGT_CPU(std::format("LWL {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
@@ -900,7 +899,7 @@ void CPU::LWR() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("LWR {:s},0x{:04X}({:s})",
+    LOGT_CPU(std::format("LWR {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
@@ -929,7 +928,7 @@ void CPU::SWL() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("SWL {:s},0x{:04X}({:s})",
+    LOGT_CPU(std::format("SWL {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
@@ -958,7 +957,7 @@ void CPU::SWR() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("SWR {:s},0x{:04X}({:s})",
+    LOGT_CPU(std::format("SWR {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
@@ -984,9 +983,9 @@ void CPU::SLL() {
     uint8_t sa = 0x1F & (instruction >> 6);
 
     if (rt == 0 && rd == 0 && sa == 0) {
-        LOG_INS(std::format("NOP"));
+        LOGT_CPU(std::format("NOP"));
     } else {
-        LOG_INS(std::format("SLL {:s},{:s},{:s}",
+        LOGT_CPU(std::format("SLL {:s},{:s},{:s}",
                             regs.getRegisterName(rd),
                             regs.getRegisterName(rt),
                             regs.getRegisterName(sa)));
@@ -1001,7 +1000,7 @@ void CPU::OR() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
-    LOG_INS(std::format("OR {:s},{:s},{:s}",
+    LOGT_CPU(std::format("OR {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
@@ -1020,14 +1019,14 @@ void CPU::SLTU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("SLTU {:s},{:s},{:s}",
+    LOGT_CPU(std::format("SLTU {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
 
     uint32_t rsValue = regs.getRegister(rs);
     uint32_t rtValue = regs.getRegister(rt);
-    LOG_INS(std::format(" (0x{:08x} < 0x{:08x}?)",
+    LOGT_CPU(std::format(" (0x{:08x} < 0x{:08x}?)",
                         rsValue, rtValue));
 
     if (rsValue < rtValue) {
@@ -1045,7 +1044,7 @@ void CPU::ADDU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("ADDU {:s},{:s},{:s}",
+    LOGT_CPU(std::format("ADDU {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
@@ -1063,7 +1062,7 @@ void CPU::JR() {
     // Should be temp, right?
     uint8_t rs = 0x1F & (instruction >> 21);
 
-    LOG_INS(std::format("JR {:s}",
+    LOGT_CPU(std::format("JR {:s}",
                         regs.getRegisterName(rs)));
 
     uint32_t target = regs.getRegister(rs);
@@ -1084,7 +1083,7 @@ void CPU::JALR() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("JALR {:s},{:s}",
+    LOGT_CPU(std::format("JALR {:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs)));
 
@@ -1105,7 +1104,7 @@ void CPU::AND() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("AND {:s},{:s},{:s}",
+    LOGT_CPU(std::format("AND {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
@@ -1120,7 +1119,7 @@ void CPU::ADD() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("ADD {:s},{:s},{:s}",
+    LOGT_CPU(std::format("ADD {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
@@ -1146,7 +1145,7 @@ void CPU::SUBU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("SUBU {:s},{:s},{:s}",
+    LOGT_CPU(std::format("SUBU {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
@@ -1164,7 +1163,7 @@ void CPU::SRA() {
     uint8_t rd = 0x1F & (instruction >> 11);
     uint8_t sa = 0x1F & (instruction >> 6);
 
-    LOG_INS(std::format("SRA {:s},{:s},{:s}",
+    LOGT_CPU(std::format("SRA {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rt),
                         regs.getRegisterName(sa)));
@@ -1190,7 +1189,7 @@ void CPU::DIV() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
 
-    LOG_INS(std::format("DIV {:s},{:s}",
+    LOGT_CPU(std::format("DIV {:s},{:s}",
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
 
@@ -1206,7 +1205,7 @@ void CPU::MFLO() {
     // T: GPR[rd] <- LO
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("MFLO {:s}", regs.getRegisterName(rd)));
+    LOGT_CPU(std::format("MFLO {:s}", regs.getRegisterName(rd)));
 
     regs.setRegister(rd, regs.getLo());
 }
@@ -1218,7 +1217,7 @@ void CPU::SRL() {
     uint8_t rd = 0x1F & (instruction >> 11);
     uint8_t sa = 0x1F & (instruction >> 6);
 
-    LOG_INS(std::format("SRL {:s},{:s},{:s}",
+    LOGT_CPU(std::format("SRL {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rt),
                         regs.getRegisterName(sa)));
@@ -1237,7 +1236,7 @@ void CPU::DIVU() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
 
-    LOG_INS(std::format("DIVU {:s},{:s}",
+    LOGT_CPU(std::format("DIVU {:s},{:s}",
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
 
@@ -1253,7 +1252,7 @@ void CPU::MFHI() {
     // T: GPR[rd] <- HI
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("MFHI {:s}", regs.getRegisterName(rd)));
+    LOGT_CPU(std::format("MFHI {:s}", regs.getRegisterName(rd)));
 
     regs.setRegister(rd, regs.getHi());
 }
@@ -1269,14 +1268,14 @@ void CPU::SLT() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("SLT {:s},{:s},{:s}",
+    LOGT_CPU(std::format("SLT {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
 
     int32_t rsValue = (int32_t)regs.getRegister(rs);
     int32_t rtValue = (int32_t)regs.getRegister(rt);
-    LOG_INS(std::format(" (0x{:08x} < 0x{:08x}?)",
+    LOGT_CPU(std::format(" (0x{:08x} < 0x{:08x}?)",
                         rsValue, rtValue));
 
     if (rsValue < rtValue) {
@@ -1293,7 +1292,7 @@ void CPU::SYSCALL() {
     //uint32_t code = 0xFFFFF & (instruction >> 6);
     // the exception handler can access "code" by manually loading the instruction
 
-    LOG_INS("SYSCALL");
+    LOGT_CPU("SYSCALL");
 
     generateException(EXCCODE_SYSCALL);
 }
@@ -1305,7 +1304,7 @@ void CPU::MTLO() {
     // T: LO <- GPR[rs]
     uint8_t rs = 0x1F & (instruction >> 21);
 
-    LOG_INS(std::format("MTLO {:s}", regs.getRegisterName(rs)));
+    LOGT_CPU(std::format("MTLO {:s}", regs.getRegisterName(rs)));
 
     regs.setLo(regs.getRegister(rs));
 }
@@ -1317,7 +1316,7 @@ void CPU::MTHI() {
     // T: HI <- GPR[rs]
     uint8_t rs = 0x1F & (instruction >> 21);
 
-    LOG_INS(std::format("MTHI {:s}", regs.getRegisterName(rs)));
+    LOGT_CPU(std::format("MTHI {:s}", regs.getRegisterName(rs)));
 
     regs.setHi(regs.getRegister(rs));
 }
@@ -1330,7 +1329,7 @@ void CPU::SLLV() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("SLLV {:s},{:s},{:s}",
+    LOGT_CPU(std::format("SLLV {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs)));
@@ -1346,7 +1345,7 @@ void CPU::NOR() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
-    LOG_INS(std::format("NOR {:s},{:s},{:s}",
+    LOGT_CPU(std::format("NOR {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
@@ -1362,7 +1361,7 @@ void CPU::SRAV() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("SRAV {:s},{:s},{:s}",
+    LOGT_CPU(std::format("SRAV {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs)));
@@ -1386,7 +1385,7 @@ void CPU::SRLV() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("SRLV {:s},{:s},{:s}",
+    LOGT_CPU(std::format("SRLV {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs)));
@@ -1410,7 +1409,7 @@ void CPU::MULTU() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
 
-    LOG_INS(std::format("MULTU {:s},{:s}",
+    LOGT_CPU(std::format("MULTU {:s},{:s}",
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
 
@@ -1428,7 +1427,7 @@ void CPU::XOR() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
-    LOG_INS(std::format("XOR {:s},{:s},{:s}",
+    LOGT_CPU(std::format("XOR {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
@@ -1456,7 +1455,7 @@ void CPU::RFE() {
     // Restore From Exception
     // T: SR <- SR_{31...4} || SR_{5...2}
 
-    LOG_INS("RFE");
+    LOGT_CPU("RFE");
 
     uint32_t sr = cp0regs.getCP0Register(CP0_REGISTER_SR);
     cp0regs.setCP0Register(CP0_REGISTER_SR, (sr & 0xFFFFFFF0) | ((sr & 0x3C) >> 2));
@@ -1473,12 +1472,12 @@ void CPU::MTC0() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("MTC0 {:s},{:d}",
+    LOGT_CPU(std::format("MTC0 {:s},{:d}",
                          regs.getRegisterName(rt),
                          rd));
 
     uint32_t data = regs.getRegister(rt);
-    LOG_INS(std::format(" (0x{:08X} -> CP0 {:d})",data, rd));
+    LOGT_CPU(std::format(" (0x{:08X} -> CP0 {:d})",data, rd));
 
     cp0regs.setCP0Register(rd, data);
     checkAndExecuteInterrupts();
@@ -1491,12 +1490,12 @@ void CPU::MFC0() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("MFC0 {:s},{:d}",
+    LOGT_CPU(std::format("MFC0 {:s},{:d}",
                         regs.getRegisterName(rt),
                         rd));
 
     uint32_t data = cp0regs.getCP0Register(rd);
-    LOG_INS(std::format(" (CP0 {:d} -0x{:08X}->)",
+    LOGT_CPU(std::format(" (CP0 {:d} -0x{:08X}->)",
                         rd, data));
 
     regs.setRegister(rt, data);
@@ -1526,12 +1525,12 @@ void CPU::CTC2() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("CTC2 {:s},{:d}",
+    LOGT_CPU(std::format("CTC2 {:s},{:d}",
                          regs.getRegisterName(rt),
                          rd));
 
     uint32_t data = regs.getRegister(rt);
-    LOG_INS(std::format(" (0x{:08X} -> CP2 c{:d})",data, rd));
+    LOGT_CPU(std::format(" (0x{:08X} -> CP2 c{:d})",data, rd));
 
     gte.setControlRegister(rd, data);
 }
@@ -1543,12 +1542,12 @@ void CPU::MTC2() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOG_INS(std::format("MTC2 {:s},{:d}",
+    LOGT_CPU(std::format("MTC2 {:s},{:d}",
                          regs.getRegisterName(rt),
                          rd));
 
     uint32_t data = regs.getRegister(rt);
-    LOG_INS(std::format(" (0x{:08X} -> CP2 {:d})",data, rd));
+    LOGT_CPU(std::format(" (0x{:08X} -> CP2 {:d})",data, rd));
 
     gte.setRegister(rd, data);
 }
@@ -1568,7 +1567,7 @@ void CPU::BLTZ() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("BLTZ {:s},{:04X}",
+    LOGT_CPU(std::format("BLTZ {:s},{:04X}",
                         regs.getRegisterName(rs),
                         offset));
 
@@ -1577,7 +1576,7 @@ void CPU::BLTZ() {
     uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = regs.getRegister(rs);
-    LOG_INS(std::format(" (0x{:08X} < 0? -0x{:08X}-> pc)",
+    LOGT_CPU(std::format(" (0x{:08X} < 0? -0x{:08X}-> pc)",
                         rsValue, actualTarget));
 
     if (rsValue >> 31) {
@@ -1597,7 +1596,7 @@ void CPU::BLTZAL() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("BLTZAL {:s},{:04X}",
+    LOGT_CPU(std::format("BLTZAL {:s},{:04X}",
                         regs.getRegisterName(rs),
                         offset));
 
@@ -1606,7 +1605,7 @@ void CPU::BLTZAL() {
     uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = regs.getRegister(rs);
-    LOG_INS(std::format(" (0x{:08X} < 0? -0x{:08X}-> pc)",
+    LOGT_CPU(std::format(" (0x{:08X} < 0? -0x{:08X}-> pc)",
                         rsValue, actualTarget));
 
     if (rsValue >> 31) {
@@ -1626,7 +1625,7 @@ void CPU::BGEZ() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOG_INS(std::format("BGEZ {:s},{:04X}",
+    LOGT_CPU(std::format("BGEZ {:s},{:04X}",
                         regs.getRegisterName(rs),
                         offset));
 
@@ -1635,7 +1634,7 @@ void CPU::BGEZ() {
     uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = regs.getRegister(rs);
-    LOG_INS(std::format(" (0x{:08X} > 0? -0x{:08X}-> pc)",
+    LOGT_CPU(std::format(" (0x{:08X} > 0? -0x{:08X}-> pc)",
                         rsValue, actualTarget));
 
     if (!(rsValue >> 31)) {

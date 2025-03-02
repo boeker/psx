@@ -107,19 +107,17 @@ void CP0Registers::reset() {
 }
 
 uint32_t CP0Registers::getCP0Register(uint8_t rt) {
-    LOG_CP0_REG_READ(std::format(" {{"));
     assert (rt < 32);
 
     uint32_t word = cp0Registers[rt];
-    LOG_CP0_REG_READ(std::format("{:s} -> 0x{:08X}}}",
-                                 getCP0RegisterName(rt), word));
+    LOGT_CPU(std::format("{{{:s} -> 0x{:08X}}}", getCP0RegisterName(rt), word));
 
     return word;
 }
 
 void CP0Registers::setCP0Register(uint8_t rt, uint32_t value) {
     assert (rt < 32);
-    LOG_CP0_REG_WRITE(std::format(" {{0x{:08X} -> {:s}}}", value, getCP0RegisterName(rt)));
+    LOGT_CPU(std::format("{{0x{:08X} -> {:s}}}", value, getCP0RegisterName(rt)));
     cp0Registers[rt] = value;
 }
 

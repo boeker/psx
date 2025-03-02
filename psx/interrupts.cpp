@@ -37,7 +37,7 @@ template <typename T>
 void Interrupts::write(uint32_t address, T value) {
     assert ((address >= 0x1F801070) && (address < 0x1F801074 + sizeof(T)));
 
-    LOG_INT_IO(std::format("Interrupt write 0x{:0{}X} -> @0x{:08X}",
+    LOGT_INT(std::format("Interrupt write 0x{:0{}X} -> @0x{:08X}",
                            value, 2*sizeof(T), address));
 
     if (address < 0x1F801074) { // I_STAT
@@ -88,7 +88,7 @@ T Interrupts::read(uint32_t address) {
         value = *((T*)(interruptMaskRegister + offset));
     }
 
-    LOG_INT_IO(std::format("Interrupt read @0x{:08X} -> 0x{:0{}X}",
+    LOGT_INT(std::format("Interrupt read @0x{:08X} -> 0x{:0{}X}",
                            address, value, 2*sizeof(T)));
 
     return value;
@@ -103,7 +103,7 @@ void Interrupts::checkAndExecuteInterrupts() {
     uint32_t imask = *(((uint32_t*)interruptMaskRegister));
 
     if ((istat & imask) & 0x3FF) { // one or more interrupts is requested and enabled
-        LOG_INT_VERB(std::format("Interrupt requested and enabled: 0x{:03X}",
+        LOGV_INT(std::format("Interrupt requested and enabled: 0x{:03X}",
                                  (istat & imask) & 0x3FF));
         bus->cpu.cp0regs.setBit(CP0_REGISTER_CAUSE, CAUSE_BIT_IP2);
 

@@ -163,11 +163,11 @@ void GPU::catchUpToCPU(uint32_t cpuCycles) {
 }
 
 void GPU::receiveGP0Data(uint32_t word) {
-    LOG_GPU_IO(std::format("Received word 0x{:08X}", word));
+    LOGT_GPU(std::format("Received word 0x{:08X}", word));
 
     switch (state) {
         case State::TRANSFER_TO_VRAM:
-            LOG_GPU_IO(std::format("To VRAM: Remaining words: {:d}", transferToVRAMRemainingWords));
+            LOGT_GPU(std::format("To VRAM: Remaining words: {:d}", transferToVRAMRemainingWords));
 
             renderer->writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word & 0x0000FFFF));
             advanceCurrentDestinationPosition();
@@ -235,13 +235,13 @@ void GPU::receiveGP0Data(uint32_t word) {
 }
 
 uint32_t GPU::sendGP0Data() {
-    LOG_GPU_IO(std::format("Sending word"));
+    LOGT_GPU(std::format("Sending word"));
 
     uint32_t value1, value2;
 
     switch (state) {
         case State::TRANSFER_TO_CPU:
-            LOG_GPU_IO(std::format("To CPU: Remaining words: {:d}", transferToCPURemainingWords));
+            LOGT_GPU(std::format("To CPU: Remaining words: {:d}", transferToCPURemainingWords));
             transferToCPURemainingWords--;
 
             if (transferToCPURemainingWords == 0) {
@@ -263,7 +263,7 @@ uint32_t GPU::sendGP0Data() {
 }
 
 void GPU::notifyAboutVBLANK() {
-    LOG_GPU_VBLANK(std::format("VBLANK"));
+    LOGT_GPU(std::format("VBLANK"));
     renderer->swapBuffers();
 }
 
@@ -327,7 +327,7 @@ void GPU::advanceCurrentSourcePosition() {
 template <> void GPU::write(uint32_t address, uint32_t value) {
     assert ((address == 0x1F801810) || (address == 0x1F801814));
 
-    LOG_GPU_IO(std::format("GPU write 0x{:08X} -> @0x{:08X}",
+    LOGT_GPU(std::format("GPU write 0x{:08X} -> @0x{:08X}",
                          value, address));
 
     if (address == 0x1F801810) { // GP0
@@ -355,14 +355,14 @@ uint32_t GPU::read(uint32_t address) {
     if (address == 0x1F801810) { // GPUREAD
         uint32_t word = sendGP0Data();
 
-        LOG_GPU_IO(std::format("GPUREAD -> 0x{:08X}", word));
+        LOGT_GPU(std::format("GPUREAD -> 0x{:08X}", word));
 
         return word;
 
     } else { // GPUSTAT
         assert (address == 0x1F801814);
 
-        LOG_GPU_IO(std::format("GPUSTAT -> 0x{:08X}", gpuStatusRegister));
+        LOGT_GPU(std::format("GPUSTAT -> 0x{:08X}", gpuStatusRegister));
 
         return gpuStatusRegister;
 

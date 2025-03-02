@@ -52,7 +52,7 @@ template <>
 void DMA::write(uint32_t address, uint32_t value) {
     assert ((address >= 0x1F801080) && (address <= 0x1F8010FF));
 
-    LOG_DMA_WRITE(std::format("write 0x{:08X} -> @0x{:08X}", value, address));
+    LOGT_DMA(std::format("write 0x{:08X} -> @0x{:08X}", value, address));
 
     if ((address & 0xFFFFFFF0) == 0x1F8010F0) { // 0x1F8010Fx: DPCR or DICR
         if (address == 0x1F8010F0) {
@@ -104,7 +104,7 @@ template <>
 uint32_t DMA::read(uint32_t address) {
     assert ((address >= 0x1F801080) && (address <= 0x1F8010FF));
 
-    LOG_DMA_WRITE(std::format("read @0x{:08X}", address));
+    LOGT_DMA(std::format("read @0x{:08X}", address));
 
     if ((address & 0xFFFFFFF0) == 0x1F8010F0) { // 0x1F8010Fx: DPCR or DICR
         if (address == 0x1F8010F0) {
@@ -303,7 +303,7 @@ void DMA::transferToGPU() {
                 }
 
                 uint32_t word = bus->read<uint32_t>(address);
-                LOG_DMA_IO(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
+                LOGT_DMA(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
                                        word));
                 bus->gpu.receiveGP0Data(word);
             }
@@ -349,7 +349,7 @@ void DMA::transferToGPU() {
             uint32_t previousAddress = address; // to update base address register
             for (uint32_t j = 0; j < blockSize; ++j) {
                 uint32_t word = bus->read<uint32_t>(address);
-                LOG_DMA_IO(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
+                LOGT_DMA(std::format("Channel 2 (GPU) transfer: sending 0x{:08X}",
                                        word));
 
                 bus->gpu.receiveGP0Data(word);
@@ -395,7 +395,7 @@ void DMA::transferFromGPU() {
 void DMA::updateControlRegister(uint32_t value) {
     dmaControlRegister = value;
 
-    LOG_DMA_WRITE(std::format("DPCR updated: {:s}", getDPCRExplanation()));
+    LOGV_DMA(std::format("DPCR updated: {:s}", getDPCRExplanation()));
 
     handlePendingTransfers();
 }
@@ -424,7 +424,7 @@ void DMA::updateInterruptRegister(uint32_t value) {
         bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_DMA);
     }
 
-    LOG_DMA_WRITE(std::format("DICR updated: {:s}", getDICRExplanation()));
+    LOGV_DMA(std::format("DICR updated: {:s}", getDICRExplanation()));
 }
 
 void DMA::processDICRUpdate() {
