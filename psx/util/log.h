@@ -2,6 +2,8 @@
 #define UTIL_LOG_H
 
 #include <chrono>
+#include <fstream>
+#include <memory>
 #include <ostream>
 #include <string>
 
@@ -9,70 +11,111 @@ namespace util {
 
 class Log {
 public:
-    Log(const std::string &descriptor, bool enabled);
-    bool isEnabled() const;
-    void setEnabled(bool enabled);
-    void disableLineBreaks();
-
     static bool loggingEnabled;
-    static std::chrono::time_point<std::chrono::steady_clock> programStart;
 
 protected:
-    const std::string descriptor;
-    bool lineBreaks;
-    bool justPrintedLineBreak;
+    static std::chrono::time_point<std::chrono::steady_clock> programStart;
+
+public:
+    Log(bool enabled);
+    bool isEnabled() const;
+    void setEnabled(bool enabled);
+
+    virtual bool print(const std::string &message, int verbosityLevel = 0) = 0;
+
+protected:
     bool enabled;
 };
 
-class ConsoleLog : public Log {
+class OStreamLog : public Log {
+public:
+    OStreamLog(std::ostream &os, const std::string &descriptor, bool enabled);
+    bool print(const std::string &message, int verbosityLevel) override;
+
+private:
+    std::ostream &os;
+
+    const std::string descriptor;
+};
+
+class ConsoleLog : public OStreamLog {
 public:
     ConsoleLog(const std::string &descriptor, bool enabled);
-    bool print(const std::string &message);
+    bool print(const std::string &message, int verbosityLevel) override;
 
-    std::ostream *os;
+    void setVerbosityLevel(int verbosityLevel);
+
+private:
+    int verbosityLevel;
 };
 
-struct ConsoleLogPack {
-    ConsoleLogPack();
+//    void disableAutoLineBreaks();
+//    void produceLineBreak();
 
-    ConsoleLog bus;
-    ConsoleLog cpu;
-    ConsoleLog cdrom;
-    ConsoleLog cp0RegisterRead;
-    ConsoleLog cp0RegisterWrite;
-    ConsoleLog dma;
-    ConsoleLog dmaWrite;
-    ConsoleLog dmaIO;
-    ConsoleLog exception;
-    ConsoleLog exceptionVerbose;
-    ConsoleLog gpu;
-    ConsoleLog gpuIO;
-    ConsoleLog gpuVBLANK;
-    ConsoleLog gpuVRAM;
-    ConsoleLog gte;
-    ConsoleLog gteVerbose;
-    ConsoleLog instructions;
-    ConsoleLog interrupts;
-    ConsoleLog interruptsIO;
-    ConsoleLog interruptsVerbose;
-    ConsoleLog mdec;
-    ConsoleLog memory;
-    ConsoleLog misc;
-    ConsoleLog peripheral;
-    ConsoleLog registerRead;
-    ConsoleLog registerWrite;
-    ConsoleLog registerPCRead;
-    ConsoleLog registerPCWrite;
-    ConsoleLog renderer;
-    ConsoleLog rendererVRAM;
-    ConsoleLog spu;
-    ConsoleLog timers;
-    ConsoleLog warning;
+class FileTrace : public OStreamLog {
+private:
+    static std::ofstream logFile;
+
+public:
+    FileTrace(const std::string &descriptor, bool enabled);
 };
 
-extern ConsoleLogPack consoleLogPack;
+class ThreeWayLog : public Log {
+public:
+    ThreeWayLog(const std::string &descriptor, bool enabled);
+    bool print(const std::string &message, int verbosityLevel = 0) override;
 
-#define MACRO_LOG(log) consoleLogPack.log.isEnabled() && consoleLogPack.log.print
+    void installAdditionalLog(std::shared_ptr<Log> log);
+
+private:
+    ConsoleLog consoleLog;
+    FileTrace fileTrace;
+
+    std::shared_ptr<Log> additionalLog;
+};
+
+
+struct LogPack {
+    LogPack();
+
+    ThreeWayLog bus;
+    ThreeWayLog cpu;
+    ThreeWayLog cdrom;
+    ThreeWayLog cp0RegisterRead;
+    ThreeWayLog cp0RegisterWrite;
+    ThreeWayLog dma;
+    ThreeWayLog dmaWrite;
+    ThreeWayLog dmaIO;
+    ThreeWayLog exception;
+    ThreeWayLog exceptionVerbose;
+    ThreeWayLog gpu;
+    ThreeWayLog gpuIO;
+    ThreeWayLog gpuVBLANK;
+    ThreeWayLog gpuVRAM;
+    ThreeWayLog gte;
+    ThreeWayLog gteVerbose;
+    ThreeWayLog instructions;
+    ThreeWayLog interrupts;
+    ThreeWayLog interruptsIO;
+    ThreeWayLog interruptsVerbose;
+    ThreeWayLog mdec;
+    ThreeWayLog memory;
+    ThreeWayLog misc;
+    ThreeWayLog peripheral;
+    ThreeWayLog registerRead;
+    ThreeWayLog registerWrite;
+    ThreeWayLog registerPCRead;
+    ThreeWayLog registerPCWrite;
+    ThreeWayLog renderer;
+    ThreeWayLog rendererVRAM;
+    ThreeWayLog spu;
+    ThreeWayLog timers;
+    ThreeWayLog warning;
+};
+
+extern LogPack logPack;
+
+#define MACRO_LOG(log) logPack.log.isEnabled() && logPack.log.print
 
 #define LOG_BUS             MACRO_LOG(bus)
 #define LOG_CPU             MACRO_LOG(cpu)

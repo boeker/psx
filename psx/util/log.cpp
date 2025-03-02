@@ -7,8 +7,10 @@ namespace util {
 bool Log::loggingEnabled = true;
 std::chrono::time_point<std::chrono::steady_clock> Log::programStart = std::chrono::steady_clock::now();
 
-Log::Log(const std::string &descriptor, bool enabled)
-    : descriptor(descriptor), lineBreaks(true), justPrintedLineBreak(true), enabled(enabled) {
+std::ofstream FileTrace::logFile("trace.txt");
+
+Log::Log(bool enabled)
+    : enabled(enabled) {
 }
 
 bool Log::isEnabled() const {
@@ -19,41 +21,86 @@ void Log::setEnabled(bool enabled) {
     this->enabled = enabled;
 }
 
-void Log::disableLineBreaks() {
-    this->lineBreaks = false;
-}
-ConsoleLog::ConsoleLog(const std::string &descriptor, bool enabled)
-    : Log(descriptor, enabled),
-      os(&std::clog) {
+OStreamLog::OStreamLog(std::ostream &os, const std::string &descriptor, bool enabled)
+    : Log(enabled),
+      os(os) {
 }
 
-bool ConsoleLog::print(const std::string &message) {
-    if (justPrintedLineBreak) {
-        auto diff = std::chrono::steady_clock::now() - programStart;
-        *os << std::format("{:%S} [{:s}] ", std::chrono::duration_cast<std::chrono::milliseconds>(diff), descriptor);
-        justPrintedLineBreak = false;
-    }
-
-    *os << message;
-
-    if (lineBreaks) {
-        *os << "\n";
-        justPrintedLineBreak = true;
-
-    } else {
-        if (message.find('\n') != std::string::npos) {
-            justPrintedLineBreak = true;
-        }
-    }
-
-    *os << std::flush;
+bool OStreamLog::print(const std::string &message, int /*verbosityLevel*/) {
+    auto diff = std::chrono::steady_clock::now() - programStart;
+    auto durationMS = std::chrono::duration_cast<std::chrono::milliseconds>(diff);
+    os << std::format("{:%S} [{:s}] {:s}", durationMS, descriptor, message);
 
     return false;
 }
 
-ConsoleLogPack consoleLogPack;
+ConsoleLog::ConsoleLog(const std::string &descriptor, bool enabled)
+    : OStreamLog(std::clog, descriptor, enabled) {
+}
 
-ConsoleLogPack::ConsoleLogPack()
+bool ConsoleLog::print(const std::string &message, int verbosityLevel) {
+    if (verbosityLevel <= this->verbosityLevel) {
+        OStreamLog::print(message, verbosityLevel);
+    }
+
+    return false;
+}
+
+//bool ConsoleLog::print(const std::string &message) {
+//    if (justPrintedLineBreak) {
+//        auto diff = std::chrono::steady_clock::now() - programStart;
+//        *os << std::format("{:%S} [{:s}] ", std::chrono::duration_cast<std::chrono::milliseconds>(diff), descriptor);
+//        justPrintedLineBreak = false;
+//    }
+//
+//    *os << message;
+//
+//    if (lineBreaks) {
+//        *os << "\n";
+//        justPrintedLineBreak = true;
+//
+//    } else {
+//        if (message.find('\n') != std::string::npos) {
+//            justPrintedLineBreak = true;
+//        }
+//    }
+//
+//    *os << std::flush;
+//
+//    return false;
+//}
+
+void ConsoleLog::setVerbosityLevel(int verbosityLevel) {
+    this->verbosityLevel = verbosityLevel;
+}
+
+FileTrace::FileTrace(const std::string &descriptor, bool enabled)
+    : OStreamLog(logFile, descriptor, enabled) {
+}
+
+ThreeWayLog::ThreeWayLog(const std::string &descriptor, bool enabled)
+    : Log(enabled),
+      consoleLog(descriptor, enabled),
+      fileTrace(descriptor, enabled) {
+}
+
+bool ThreeWayLog::print(const std::string &message, int verbosityLevel) {
+    consoleLog.print(message, verbosityLevel);
+    fileTrace.print(message, verbosityLevel);
+    if (additionalLog) {
+        additionalLog->print(message, verbosityLevel);
+    }
+
+    return false;
+}
+
+void ThreeWayLog::installAdditionalLog(std::shared_ptr<Log> log) {
+    additionalLog = log;
+}
+
+LogPack logPack;
+
+LogPack::LogPack()
     : bus("BUS", false),
       cpu("CPU", false),
       cdrom("CDROM", true),
@@ -87,17 +134,17 @@ ConsoleLogPack::ConsoleLogPack()
       spu("SPU", false),
       timers("TMR", false),
       warning("WRN", true) {
-    bus.disableLineBreaks();
-    cpu.disableLineBreaks();
-    cp0RegisterRead.disableLineBreaks();
-    cp0RegisterWrite.disableLineBreaks();
-    instructions.disableLineBreaks();
-    memory.disableLineBreaks();
-    misc.disableLineBreaks();
-    registerRead.disableLineBreaks();
-    registerWrite.disableLineBreaks();
-    registerPCRead.disableLineBreaks();
-    registerPCWrite.disableLineBreaks();
+    //bus.disableLineBreaks();
+    //cpu.disableLineBreaks();
+    //cp0RegisterRead.disableLineBreaks();
+    //cp0RegisterWrite.disableLineBreaks();
+    //instructions.disableLineBreaks();
+    //memory.disableLineBreaks();
+    //misc.disableLineBreaks();
+    //registerRead.disableLineBreaks();
+    //registerWrite.disableLineBreaks();
+    //registerPCRead.disableLineBreaks();
+    //registerPCWrite.disableLineBreaks();
 }
 
 }

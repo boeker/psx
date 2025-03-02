@@ -9,6 +9,8 @@
 #include <QtWidgets/QPlainTextEdit>
 #include <QString>
 
+#include "psx/util/log.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -25,20 +27,12 @@ class Core;
 class OpenGLRenderer;
 }
 
-class LogBuffer : public QObject, public std::stringbuf {
+class PlainTextEditLog : public QObject, public util::Log {
     Q_OBJECT
-public:
-    LogBuffer(QPlainTextEdit *plainTextEdit)
-    : plainTextEdit(plainTextEdit) {
-    }
-    virtual int sync() {
-        std::clog << this->str();
-        QString qString = QString::fromStdString(this->str());
 
-        emit logString(qString.left(qString.length() - 1));
-        this->str("");
-        return 0;
-    };
+public:
+    PlainTextEditLog(QPlainTextEdit *plainTextEdit);
+    bool print(const std::string &message, int verbosityLevel) override;
 
 signals:
     void logString(QString string);
@@ -46,6 +40,29 @@ signals:
 private:
     QPlainTextEdit *plainTextEdit;
 };
+
+//class LogBuffer : public QObject, public std::stringbuf {
+//    Q_OBJECT
+//
+//public:
+//    LogBuffer(QPlainTextEdit *plainTextEdit)
+//    : plainTextEdit(plainTextEdit) {
+//    }
+//    virtual int sync() {
+//        std::clog << this->str();
+//        QString qString = QString::fromStdString(this->str());
+//
+//        emit logString(qString.left(qString.length() - 1));
+//        this->str("");
+//        return 0;
+//    };
+//
+//signals:
+//    void logString(QString string);
+//
+//private:
+//    QPlainTextEdit *plainTextEdit;
+//};
 
 class MainWindow : public QMainWindow {
     Q_OBJECT

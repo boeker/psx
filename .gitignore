@@ -49,6 +49,7 @@ BIOS
 *.pdb
 /traces
 /trace
+/trace.txt
 
 # Kernel Module Compile Results
 *.mod*

@@ -10,7 +10,18 @@
 #include "vramviewerwindow.h"
 
 #include "psx/core.h"
-#include "psx/util/log.h"
+
+PlainTextEditLog::PlainTextEditLog(QPlainTextEdit *plainTextEdit)
+    : Log(true),
+      plainTextEdit(plainTextEdit) {
+}
+
+bool PlainTextEditLog::print(const std::string &message, int verbosityLevel) {
+        QString qString = QString::fromStdString(message);
+        emit logString(qString);
+
+        return false;
+}
 
 MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     : QMainWindow(parent),
@@ -56,10 +67,13 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     vramViewerWindow = new VRAMViewerWindow(this, core);
 
     // Logging
-    LogBuffer *buffer = new LogBuffer(ui->plainTextEditLog);
-    std::ostream *stream = new std::ostream(buffer);
-    util::consoleLogPack.gpu.os = stream;
-    connect(buffer, &LogBuffer::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
+    //LogBuffer *buffer = new LogBuffer(ui->plainTextEditLog);
+    //std::ostream *stream = new std::ostream(buffer);
+    //util::consoleLogPack.gpu.os = stream;
+    std::shared_ptr<PlainTextEditLog> testLog = std::make_shared<PlainTextEditLog>(ui->plainTextEditLog);
+    util::logPack.gpu.installAdditionalLog(testLog);
+    //connect(buffer, &LogBuffer::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
+    connect(testLog.get(), &PlainTextEditLog::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
 
     // Connections
     makeConnections();
