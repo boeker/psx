@@ -10,6 +10,7 @@
 #include "vramviewerwindow.h"
 
 #include "psx/core.h"
+#include "psx/util/log.h"
 
 PlainTextEditLog::PlainTextEditLog(QPlainTextEdit *plainTextEdit)
     : Log(true),
@@ -71,7 +72,7 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     //std::ostream *stream = new std::ostream(buffer);
     //util::consoleLogPack.gpu.os = stream;
     std::shared_ptr<PlainTextEditLog> testLog = std::make_shared<PlainTextEditLog>(ui->plainTextEditLog);
-    util::logPack.gpu.installAdditionalLog(testLog);
+    util::logPack.misc.installAdditionalLog(testLog);
     //connect(buffer, &LogBuffer::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
     connect(testLog.get(), &PlainTextEditLog::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
 
@@ -131,7 +132,7 @@ void MainWindow::startPauseEmulation() {
 }
 
 void MainWindow::continueEmulation() {
-    qDebug() << "Starting emulation";
+    LOG_MISC("Starting emulation");
     ui->actionToolbarStart->setText("Pause");
     ui->actionToolbarStop->setEnabled(true);
 
@@ -164,7 +165,7 @@ void MainWindow::stopEmulation() {
         running = false;
 
         emuThread->getOpenGLWindow()->hide();
-        qDebug() << "Stopped emulation";
+        LOG_MISC("Stopped emulation");
     }
 }
 

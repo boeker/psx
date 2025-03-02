@@ -10,9 +10,6 @@
 namespace util {
 
 class Log {
-public:
-    static bool loggingEnabled;
-
 protected:
     static std::chrono::time_point<std::chrono::steady_clock> programStart;
 
@@ -34,7 +31,6 @@ public:
 
 private:
     std::ostream &os;
-
     const std::string descriptor;
 };
 
@@ -44,17 +40,17 @@ public:
 };
 
 class FileLog : public OStreamLog {
-private:
-    static std::ofstream logFile;
-
 public:
     FileLog(const std::string &descriptor, bool enabled);
+    static std::ofstream logFile;
 };
 
 class ThreeWayLog {
 public:
     ThreeWayLog(const std::string &descriptor, bool enabled);
     bool isEnabled() const;
+    void setFileLogEnabled(bool enabled);
+    void setConsoleLogEnabled(bool enabled);
 
     bool print(const std::string &message);
 
@@ -87,11 +83,13 @@ struct LogPack {
     DECLARE_TWL(spu);
     DECLARE_TWL(timers);
     DECLARE_TWL(warning);
+
+    void enableAllFileLogging();
 };
 
 extern LogPack logPack;
 
-#define MACRO_LOG(log) logPack.log.isEnabled() && logPack.log.print
+#define MACRO_LOG(log) util::logPack.log.isEnabled() && util::logPack.log.print
 
 #define LOG_BUS             MACRO_LOG(bus)
 #define LOGV_BUS            MACRO_LOG(busV)

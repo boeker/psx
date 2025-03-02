@@ -2,9 +2,10 @@
 
 #include <glad/glad.h>
 #include <QOpenGLContext>
-#include <QDebug>
 
 #include <iostream>
+
+#include "psx/util/log.h"
 
 QOpenGLContext *OpenGLWindow::currentContext = nullptr;
 
@@ -80,20 +81,20 @@ void OpenGLWindow::closeEvent(QCloseEvent *event) {
 }
 
 void OpenGLWindow::createContext() {
-    qDebug() << "Creating OpenGL context";
+    LOG_MISC("Creating OpenGL context");
     context = new QOpenGLContext(this);
     context->setFormat(requestedFormat());
     context->create();
     context->makeCurrent(this);
 
-    qDebug() << "Initializing GLAD";
+    LOG_MISC("Initializing GLAD");
     currentContext = context;
     auto getProcAddress = [](const char *name) -> QFunctionPointer {
         return currentContext->getProcAddress(name);
     };
 
     if (!gladLoadGLLoader((GLADloadproc)+getProcAddress)) {
-        qDebug() << "Failed to initialize GLAD";
+        LOG_MISC("Failed to initialize GLAD");
     }
 }
 

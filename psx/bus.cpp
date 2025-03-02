@@ -193,7 +193,7 @@ void Bus::write (uint32_t address, T value) {
         //    LOG_GPU("~Dual Serial Port~");
         //}
         if (address == 0x1F802041) {
-            std::cout << std::format("Boot status: 0x{:02X}", 0xFF & value) << std::endl;
+            LOG_MISC(std::format("Boot status: 0x{:02X}", 0xFF & value));
 
         } else {
             LOG_WRN(std::format("Unimplemented Expansion Region 2 write @0x{:08X}", address));
