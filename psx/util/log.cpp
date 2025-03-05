@@ -20,31 +20,29 @@ void Log::setEnabled(bool enabled) {
     this->enabled = enabled;
 }
 
-OStreamLog::OStreamLog(std::ostream &os, const std::string &descriptor, bool enabled)
+OStreamLog::OStreamLog(std::ostream &os, bool enabled)
     : Log(enabled),
-      os(os),
-      descriptor(descriptor) {
+      os(os) {
 }
 
 bool OStreamLog::print(const std::string &message) {
-    auto diff = std::chrono::steady_clock::now() - programStart;
-    auto durationMS = std::chrono::duration_cast<std::chrono::milliseconds>(diff);
-    os << std::format("{:%S} [{:s}] {:s}", durationMS, descriptor, message) << std::endl;
+    os << message << std::endl;
 
     return false;
 }
 
-ConsoleLog::ConsoleLog(const std::string &descriptor, bool enabled)
-    : OStreamLog(std::clog, descriptor, enabled) {
+ConsoleLog::ConsoleLog(bool enabled)
+    : OStreamLog(std::clog, enabled) {
 }
 
-FileLog::FileLog(const std::string &descriptor, bool enabled)
-    : OStreamLog(logFile, descriptor, enabled) {
+FileLog::FileLog(bool enabled)
+    : OStreamLog(logFile, enabled) {
 }
 
 ThreeWayLog::ThreeWayLog(const std::string &descriptor, bool enabled)
-    : fileLog(descriptor, enabled),
-      consoleLog(descriptor, enabled) {
+    : fileLog(enabled),
+      consoleLog(enabled),
+      descriptor(descriptor) {
 }
 
 bool ThreeWayLog::isEnabled() const {
@@ -62,22 +60,24 @@ void ThreeWayLog::setConsoleLogEnabled(bool enabled) {
 }
 
 bool ThreeWayLog::print(const std::string &message) {
+    std::string messageWithDescriptor = std::format("[{:s}] {:s}", descriptor, message);
+
     if (fileLog.isEnabled()) {
-        fileLog.print(message);
+        fileLog.print(messageWithDescriptor);
     }
 
     if (consoleLog.isEnabled()) {
-        consoleLog.print(message);
+        consoleLog.print(messageWithDescriptor);
     }
 
     if (additionalLog && additionalLog->isEnabled()) {
-        additionalLog->print(message);
+        additionalLog->print(messageWithDescriptor);
     }
 
     return false;
 }
 
-void ThreeWayLog::installAdditionalLog(std::shared_ptr<Log> log) {
+void ThreeWayLog::installAdditionalLog(const std::shared_ptr<Log> &log) {
     additionalLog = log;
 }
 
@@ -126,6 +126,25 @@ void LogPack::enableAllFileLogging() {
     ENABLE_TWL_FILELOG(spu);
     ENABLE_TWL_FILELOG(timers);
     ENABLE_TWL_FILELOG(warning);
+}
+
+void LogPack::installAdditionalLog(const std::shared_ptr<Log> &log) {
+    bus.installAdditionalLog(log);
+    cdrom.installAdditionalLog(log);
+    cpu.installAdditionalLog(log);
+    dma.installAdditionalLog(log);
+    exceptions.installAdditionalLog(log);
+    gpu.installAdditionalLog(log);
+    gte.installAdditionalLog(log);
+    interrupts.installAdditionalLog(log);
+    mdec.installAdditionalLog(log);
+    memory.installAdditionalLog(log);
+    misc.installAdditionalLog(log);
+    peripheral.installAdditionalLog(log);
+    renderer.installAdditionalLog(log);
+    spu.installAdditionalLog(log);
+    timers.installAdditionalLog(log);
+    warning.installAdditionalLog(log);
 }
 
 }

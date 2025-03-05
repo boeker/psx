@@ -26,22 +26,21 @@ protected:
 
 class OStreamLog : public Log {
 public:
-    OStreamLog(std::ostream &os, const std::string &descriptor, bool enabled);
+    OStreamLog(std::ostream &os, bool enabled);
     bool print(const std::string &message) override;
 
 private:
     std::ostream &os;
-    const std::string descriptor;
 };
 
 class ConsoleLog : public OStreamLog {
 public:
-    ConsoleLog(const std::string &descriptor, bool enabled);
+    ConsoleLog(bool enabled);
 };
 
 class FileLog : public OStreamLog {
 public:
-    FileLog(const std::string &descriptor, bool enabled);
+    FileLog(bool enabled);
     static std::ofstream logFile;
 };
 
@@ -54,12 +53,14 @@ public:
 
     bool print(const std::string &message);
 
-    void installAdditionalLog(std::shared_ptr<Log> log);
+    void installAdditionalLog(const std::shared_ptr<Log> &log);
 
 private:
     FileLog fileLog;
     ConsoleLog consoleLog;
     std::shared_ptr<Log> additionalLog;
+
+    const std::string descriptor;
 };
 
 #define DECLARE_TWL(name) ThreeWayLog name, name##V, name##T
@@ -85,6 +86,7 @@ struct LogPack {
     DECLARE_TWL(warning);
 
     void enableAllFileLogging();
+    void installAdditionalLog(const std::shared_ptr<Log> &log);
 };
 
 extern LogPack logPack;

@@ -36,33 +36,11 @@ public:
 
 signals:
     void logString(QString string);
+    void moveScrollBar(int value);
 
 private:
     QPlainTextEdit *plainTextEdit;
 };
-
-//class LogBuffer : public QObject, public std::stringbuf {
-//    Q_OBJECT
-//
-//public:
-//    LogBuffer(QPlainTextEdit *plainTextEdit)
-//    : plainTextEdit(plainTextEdit) {
-//    }
-//    virtual int sync() {
-//        std::clog << this->str();
-//        QString qString = QString::fromStdString(this->str());
-//
-//        emit logString(qString.left(qString.length() - 1));
-//        this->str("");
-//        return 0;
-//    };
-//
-//signals:
-//    void logString(QString string);
-//
-//private:
-//    QPlainTextEdit *plainTextEdit;
-//};
 
 class MainWindow : public QMainWindow {
     Q_OBJECT

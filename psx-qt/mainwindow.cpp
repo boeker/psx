@@ -1,9 +1,11 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <limits>
 #include <QDir>
 #include <QFileSystemModel>
 #include <QOpenGLContext>
+#include <QScrollBar>
 
 #include "emuthread.h"
 #include "openglwindow.h"
@@ -20,6 +22,7 @@ PlainTextEditLog::PlainTextEditLog(QPlainTextEdit *plainTextEdit)
 bool PlainTextEditLog::print(const std::string &message) {
         QString qString = QString::fromStdString(message);
         emit logString(qString);
+        emit moveScrollBar(std::numeric_limits<int>::max());
 
         return false;
 }
@@ -68,16 +71,15 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     vramViewerWindow = new VRAMViewerWindow(this, core);
 
     // Logging
-    //LogBuffer *buffer = new LogBuffer(ui->plainTextEditLog);
-    //std::ostream *stream = new std::ostream(buffer);
-    //util::consoleLogPack.gpu.os = stream;
-    std::shared_ptr<PlainTextEditLog> testLog = std::make_shared<PlainTextEditLog>(ui->plainTextEditLog);
-    util::logPack.misc.installAdditionalLog(testLog);
-    //connect(buffer, &LogBuffer::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
-    connect(testLog.get(), &PlainTextEditLog::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
+    std::shared_ptr<PlainTextEditLog> plainTextEditLog = std::make_shared<PlainTextEditLog>(ui->plainTextEditLog);
+    connect(plainTextEditLog.get(), &PlainTextEditLog::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
+    connect(plainTextEditLog.get(), &PlainTextEditLog::moveScrollBar, ui->plainTextEditLog->verticalScrollBar(), &QScrollBar::setValue);
+    util::logPack.installAdditionalLog(plainTextEditLog);
 
     // Connections
     makeConnections();
+
+    LOG_MISC("Application startup");
 }
 
 MainWindow::~MainWindow() {
@@ -127,6 +129,7 @@ void MainWindow::startPauseEmulation() {
         continueEmulation();
 
     } else {
+        LOG_MISC("Pausing emulation");
         pauseEmulation();
     }
 }

@@ -19,78 +19,13 @@
      <widget class="QTreeView" name="treeView"/>
     </item>
     <item>
-     <widget class="QTabWidget" name="tabWidget">
-      <property name="currentIndex">
-       <number>0</number>
+     <widget class="QPlainTextEdit" name="plainTextEditLog">
+      <property name="readOnly">
+       <bool>true</bool>
       </property>
-      <widget class="QWidget" name="tabLog">
-       <attribute name="title">
-        <string>General</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <item>
-         <widget class="QPlainTextEdit" name="plainTextEditLog">
-          <property name="readOnly">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="tabCDROM">
-       <attribute name="title">
-        <string>CD-ROM</string>
-       </attribute>
-      </widget>
-      <widget class="QWidget" name="tabCPU">
-       <attribute name="title">
-        <string>CPU</string>
-       </attribute>
-      </widget>
-      <widget class="QWidget" name="tabDMA">
-       <attribute name="title">
-        <string>DMA</string>
-       </attribute>
-      </widget>
-      <widget class="QWidget" name="tabExceptions">
-       <attribute name="title">
-        <string>Exceptions</string>
-       </attribute>
-      </widget>
-      <widget class="QWidget" name="tabLogGPU">
-       <attribute name="title">
-        <string>GPU</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
-        <item>
-         <widget class="QPlainTextEdit" name="plainTextEditLogGPU">
-          <property name="readOnly">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="tabRenderer">
-       <attribute name="title">
-        <string>Renderer</string>
-       </attribute>
-      </widget>
-      <widget class="QWidget" name="tabGTE">
-       <attribute name="title">
-        <string>GTE</string>
-       </attribute>
-      </widget>
-      <widget class="QWidget" name="tabSPU">
-       <attribute name="title">
-        <string>SPU</string>
-       </attribute>
-      </widget>
-      <widget class="QWidget" name="tabTimers">
-       <attribute name="title">
-        <string>Timers</string>
-       </attribute>
-      </widget>
+      <property name="centerOnScroll">
+       <bool>false</bool>
+      </property>
      </widget>
     </item>
    </layout>

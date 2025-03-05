@@ -48,7 +48,7 @@ Bus::~Bus() {
 
 template <typename T>
 T Bus::read(uint32_t address) {
-    LOG_BUS(std::format(" [@0x{:08X} -> ", address));
+    LOGT_BUS(std::format(" [@0x{:08X} -> ", address));
     T value = 0;
 
     if ((address & 0x1FE00000) == 0x00000000) { // Main RAM
@@ -122,7 +122,7 @@ T Bus::read(uint32_t address) {
         throw exceptions::AddressOutOfBounds(std::format("Read @0x{:08X}", address));
     }
 
-    LOG_BUS(std::format("0x{:0{}X}]", value, 2*sizeof(T)));
+    LOGT_BUS(std::format("0x{:0{}X}]", value, 2*sizeof(T)));
     return value;
 }
 
@@ -132,7 +132,7 @@ template uint8_t Bus::read<uint8_t>(uint32_t address);
 
 template <typename T>
 void Bus::write (uint32_t address, T value) {
-    LOG_BUS(std::format(" [0x{:0{}X} -> @0x{:08X}]", value, 2*sizeof(T), address));
+    LOGT_BUS(std::format(" [0x{:0{}X} -> @0x{:08X}]", value, 2*sizeof(T), address));
 
     if ((address & 0x1FE00000) == 0x00000000) { // Main RAM
         if (cpu.cp0regs.statusRegisterIsolateCacheIsSet()) {
