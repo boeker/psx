@@ -26,11 +26,11 @@ QOpenGLContext* OpenGLWindow::getContext() {
 }
 
 int OpenGLWindow::getHeight() {
-    return height();
+    return devicePixelRatio() * height();
 }
 
 int OpenGLWindow::getWidth() {
-    return width();
+    return devicePixelRatio() * width();
 }
 
 void OpenGLWindow::setUpViewport() {
@@ -51,9 +51,9 @@ void OpenGLWindow::setUpViewport() {
 }
 
 void OpenGLWindow::swapBuffers() {
-    if (resizeRequested.load()) {
-        setUpViewport();
-    }
+    //if (resizeRequested.load()) {
+    //    setUpViewport();
+    //}
 
     context->swapBuffers(this);
 }
