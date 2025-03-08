@@ -34,6 +34,7 @@ private:
     Screen *screen;
     uint8_t *vram;
 
+    Shader *shader;
     unsigned int program;
     unsigned int vbo;
     unsigned int vao;

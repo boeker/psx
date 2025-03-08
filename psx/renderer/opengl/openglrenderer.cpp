@@ -14,65 +14,17 @@ using namespace util;
 
 namespace PSX {
 
-const char *vertexShaderSource = "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "layout (location = 1) in vec3 aColor;\n"
-    "out vec3 ourColor;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "   ourColor = aColor;\n"
-    "}\0";
-const char *fragmentShaderSource = "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "in vec3 ourColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = vec4(ourColor, 1.0f);\n"
-    "}\n\0";
-
 OpenGLRenderer::OpenGLRenderer(Screen *screen)
     : screen(screen) {
 
     vram = new uint8_t[VRAM_SIZE];
 
-    // vertex shader
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
-    glCompileShader(vertexShader);
+    glCheckError();
 
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
-        LOG_WRN(std::format("Vertex shader compilation failed: {:s}", infoLog));
-    }
+    shader = new Shader("shaders/color.vs", "shaders/color.fs");
+    shader->use();
 
-    // fragment shader
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
-    glCompileShader(fragmentShader);
-
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
-        LOG_WRN(std::format("Fragment shader compilation failed: {:s}", infoLog));
-    }
-
-    // link shaders
-    program = glCreateProgram();
-    glAttachShader(program, vertexShader);
-    glAttachShader(program, fragmentShader);
-    glLinkProgram(program);
-
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(program, 512, nullptr, infoLog);
-        LOG_WRN(std::format("Program linking failed: {:s}", infoLog));
-    }
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    glCheckError();
 
     // vertex array object and vertex buffer object
     glGenVertexArrays(1, &vao);
@@ -209,7 +161,6 @@ OpenGLRenderer::~OpenGLRenderer() {
 
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
-    glDeleteProgram(program);
 }
 
 void OpenGLRenderer::reset() {
@@ -288,7 +239,7 @@ void OpenGLRenderer::drawTriangle(const Triangle &t) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
-    glUseProgram(program);
+    shader->use();
     glBindVertexArray(vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
