@@ -32,19 +32,25 @@ OpenGLRenderer::OpenGLRenderer(Screen *screen)
     glBindVertexArray(vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    float vertices[] =  {
-        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    //float vertices[] =  {
+    //    -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    //    1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    //    1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    //};
+    int vertices[] =  {
+        0, 100,  0, 255, 250, 100,
+        100, 0,  0, 255, 250, 0,
+        100, 100,  0, 255, 250, 0
     };
+
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(int), (void*)0);
     glEnableVertexAttribArray(0);
     // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(int), (void*)(3* sizeof(int)));
     glEnableVertexAttribArray(1);
 
 
@@ -105,9 +111,11 @@ OpenGLRenderer::OpenGLRenderer(Screen *screen)
 
     glGenVertexArrays(1, &quadVAO);
     glGenBuffers(1, &quadVBO);
+
     glBindVertexArray(quadVAO);
     glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
@@ -154,6 +162,9 @@ OpenGLRenderer::OpenGLRenderer(Screen *screen)
     // texture coordinates
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3* sizeof(float)));
     glEnableVertexAttribArray(1);
+
+    // wireframe mode
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
 OpenGLRenderer::~OpenGLRenderer() {
@@ -211,8 +222,8 @@ void OpenGLRenderer::swapBuffers() {
     // blit vram framebuffer to default framebuffer
     glBindFramebuffer(GL_READ_FRAMEBUFFER, vramFramebuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    //glBlitFramebuffer(0, 0, 1024, 512,
-    glBlitFramebuffer(0, 0, 640, 480,
+    glBlitFramebuffer(0, 0, 1024, 512,
+    //glBlitFramebuffer(0, 0, 640, 480,
                       //viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight,
                       viewportX, viewportY + viewportHeight, viewportX + viewportWidth, viewportY, // flip texture along y-axis
                       GL_COLOR_BUFFER_BIT, GL_NEAREST);
@@ -230,12 +241,11 @@ void OpenGLRenderer::drawTriangle(const Triangle &t) {
     glViewport(0, 0, 640, 480);
     glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
 
-    float vertices[] =  {
-        t.v1.x/320.0f - 1.0f, t.v1.y/240.0f - 1.0f, 0.0f, t.c1.r/255.0f, t.c1.g/255.0f, t.c1.b/255.0f,
-        t.v2.x/320.0f - 1.0f, t.v2.y/240.0f - 1.0f, 0.0f, t.c2.r/255.0f, t.c2.g/255.0f, t.c2.b/255.0f,
-        t.v3.x/320.0f - 1.0f, t.v3.y/240.0f - 1.0f, 0.0f, t.c3.r/255.0f, t.c3.g/255.0f, t.c3.b/255.0f
+    int vertices[] =  {
+        t.v1.x, t.v1.y, 0, t.c1.r, t.c1.g, t.c1.b,
+        t.v2.x, t.v2.y, 0, t.c2.r, t.c2.g, t.c2.b,
+        t.v3.x, t.v3.y, 0, t.c3.r, t.c3.g, t.c3.b
     };
-
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
