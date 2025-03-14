@@ -37,20 +37,20 @@ OpenGLRenderer::OpenGLRenderer(Screen *screen)
     //    1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
     //    1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f
     //};
-    int vertices[] =  {
-        0, 100,  0, 255, 250, 100,
-        100, 0,  0, 255, 250, 0,
-        100, 100,  0, 255, 250, 0
-    };
+    //int vertices[] =  {
+    //    0, 100,  255, 250, 100,
+    //    100, 0,  255, 250, 0,
+    //    100, 100,  255, 250, 0
+    //};
 
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(int), (void*)0);
+    glVertexAttribPointer(0, 2, GL_INT, GL_FALSE, 5 * sizeof(int), (void*)0);
     glEnableVertexAttribArray(0);
     // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(int), (void*)(3* sizeof(int)));
+    glVertexAttribPointer(1, 3, GL_INT, GL_FALSE, 5 * sizeof(int), (void*)(2* sizeof(int)));
     glEnableVertexAttribArray(1);
 
 
@@ -242,12 +242,12 @@ void OpenGLRenderer::drawTriangle(const Triangle &t) {
     glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
 
     int vertices[] =  {
-        t.v1.x, t.v1.y, 0, t.c1.r, t.c1.g, t.c1.b,
-        t.v2.x, t.v2.y, 0, t.c2.r, t.c2.g, t.c2.b,
-        t.v3.x, t.v3.y, 0, t.c3.r, t.c3.g, t.c3.b
+        t.v1.x, t.v1.y, t.c1.r, t.c1.g, t.c1.b,
+        t.v2.x, t.v2.y, t.c2.r, t.c2.g, t.c2.b,
+        t.v3.x, t.v3.y, t.c3.r, t.c3.g, t.c3.b
     };
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_DYNAMIC_DRAW);
 
     shader->use();
     glBindVertexArray(vao);
@@ -322,6 +322,16 @@ void OpenGLRenderer::writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_
 
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+}
+
+void OpenGLRenderer::setDrawingAreaTopLeft(uint32_t x, uint32_t y) {
+    shader->use();
+    shader->setIVec2("drawingAreaTopLeft", x, y);
+}
+
+void OpenGLRenderer::setDrawingAreaBottomRight(uint32_t x, uint32_t y) {
+    shader->use();
+    shader->setIVec2("drawingAreaBottomRight", x, y);
 }
 
 }

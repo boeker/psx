@@ -153,14 +153,6 @@ private:
     uint16_t verticalDisplayRangeY1; // on screen
     uint16_t verticalDisplayRangeY2; // on screen
 
-    // top left
-    uint16_t drawingAreaX1;
-    uint16_t drawingAreaY1;
-
-    // bottom right
-    uint16_t drawingAreaX2;
-    uint16_t drawingAreaY2;
-
     int32_t drawingOffsetX;
     int32_t drawingOffsetY;
 

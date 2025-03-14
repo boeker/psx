@@ -85,6 +85,9 @@ public:
     virtual uint16_t readFromVRAM(uint32_t line, uint32_t pos) = 0;
 
     virtual void writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) = 0;
+
+    virtual void setDrawingAreaTopLeft(uint32_t x, uint32_t y) = 0;
+    virtual void setDrawingAreaBottomRight(uint32_t x, uint32_t y) = 0;
 };
 
 }
