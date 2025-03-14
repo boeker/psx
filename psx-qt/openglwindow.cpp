@@ -7,22 +7,20 @@
 
 #include "psx/util/log.h"
 
-QOpenGLContext *OpenGLWindow::currentContext = nullptr;
+QOpenGLContext *OpenGLWindow::globalContext = nullptr;
 
 OpenGLWindow::OpenGLWindow(QWindow *parent)
     : QWindow(parent),
-      context(nullptr),
       resizeRequested(false) {
     setSurfaceType(QWindow::OpenGLSurface);
     show();
-    createContext();
 }
 
 OpenGLWindow::~OpenGLWindow() {
 }
 
 QOpenGLContext* OpenGLWindow::getContext() {
-    return context;
+    return globalContext;
 }
 
 int OpenGLWindow::getHeight() {
@@ -55,7 +53,13 @@ void OpenGLWindow::swapBuffers() {
     //    setUpViewport();
     //}
 
-    context->swapBuffers(this);
+    globalContext->swapBuffers(this);
+}
+
+void OpenGLWindow::makeContextCurrent() {
+    if (globalContext) {
+        globalContext->makeCurrent(this);
+    }
 }
 
 bool OpenGLWindow::event(QEvent *event) {
@@ -81,16 +85,19 @@ void OpenGLWindow::closeEvent(QCloseEvent *event) {
 }
 
 void OpenGLWindow::createContext() {
+    if (globalContext != nullptr) {
+        return;
+    }
+
     LOG_MISC("Creating OpenGL context");
-    context = new QOpenGLContext(this);
-    context->setFormat(requestedFormat());
-    context->create();
-    context->makeCurrent(this);
+    globalContext = new QOpenGLContext(this);
+    globalContext->setFormat(requestedFormat());
+    globalContext->create();
+    globalContext->makeCurrent(this);
 
     LOG_MISC("Initializing GLAD");
-    currentContext = context;
     auto getProcAddress = [](const char *name) -> QFunctionPointer {
-        return currentContext->getProcAddress(name);
+        return globalContext->getProcAddress(name);
     };
 
     if (!gladLoadGLLoader((GLADloadproc)+getProcAddress)) {

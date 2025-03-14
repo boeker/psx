@@ -38,6 +38,7 @@ private:
     void initialize();
     bool initialized;
     OpenGLWindow *openGLWindow;
+    OpenGLWindow *vramOpenGLWindow;
     PSX::OpenGLRenderer *renderer;
 
     std::atomic<bool> paused;

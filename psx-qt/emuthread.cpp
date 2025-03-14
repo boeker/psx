@@ -13,12 +13,14 @@ EmuThread::EmuThread(QObject *parent, PSX::Core *core)
       core(core),
       initialized(false),
       openGLWindow(nullptr),
+      vramOpenGLWindow(nullptr),
       paused(true) {
 }
 
 EmuThread::~EmuThread() {
     delete renderer;
     delete openGLWindow;
+    delete vramOpenGLWindow;
 }
 
 void EmuThread::pauseEmulation() {
@@ -66,11 +68,17 @@ void EmuThread::initialize() {
     openGLWindow->setFormat(format);
     openGLWindow->resize(640, 480);
 
+    openGLWindow->createContext();
+
     connect(openGLWindow, &OpenGLWindow::closed,
             this, &EmuThread::openGLWindowClosed);
 
+    vramOpenGLWindow = new OpenGLWindow();
+    vramOpenGLWindow->setFormat(format);
+    vramOpenGLWindow->resize(1024, 512);
+
     // create OpenGLRenderer
-    renderer = new PSX::OpenGLRenderer(openGLWindow);
+    renderer = new PSX::OpenGLRenderer(openGLWindow, vramOpenGLWindow);
     core->setRenderer(renderer);
 
     initialized = true;

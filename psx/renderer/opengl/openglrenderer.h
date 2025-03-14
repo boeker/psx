@@ -14,7 +14,7 @@ class Shader;
 
 class OpenGLRenderer : public Renderer {
 public:
-    OpenGLRenderer(Screen *screen);
+    OpenGLRenderer(Screen *screen, Screen *vramViewer);
     virtual ~OpenGLRenderer();
 
     void reset() override;
@@ -35,6 +35,7 @@ public:
 
 private:
     Screen *screen;
+    Screen *vramViewer;
     uint8_t *vram;
 
     Shader *shader;

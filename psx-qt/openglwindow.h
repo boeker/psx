@@ -21,6 +21,7 @@ public:
     int getWidth() override;
     void setUpViewport() override;
     void swapBuffers() override;
+    void makeContextCurrent() override;
 
 signals:
     void closed();
@@ -32,8 +33,7 @@ protected:
     void closeEvent(QCloseEvent *event) override;
 
 private:
-    QOpenGLContext *context;
-    static QOpenGLContext *currentContext;
+    static QOpenGLContext *globalContext;
 
     std::atomic<bool> resizeRequested;
 };

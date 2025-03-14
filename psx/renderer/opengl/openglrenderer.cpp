@@ -14,8 +14,8 @@ using namespace util;
 
 namespace PSX {
 
-OpenGLRenderer::OpenGLRenderer(Screen *screen)
-    : screen(screen) {
+OpenGLRenderer::OpenGLRenderer(Screen *screen, Screen *vramViewer)
+    : screen(screen), vramViewer(vramViewer) {
 
     vram = new uint8_t[VRAM_SIZE];
 
@@ -207,6 +207,9 @@ void OpenGLRenderer::swapBuffers() {
     // compute viewport coordinates from window size
     computeViewport();
 
+    // screen window
+    screen->makeContextCurrent();
+
     // set new viewport
     glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
 
@@ -222,8 +225,8 @@ void OpenGLRenderer::swapBuffers() {
     // blit vram framebuffer to default framebuffer
     glBindFramebuffer(GL_READ_FRAMEBUFFER, vramFramebuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, 1024, 512,
-    //glBlitFramebuffer(0, 0, 640, 480,
+    //glBlitFramebuffer(0, 0, 1024, 512,
+    glBlitFramebuffer(0, 0, 640, 480,
                       //viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight,
                       viewportX, viewportY + viewportHeight, viewportX + viewportWidth, viewportY, // flip texture along y-axis
                       GL_COLOR_BUFFER_BIT, GL_NEAREST);
@@ -232,7 +235,25 @@ void OpenGLRenderer::swapBuffers() {
     // swap buffers
     screen->swapBuffers();
 
+    // VRAM-viewer window
+    vramViewer->makeContextCurrent();
+
+    // set new viewport
+    glViewport(0, 0, 1024, 512);
+
+    // blit vram framebuffer to default framebuffer
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, vramFramebuffer);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, 1024, 512,
+    //glBlitFramebuffer(0, 0, 640, 480,
+                      //viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight,
+                      viewportX, viewportY + viewportHeight, viewportX + viewportWidth, viewportY, // flip texture along y-axis
+                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
     glCheckError();
+
+    // swap buffers
+    vramViewer->swapBuffers();
 }
 
 void OpenGLRenderer::drawTriangle(const Triangle &t) {
