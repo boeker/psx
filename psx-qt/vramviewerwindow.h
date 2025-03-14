@@ -13,14 +13,19 @@ namespace PSX {
 class Core;
 }
 
+class EmuThread;
+
 class VRAMViewerWindow : public QDialog {
     Q_OBJECT
 
 public:
-    explicit VRAMViewerWindow(QWidget *parent = nullptr, PSX::Core *core = nullptr);
+    explicit VRAMViewerWindow(QWidget *parent = nullptr, EmuThread *emuThread = nullptr);
     ~VRAMViewerWindow();
 
     void closeEvent(QCloseEvent *event) override;
+
+public slots:
+    void grabWindowFromEmuThread();
 
 signals:
     void closed();
@@ -28,7 +33,7 @@ signals:
 private:
     Ui::VRAMViewerWindow *ui;
 
-    PSX::Core *core;
+    EmuThread *emuThread;
 };
 
 #endif

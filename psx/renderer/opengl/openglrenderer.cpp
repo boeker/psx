@@ -174,6 +174,10 @@ OpenGLRenderer::~OpenGLRenderer() {
     glDeleteBuffers(1, &vbo);
 }
 
+void OpenGLRenderer::installVRAMViewer(Screen *vramViewer) {
+    this->vramViewer = vramViewer;
+}
+
 void OpenGLRenderer::reset() {
     std::memset(vram, 0, VRAM_SIZE);
 }
@@ -235,25 +239,26 @@ void OpenGLRenderer::swapBuffers() {
     // swap buffers
     screen->swapBuffers();
 
-    // VRAM-viewer window
-    vramViewer->makeContextCurrent();
+    if (vramViewer != nullptr) {
+        // VRAM-viewer window
+        vramViewer->makeContextCurrent();
 
-    // set new viewport
-    glViewport(0, 0, 1024, 512);
+        // set new viewport
+        glViewport(0, 0, 1024, 512);
 
-    // blit vram framebuffer to default framebuffer
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, vramFramebuffer);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, 1024, 512,
-    //glBlitFramebuffer(0, 0, 640, 480,
-                      //viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight,
-                      viewportX, viewportY + viewportHeight, viewportX + viewportWidth, viewportY, // flip texture along y-axis
-                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        // blit vram framebuffer to default framebuffer
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, vramFramebuffer);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, 1024, 512,
+                          //viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight,
+                          0, 512, 1024, 0, // flip texture along y-axis
+                          GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-    glCheckError();
+        glCheckError();
 
-    // swap buffers
-    vramViewer->swapBuffers();
+        // swap buffers
+        vramViewer->swapBuffers();
+    }
 }
 
 void OpenGLRenderer::drawTriangle(const Triangle &t) {

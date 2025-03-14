@@ -17,6 +17,8 @@ public:
     OpenGLRenderer(Screen *screen, Screen *vramViewer);
     virtual ~OpenGLRenderer();
 
+    void installVRAMViewer(Screen *vramViewer);
+
     void reset() override;
     void clear() override;
     void computeViewport();

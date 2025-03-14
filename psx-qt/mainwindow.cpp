@@ -68,7 +68,8 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     emuThread = new EmuThread(this, core);
 
     // Windows
-    vramViewerWindow = new VRAMViewerWindow(this, core);
+    vramViewerWindow = new VRAMViewerWindow(this, emuThread);
+    vramViewerWindow->show();
 
     // Logging
     std::shared_ptr<PlainTextEditLog> plainTextEditLog = std::make_shared<PlainTextEditLog>(ui->plainTextEditLog);
@@ -108,6 +109,9 @@ void MainWindow::makeConnections() {
 
     connect(emuThread, &EmuThread::emulationShouldStop,
             this, &MainWindow::stopEmulation);
+
+    connect(emuThread, &EmuThread::initializedWindows,
+            vramViewerWindow, &VRAMViewerWindow::grabWindowFromEmuThread);
 
     connect(ui->actionVRAMViewer, &QAction::toggled,
             vramViewerWindow, &QWidget::setVisible);

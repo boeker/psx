@@ -22,12 +22,14 @@ public:
     bool emulationIsPaused();
 
     OpenGLWindow* getOpenGLWindow();
+    OpenGLWindow* getVRAMWindow();
 
 public slots:
     void openGLWindowClosed();
 
 signals:
     void emulationShouldStop();
+    void initializedWindows();
 
 protected:
     void run();

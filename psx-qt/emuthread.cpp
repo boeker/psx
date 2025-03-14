@@ -35,6 +35,10 @@ OpenGLWindow* EmuThread::getOpenGLWindow() {
     return openGLWindow;
 }
 
+OpenGLWindow* EmuThread::getVRAMWindow() {
+    return vramOpenGLWindow;
+}
+
 void EmuThread::openGLWindowClosed() {
     emit emulationShouldStop();
 }
@@ -82,5 +86,7 @@ void EmuThread::initialize() {
     core->setRenderer(renderer);
 
     initialized = true;
+
+    emit initializedWindows();
 }
 
