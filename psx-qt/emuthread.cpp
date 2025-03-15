@@ -31,6 +31,10 @@ bool EmuThread::emulationIsPaused() {
     return paused.load();
 }
 
+void EmuThread::setOpenGLWindow(OpenGLWindow *openGLWindow) {
+    this->openGLWindow = openGLWindow;
+}
+
 OpenGLWindow* EmuThread::getOpenGLWindow() {
     return openGLWindow;
 }
@@ -68,14 +72,14 @@ void EmuThread::initialize() {
     format.setProfile(QSurfaceFormat::CoreProfile);
     format.setVersion(3,3);
 
-    openGLWindow = new OpenGLWindow();
-    openGLWindow->setFormat(format);
-    openGLWindow->resize(640, 480);
+    //openGLWindow = new OpenGLWindow();
+    //openGLWindow->setFormat(format);
+    //openGLWindow->resize(640, 480);
 
     openGLWindow->createContext();
 
-    connect(openGLWindow, &OpenGLWindow::closed,
-            this, &EmuThread::openGLWindowClosed);
+    //connect(openGLWindow, &OpenGLWindow::closed,
+    //        this, &EmuThread::openGLWindowClosed);
 
     vramOpenGLWindow = new OpenGLWindow();
     vramOpenGLWindow->setFormat(format);

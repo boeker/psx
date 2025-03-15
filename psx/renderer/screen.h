@@ -14,6 +14,7 @@ public:
     virtual void setUpViewport() = 0;
     virtual void swapBuffers() = 0;
     virtual void makeContextCurrent() = 0;
+    virtual bool isVisible() = 0;
 };
 
 }

@@ -22,6 +22,7 @@ public:
     void setUpViewport() override;
     void swapBuffers() override;
     void makeContextCurrent() override;
+    bool isVisible() override;
 
 signals:
     void closed();

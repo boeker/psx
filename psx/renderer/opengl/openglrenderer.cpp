@@ -239,7 +239,7 @@ void OpenGLRenderer::swapBuffers() {
     // swap buffers
     screen->swapBuffers();
 
-    if (vramViewer != nullptr) {
+    if (vramViewer != nullptr && vramViewer->isVisible()) {
         // VRAM-viewer window
         vramViewer->makeContextCurrent();
 

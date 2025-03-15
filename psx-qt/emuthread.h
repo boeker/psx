@@ -21,6 +21,7 @@ public:
     void pauseEmulation();
     bool emulationIsPaused();
 
+    void setOpenGLWindow(OpenGLWindow *openGLWindow);
     OpenGLWindow* getOpenGLWindow();
     OpenGLWindow* getVRAMWindow();
 

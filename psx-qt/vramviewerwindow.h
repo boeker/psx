@@ -14,6 +14,7 @@ class Core;
 }
 
 class EmuThread;
+class OpenGLWindow;
 
 class VRAMViewerWindow : public QDialog {
     Q_OBJECT
@@ -34,6 +35,7 @@ private:
     Ui::VRAMViewerWindow *ui;
 
     EmuThread *emuThread;
+    OpenGLWindow *vramWindow;
 };
 
 #endif

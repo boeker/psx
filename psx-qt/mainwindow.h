@@ -73,6 +73,10 @@ private:
 
     // VRAM Viewer Window
     VRAMViewerWindow *vramViewerWindow;
+
+    // OpenGL windows
+    OpenGLWindow *openGLWindow;
+    QWidget *openGLWindowWidget;
 };
 
 #endif

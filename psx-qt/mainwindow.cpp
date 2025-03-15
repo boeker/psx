@@ -67,20 +67,43 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     // Emulation thread
     emuThread = new EmuThread(this, core);
 
-    // Windows
-    vramViewerWindow = new VRAMViewerWindow(this, emuThread);
-    vramViewerWindow->show();
-
     // Logging
     std::shared_ptr<PlainTextEditLog> plainTextEditLog = std::make_shared<PlainTextEditLog>(ui->plainTextEditLog);
     connect(plainTextEditLog.get(), &PlainTextEditLog::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
     connect(plainTextEditLog.get(), &PlainTextEditLog::moveScrollBar, ui->plainTextEditLog->verticalScrollBar(), &QScrollBar::setValue);
     util::logPack.installAdditionalLog(plainTextEditLog);
 
+    // Windows
+    vramViewerWindow = new VRAMViewerWindow(this, emuThread);
+
+    // OpenGL windows
+    QSurfaceFormat format;
+    format.setRenderableType(QSurfaceFormat::OpenGL);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    format.setVersion(3,3);
+
+    openGLWindow = new OpenGLWindow();
+    openGLWindow->setFormat(format);
+    openGLWindow->resize(640, 480);
+
+    //openGLWindow->createContext();
+    openGLWindowWidget = QWidget::createWindowContainer(openGLWindow, this);
+    openGLWindowWidget->setMinimumSize(QSize(640, 480));
+    openGLWindowWidget->setMaximumSize(QSize(640, 480));
+    ui->centralwidget->layout()->addWidget(openGLWindowWidget);
+    openGLWindowWidget->hide();
+    emuThread->setOpenGLWindow(openGLWindow);
+
+    // Re-add text editto make sure it is add the bottom
+    ui->centralwidget->layout()->removeWidget(ui->plainTextEditLog);
+    ui->centralwidget->layout()->addWidget(ui->plainTextEditLog);
+
     // Connections
     makeConnections();
 
     LOG_MISC("Application startup");
+
+    //ui->actionVRAMViewer->trigger();
 }
 
 MainWindow::~MainWindow() {
@@ -125,6 +148,9 @@ void MainWindow::startPauseEmulation() {
 
         QString selectedBios = biosFSModel->filePath(ui->treeView->currentIndex());
         core->bus.bios.readFromFile(selectedBios.toStdString());
+
+        ui->treeView->setHidden(true);
+        openGLWindowWidget->show();
 
         running = true;
     }

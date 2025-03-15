@@ -11,8 +11,9 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>VRAM Viewer</string>
   </property>
+  <layout class="QVBoxLayout" name="verticalLayout_2"/>
  </widget>
  <resources/>
  <connections/>

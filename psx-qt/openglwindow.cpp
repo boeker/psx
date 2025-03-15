@@ -62,6 +62,10 @@ void OpenGLWindow::makeContextCurrent() {
     }
 }
 
+bool OpenGLWindow::isVisible() {
+    return QWindow::isVisible();
+}
+
 bool OpenGLWindow::event(QEvent *event) {
     switch (event->type()) {
         case QEvent::UpdateRequest:
