@@ -103,10 +103,10 @@ void GPU::reset() {
     texturedRectangleXFlip = false;
     texturedRectangleYFlip = false;
 
-    if (renderer) {
-        renderer->clear();
-        renderer->swapBuffers();
-    }
+    //if (renderer) {
+    //    renderer->clear();
+    //    renderer->swapBuffers();
+    //}
 }
 
 void GPU::setRenderer(Renderer *renderer) {

@@ -18,7 +18,9 @@ OpenGLRenderer::OpenGLRenderer(Screen *screen, Screen *vramViewer)
     : screen(screen), vramViewer(vramViewer) {
 
     vram = new uint8_t[VRAM_SIZE];
+}
 
+void OpenGLRenderer::initialize() {
     glCheckError();
 
     shader = new Shader("shaders/color.vs", "shaders/color.fs");

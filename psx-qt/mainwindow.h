@@ -27,6 +27,12 @@ class Core;
 class OpenGLRenderer;
 }
 
+// Global emulation variables
+extern bool running;
+extern PSX::Core *core;
+extern PSX::OpenGLRenderer *renderer;
+extern EmuThread *emuThread;
+
 class PlainTextEditLog : public QObject, public util::Log {
     Q_OBJECT
 
@@ -65,11 +71,6 @@ private:
     // Main Window stuff
     Ui::MainWindow *ui;
     QFileSystemModel *biosFSModel;
-
-    // Emulation stuff
-    bool running;
-    PSX::Core *core;
-    EmuThread *emuThread;
 
     // VRAM Viewer Window
     VRAMViewerWindow *vramViewerWindow;

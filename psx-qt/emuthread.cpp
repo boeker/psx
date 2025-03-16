@@ -4,13 +4,13 @@
 #include <QOpenGLContext>
 #include <QSurfaceFormat>
 
+#include "mainwindow.h"
 #include "openglwindow.h"
 #include "psx/core.h"
 #include "psx/renderer/opengl/openglrenderer.h"
 
-EmuThread::EmuThread(QObject *parent, PSX::Core *core)
+EmuThread::EmuThread(QObject *parent)
     : QThread(parent),
-      core(core),
       initialized(false),
       openGLWindow(nullptr),
       vramOpenGLWindow(nullptr),
@@ -18,9 +18,6 @@ EmuThread::EmuThread(QObject *parent, PSX::Core *core)
 }
 
 EmuThread::~EmuThread() {
-    delete renderer;
-    delete openGLWindow;
-    delete vramOpenGLWindow;
 }
 
 void EmuThread::pauseEmulation() {
@@ -31,16 +28,12 @@ bool EmuThread::emulationIsPaused() {
     return paused.load();
 }
 
-void EmuThread::setOpenGLWindow(OpenGLWindow *openGLWindow) {
-    this->openGLWindow = openGLWindow;
+void EmuThread::setOpenGLWindow(OpenGLWindow *window) {
+    this->openGLWindow = window;
 }
 
-OpenGLWindow* EmuThread::getOpenGLWindow() {
-    return openGLWindow;
-}
-
-OpenGLWindow* EmuThread::getVRAMWindow() {
-    return vramOpenGLWindow;
+void EmuThread::setVRAMOpenGLWindow(OpenGLWindow *window) {
+    this->vramOpenGLWindow = window;
 }
 
 void EmuThread::openGLWindowClosed() {
@@ -66,31 +59,8 @@ void EmuThread::run() {
 }
 
 void EmuThread::initialize() {
-    // create OpenGLWindow
-    QSurfaceFormat format;
-    format.setRenderableType(QSurfaceFormat::OpenGL);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-    format.setVersion(3,3);
-
-    //openGLWindow = new OpenGLWindow();
-    //openGLWindow->setFormat(format);
-    //openGLWindow->resize(640, 480);
-
     openGLWindow->createContext();
-
-    //connect(openGLWindow, &OpenGLWindow::closed,
-    //        this, &EmuThread::openGLWindowClosed);
-
-    vramOpenGLWindow = new OpenGLWindow();
-    vramOpenGLWindow->setFormat(format);
-    vramOpenGLWindow->resize(1024, 512);
-
-    // create OpenGLRenderer
-    renderer = new PSX::OpenGLRenderer(openGLWindow, vramOpenGLWindow);
-    core->setRenderer(renderer);
-
+    renderer->initialize();
     initialized = true;
-
-    emit initializedWindows();
 }
 

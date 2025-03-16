@@ -20,13 +20,11 @@ class VRAMViewerWindow : public QDialog {
     Q_OBJECT
 
 public:
-    explicit VRAMViewerWindow(QWidget *parent = nullptr, EmuThread *emuThread = nullptr);
+    explicit VRAMViewerWindow(QWidget *parent = nullptr);
     ~VRAMViewerWindow();
 
+    OpenGLWindow* getOpenGLWindow();
     void closeEvent(QCloseEvent *event) override;
-
-public slots:
-    void grabWindowFromEmuThread();
 
 signals:
     void closed();
@@ -34,8 +32,8 @@ signals:
 private:
     Ui::VRAMViewerWindow *ui;
 
-    EmuThread *emuThread;
     OpenGLWindow *vramWindow;
+    QWidget *vramWindowWidget;
 };
 
 #endif

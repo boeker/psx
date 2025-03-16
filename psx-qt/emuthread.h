@@ -6,43 +6,34 @@
 
 class OpenGLWindow;
 
-namespace PSX {
-class Core;
-class OpenGLRenderer;
-}
-
 class EmuThread : public QThread {
     Q_OBJECT
 
 public:
-    EmuThread(QObject *parent = nullptr, PSX::Core *core = nullptr);
+    EmuThread(QObject *parent = nullptr);
     virtual ~EmuThread();
 
     void pauseEmulation();
     bool emulationIsPaused();
 
-    void setOpenGLWindow(OpenGLWindow *openGLWindow);
-    OpenGLWindow* getOpenGLWindow();
-    OpenGLWindow* getVRAMWindow();
+    void setOpenGLWindow(OpenGLWindow *window);
+    void setVRAMOpenGLWindow(OpenGLWindow *window);
 
 public slots:
     void openGLWindowClosed();
 
 signals:
     void emulationShouldStop();
-    void initializedWindows();
+    //void initializedWindows();
 
 protected:
     void run();
 
 private:
-    PSX::Core *core;
-
     void initialize();
     bool initialized;
     OpenGLWindow *openGLWindow;
     OpenGLWindow *vramOpenGLWindow;
-    PSX::OpenGLRenderer *renderer;
 
     std::atomic<bool> paused;
 };

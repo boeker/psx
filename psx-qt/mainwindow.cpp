@@ -12,7 +12,13 @@
 #include "vramviewerwindow.h"
 
 #include "psx/core.h"
+#include "psx/renderer/opengl/openglrenderer.h"
 #include "psx/util/log.h"
+
+bool running = false;
+PSX::Core *core = nullptr;
+PSX::OpenGLRenderer *renderer = nullptr;
+EmuThread *emuThread = nullptr;
 
 PlainTextEditLog::PlainTextEditLog(QPlainTextEdit *plainTextEdit)
     : Log(true),
@@ -31,9 +37,6 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     : QMainWindow(parent),
       ui(new Ui::MainWindow),
       biosFSModel(nullptr),
-      running(false),
-      core(nullptr),
-      emuThread(nullptr),
       vramViewerWindow(nullptr) {
     ui->setupUi(this);
 
@@ -61,22 +64,7 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
         }
     }
 
-    // Core
-    core = new PSX::Core();
-
-    // Emulation thread
-    emuThread = new EmuThread(this, core);
-
-    // Logging
-    std::shared_ptr<PlainTextEditLog> plainTextEditLog = std::make_shared<PlainTextEditLog>(ui->plainTextEditLog);
-    connect(plainTextEditLog.get(), &PlainTextEditLog::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
-    connect(plainTextEditLog.get(), &PlainTextEditLog::moveScrollBar, ui->plainTextEditLog->verticalScrollBar(), &QScrollBar::setValue);
-    util::logPack.installAdditionalLog(plainTextEditLog);
-
-    // Windows
-    vramViewerWindow = new VRAMViewerWindow(this, emuThread);
-
-    // OpenGL windows
+    // OpenGL window
     QSurfaceFormat format;
     format.setRenderableType(QSurfaceFormat::OpenGL);
     format.setProfile(QSurfaceFormat::CoreProfile);
@@ -86,24 +74,41 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     openGLWindow->setFormat(format);
     openGLWindow->resize(640, 480);
 
-    //openGLWindow->createContext();
     openGLWindowWidget = QWidget::createWindowContainer(openGLWindow, this);
     openGLWindowWidget->setMinimumSize(QSize(640, 480));
     openGLWindowWidget->setMaximumSize(QSize(640, 480));
     ui->centralwidget->layout()->addWidget(openGLWindowWidget);
     openGLWindowWidget->hide();
-    emuThread->setOpenGLWindow(openGLWindow);
 
-    // Re-add text editto make sure it is add the bottom
+    // Re-add text edit to make sure it is add the bottom
     ui->centralwidget->layout()->removeWidget(ui->plainTextEditLog);
     ui->centralwidget->layout()->addWidget(ui->plainTextEditLog);
+
+    // Windows
+    vramViewerWindow = new VRAMViewerWindow(this);
+
+    // Core and renderer
+    core = new PSX::Core();
+    renderer = new PSX::OpenGLRenderer(openGLWindow, vramViewerWindow->getOpenGLWindow());
+    core->setRenderer(renderer);
+
+    // Emulation thread
+    emuThread = new EmuThread(this);
+    emuThread->setOpenGLWindow(openGLWindow);
+    emuThread->setVRAMOpenGLWindow(vramViewerWindow->getOpenGLWindow());
+
+    // Logging
+    std::shared_ptr<PlainTextEditLog> plainTextEditLog = std::make_shared<PlainTextEditLog>(ui->plainTextEditLog);
+    connect(plainTextEditLog.get(), &PlainTextEditLog::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
+    connect(plainTextEditLog.get(), &PlainTextEditLog::moveScrollBar, ui->plainTextEditLog->verticalScrollBar(), &QScrollBar::setValue);
+    util::logPack.installAdditionalLog(plainTextEditLog);
 
     // Connections
     makeConnections();
 
     LOG_MISC("Application startup");
 
-    //ui->actionVRAMViewer->trigger();
+    ui->actionVRAMViewer->trigger();
 }
 
 MainWindow::~MainWindow() {
@@ -132,9 +137,6 @@ void MainWindow::makeConnections() {
 
     connect(emuThread, &EmuThread::emulationShouldStop,
             this, &MainWindow::stopEmulation);
-
-    connect(emuThread, &EmuThread::initializedWindows,
-            vramViewerWindow, &VRAMViewerWindow::grabWindowFromEmuThread);
 
     connect(ui->actionVRAMViewer, &QAction::toggled,
             vramViewerWindow, &QWidget::setVisible);
@@ -197,7 +199,7 @@ void MainWindow::stopEmulation() {
         emuThread->wait();
         running = false;
 
-        emuThread->getOpenGLWindow()->hide();
+        openGLWindow->hide();
         LOG_MISC("Stopped emulation");
     }
 }

@@ -6,36 +6,36 @@
 #include "psx/core.h"
 //#include "vramviewer.h"
 #include "emuthread.h"
+#include "mainwindow.h"
 #include "openglwindow.h"
 
-VRAMViewerWindow::VRAMViewerWindow(QWidget *parent, EmuThread *emuThread)
+VRAMViewerWindow::VRAMViewerWindow(QWidget *parent)
     : QDialog(parent),
       ui(new Ui::VRAMViewerWindow),
-      emuThread(emuThread),
       vramWindow(nullptr) {
     ui->setupUi(this);
+
+    QSurfaceFormat format;
+    format.setRenderableType(QSurfaceFormat::OpenGL);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    format.setVersion(3,3);
+
+    vramWindow = new OpenGLWindow();
+    vramWindow->setFormat(format);
+    vramWindow->resize(1024, 512);
+
+    vramWindowWidget = QWidget::createWindowContainer(vramWindow, this);
+    vramWindowWidget->setMinimumSize(QSize(1024, 512));
+    vramWindowWidget->setMaximumSize(QSize(1024, 512));
+    this->layout()->addWidget(vramWindowWidget);
 }
 
 VRAMViewerWindow::~VRAMViewerWindow() {
-    if (vramWindow) {
-        vramWindow->setParent(nullptr);
-
-        vramWindow = nullptr;
-    }
-
     delete ui;
 }
 
-void VRAMViewerWindow::grabWindowFromEmuThread() {
-    if (emuThread) {
-        vramWindow = emuThread->getVRAMWindow();
-
-        QWidget *widget = QWidget::createWindowContainer(vramWindow, this);
-        widget->setMinimumSize(QSize(1024, 512));
-        widget->setMaximumSize(QSize(1024, 512));
-
-        this->layout()->addWidget(widget);
-    }
+OpenGLWindow* VRAMViewerWindow::getOpenGLWindow() {
+    return vramWindow;
 }
 
 void VRAMViewerWindow::closeEvent(QCloseEvent *event) {
