@@ -10,8 +10,7 @@
 QOpenGLContext *OpenGLWindow::globalContext = nullptr;
 
 OpenGLWindow::OpenGLWindow(QWindow *parent)
-    : QWindow(parent),
-      resizeRequested(false) {
+    : QWindow(parent) {
     setSurfaceType(QWindow::OpenGLSurface);
     show();
 }
@@ -31,28 +30,7 @@ int OpenGLWindow::getWidth() {
     return devicePixelRatio() * width();
 }
 
-void OpenGLWindow::setUpViewport() {
-    int windowWidth = width();
-    int windowHeight = height();
-
-    int height = windowHeight;
-    int width = (windowHeight / 3) * 4;
-    if (width > windowWidth) {
-        height = (windowWidth / 4) * 3;
-        width = windowWidth;
-    }
-    int blackBarWidth = (windowWidth - width) / 2;
-    int blackBarHeight = (windowHeight - height) / 2;
-
-    const qreal scalingFactor = devicePixelRatio();
-    glViewport(blackBarWidth, blackBarHeight, scalingFactor * width, scalingFactor * height);
-}
-
 void OpenGLWindow::swapBuffers() {
-    //if (resizeRequested.load()) {
-    //    setUpViewport();
-    //}
-
     globalContext->swapBuffers(this);
 }
 
@@ -81,7 +59,6 @@ void OpenGLWindow::exposeEvent(QExposeEvent *event) {
 }
 
 void OpenGLWindow::resizeEvent(QResizeEvent *event) {
-    resizeRequested.store(true);
 }
 
 void OpenGLWindow::closeEvent(QCloseEvent *event) {

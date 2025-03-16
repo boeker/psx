@@ -19,7 +19,6 @@ public:
     QOpenGLContext* getContext();
     int getHeight() override;
     int getWidth() override;
-    void setUpViewport() override;
     void swapBuffers() override;
     void makeContextCurrent() override;
     bool isVisible() override;
@@ -35,8 +34,6 @@ protected:
 
 private:
     static QOpenGLContext *globalContext;
-
-    std::atomic<bool> resizeRequested;
 };
 
 #endif

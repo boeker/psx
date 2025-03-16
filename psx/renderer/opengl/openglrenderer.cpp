@@ -172,8 +172,8 @@ void OpenGLRenderer::initialize() {
 OpenGLRenderer::~OpenGLRenderer() {
     delete[] vram;
 
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
+    //glDeleteVertexArrays(1, &vao);
+    //glDeleteBuffers(1, &vbo);
 }
 
 void OpenGLRenderer::installVRAMViewer(Screen *vramViewer) {
@@ -241,7 +241,7 @@ void OpenGLRenderer::swapBuffers() {
     // swap buffers
     screen->swapBuffers();
 
-    if (vramViewer != nullptr && vramViewer->isVisible()) {
+    if (vramViewer && vramViewer->isVisible()) {
         // VRAM-viewer window
         vramViewer->makeContextCurrent();
 

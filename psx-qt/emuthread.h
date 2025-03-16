@@ -24,7 +24,6 @@ public slots:
 
 signals:
     void emulationShouldStop();
-    //void initializedWindows();
 
 protected:
     void run();

@@ -10,7 +10,7 @@
 #include "openglwindow.h"
 
 VRAMViewerWindow::VRAMViewerWindow(QWidget *parent)
-    : QDialog(parent),
+    : QWidget(parent),
       ui(new Ui::VRAMViewerWindow),
       vramWindow(nullptr) {
     ui->setupUi(this);

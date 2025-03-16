@@ -85,7 +85,7 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     ui->centralwidget->layout()->addWidget(ui->plainTextEditLog);
 
     // Windows
-    vramViewerWindow = new VRAMViewerWindow(this);
+    vramViewerWindow = new VRAMViewerWindow();
 
     // Core and renderer
     core = new PSX::Core();
@@ -114,7 +114,10 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
 MainWindow::~MainWindow() {
     stopEmulation();
 
+    delete vramViewerWindow;
+
     delete ui;
+    delete renderer;
     delete core;
 }
 
@@ -199,12 +202,14 @@ void MainWindow::stopEmulation() {
         emuThread->wait();
         running = false;
 
-        openGLWindow->hide();
+        openGLWindowWidget->hide();
+        ui->treeView->setHidden(false);
         LOG_MISC("Stopped emulation");
     }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
     stopEmulation();
+    vramViewerWindow->close();
 }
 

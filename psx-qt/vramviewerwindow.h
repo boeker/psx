@@ -1,7 +1,7 @@
 #ifndef VRAMVIEWERWINDOW_H
 #define VRAMVIEWERWINDOW_H
 
-#include <QDialog>
+#include <QWidget>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -16,7 +16,7 @@ class Core;
 class EmuThread;
 class OpenGLWindow;
 
-class VRAMViewerWindow : public QDialog {
+class VRAMViewerWindow : public QWidget {
     Q_OBJECT
 
 public:

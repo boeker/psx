@@ -11,7 +11,6 @@ public:
 
     virtual int getHeight() = 0;
     virtual int getWidth() = 0;
-    virtual void setUpViewport() = 0;
     virtual void swapBuffers() = 0;
     virtual void makeContextCurrent() = 0;
     virtual bool isVisible() = 0;

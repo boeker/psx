@@ -48,7 +48,6 @@ void EmuThread::run() {
     openGLWindow->show();
     QOpenGLContext *context = openGLWindow->getContext();
     context->makeCurrent(openGLWindow);
-    openGLWindow->setUpViewport();
 
     paused.store(false);
     while (!paused.load()) {
