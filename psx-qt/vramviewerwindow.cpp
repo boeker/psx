@@ -26,7 +26,7 @@ VRAMViewerWindow::VRAMViewerWindow(QWidget *parent)
 
     vramWindowWidget = QWidget::createWindowContainer(vramWindow, this);
     vramWindowWidget->setMinimumSize(QSize(1024, 512));
-    vramWindowWidget->setMaximumSize(QSize(1024, 512));
+    //vramWindowWidget->setMaximumSize(QSize(1024, 512));
     this->layout()->addWidget(vramWindowWidget);
 }
 

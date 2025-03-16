@@ -76,9 +76,11 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
 
     openGLWindowWidget = QWidget::createWindowContainer(openGLWindow, this);
     openGLWindowWidget->setMinimumSize(QSize(640, 480));
-    openGLWindowWidget->setMaximumSize(QSize(640, 480));
+    //openGLWindowWidget->setMaximumSize(QSize(640, 480));
     ui->centralwidget->layout()->addWidget(openGLWindowWidget);
     openGLWindowWidget->hide();
+    // Setting the parent to nullptr causes the screen to be shown in its own window
+    //openGLWindow->setParent(nullptr);
 
     // Re-add text edit to make sure it is add the bottom
     ui->centralwidget->layout()->removeWidget(ui->plainTextEditLog);

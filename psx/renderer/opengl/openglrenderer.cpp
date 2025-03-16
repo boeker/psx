@@ -207,6 +207,23 @@ void OpenGLRenderer::computeViewport() {
     viewportY = (windowHeight - height) / 2;
 }
 
+void OpenGLRenderer::computeVRAMViewport() {
+    int windowHeight = vramViewer->getHeight();
+    int windowWidth = vramViewer->getWidth();
+
+    int height = windowHeight;
+    int width = windowHeight * 2;
+    if (width > windowWidth) {
+        height = windowWidth / 2;
+        width = windowWidth;
+    }
+
+    vramViewportWidth = width;
+    vramViewportHeight = height;
+    vramViewportX = (windowWidth - width) / 2;
+    vramViewportY = (windowHeight - height) / 2;
+}
+
 void OpenGLRenderer::swapBuffers() {
     glCheckError();
 
@@ -242,6 +259,8 @@ void OpenGLRenderer::swapBuffers() {
     screen->swapBuffers();
 
     if (vramViewer && vramViewer->isVisible()) {
+        computeVRAMViewport();
+
         // VRAM-viewer window
         vramViewer->makeContextCurrent();
 
@@ -253,7 +272,8 @@ void OpenGLRenderer::swapBuffers() {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBlitFramebuffer(0, 0, 1024, 512,
                           //viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight,
-                          0, 512, 1024, 0, // flip texture along y-axis
+                          //0, 512, 1024, 0, // flip texture along y-axis
+                          vramViewportX, vramViewportY + vramViewportHeight, vramViewportX + vramViewportWidth, vramViewportY, // flip texture along y-axis
                           GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         glCheckError();

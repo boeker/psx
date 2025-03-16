@@ -24,6 +24,7 @@ public:
     void reset() override;
     void clear() override;
     void computeViewport();
+    void computeVRAMViewport();
     void swapBuffers() override;
     void drawTriangle(const Triangle &triangle) override;
     void loadTexture(uint8_t *textureData) override;
@@ -56,6 +57,8 @@ private:
 
     int viewportX, viewportY;
     int viewportWidth, viewportHeight;
+    int vramViewportX, vramViewportY;
+    int vramViewportWidth, vramViewportHeight;
 
     Shader *textureShader;
     unsigned int textureVBO;
