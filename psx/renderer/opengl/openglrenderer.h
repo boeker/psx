@@ -37,6 +37,7 @@ public:
 
     void setDrawingAreaTopLeft(uint32_t x, uint32_t y) override;
     void setDrawingAreaBottomRight(uint32_t x, uint32_t y) override;
+    void setViewportIntoVRAM();
 
 private:
     Screen *screen;
@@ -64,6 +65,11 @@ private:
     unsigned int textureVBO;
     unsigned int textureVAO;
     unsigned int textureTexture;
+
+    uint32_t drawingAreaTopLeftX;
+    uint32_t drawingAreaTopLeftY;
+    uint32_t drawingAreaBottomRightX;
+    uint32_t drawingAreaBottomRightY;
 };
 
 }

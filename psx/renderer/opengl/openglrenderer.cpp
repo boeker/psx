@@ -18,6 +18,7 @@ OpenGLRenderer::OpenGLRenderer(Screen *screen, Screen *vramViewer)
     : screen(screen), vramViewer(vramViewer) {
 
     vram = new uint8_t[VRAM_SIZE];
+    reset();
 }
 
 void OpenGLRenderer::initialize() {
@@ -182,6 +183,11 @@ void OpenGLRenderer::installVRAMViewer(Screen *vramViewer) {
 
 void OpenGLRenderer::reset() {
     std::memset(vram, 0, VRAM_SIZE);
+
+    drawingAreaTopLeftX = 0;
+    drawingAreaTopLeftY = 0;
+    drawingAreaBottomRightX = 639;
+    drawingAreaBottomRightY = 479;
 }
 
 void OpenGLRenderer::clear() {
@@ -286,7 +292,7 @@ void OpenGLRenderer::swapBuffers() {
 void OpenGLRenderer::drawTriangle(const Triangle &t) {
     glCheckError();
 
-    glViewport(0, 0, 640, 480);
+    setViewportIntoVRAM();
     glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
 
     int vertices[] =  {
@@ -321,7 +327,7 @@ void OpenGLRenderer::loadTexture(uint8_t *textureData) {
 void OpenGLRenderer::drawTexturedTriangle(const TexturedTriangle &t) {
     glCheckError();
 
-    glViewport(0, 0, 640, 480);
+    setViewportIntoVRAM();
     glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
 
     float vertices[] =  {
@@ -375,11 +381,21 @@ void OpenGLRenderer::writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_
 void OpenGLRenderer::setDrawingAreaTopLeft(uint32_t x, uint32_t y) {
     shader->use();
     shader->setIVec2("drawingAreaTopLeft", x, y);
+    drawingAreaTopLeftX = x;
+    drawingAreaTopLeftY = y;
 }
 
 void OpenGLRenderer::setDrawingAreaBottomRight(uint32_t x, uint32_t y) {
     shader->use();
     shader->setIVec2("drawingAreaBottomRight", x, y);
+    drawingAreaBottomRightX = x;
+    drawingAreaBottomRightY = y;
+}
+
+void OpenGLRenderer::setViewportIntoVRAM() {
+    glViewport(drawingAreaTopLeftX, drawingAreaTopLeftY,
+               drawingAreaBottomRightX - drawingAreaTopLeftX + 1,
+               drawingAreaBottomRightY - drawingAreaTopLeftY + 1);
 }
 
 }
