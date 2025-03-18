@@ -540,7 +540,9 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0NOP,
     // 0x01
     &GPU::GP0ClearCache,
-    &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x02
+    &GPU::GP0FillRectangleInVRAM,
+    &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
@@ -644,7 +646,7 @@ const GPU::Command GPU::gp0Commands[] = {
 
 const uint8_t GPU::gp0ParameterNumbers[] = {
     // 0x00
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x10
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x20
@@ -690,6 +692,24 @@ void GPU::GP0ClearCache() {
     // 0x01
     LOG_GPU(std::format("GP0 - ClearCache"));
     // TODO Implement?
+}
+
+void GPU::GP0FillRectangleInVRAM() {
+    // 0x02
+    Color c(gp0);
+
+    uint32_t topLeft = gp0Parameters[0];
+    uint32_t topLeftX = topLeft & 0xFFFF;
+    uint32_t topLeftY = (topLeft >> 16) & 0xFFFF;
+
+    uint32_t widthAndHeight = gp0Parameters[1];
+    uint32_t width = widthAndHeight & 0xFFFF;
+    uint32_t height = (widthAndHeight >> 16) & 0xFFFF;
+
+    LOG_GPU(std::format("GP0 - FillRectangleInVRAM({}, {}, {}, {}, {})",
+                        c, topLeftX, topLeftY, width, height));
+
+    renderer->fillRectangleInVRAM(c, topLeftX, topLeftY, width, height);
 }
 
 void GPU::GP0MonochromeFourPointPolygonOpaque() {

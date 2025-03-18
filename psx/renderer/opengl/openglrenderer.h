@@ -34,6 +34,7 @@ public:
     uint16_t readFromVRAM(uint32_t line, uint32_t pos) override;
 
     void writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) override;
+    void fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 
     void setDrawingAreaTopLeft(uint32_t x, uint32_t y) override;
     void setDrawingAreaBottomRight(uint32_t x, uint32_t y) override;
@@ -45,7 +46,6 @@ private:
     uint8_t *vram;
 
     Shader *shader;
-    unsigned int program;
     unsigned int vbo;
     unsigned int vao;
 

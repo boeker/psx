@@ -207,6 +207,8 @@ private:
     void GP0NOP();
     // 0x01
     void GP0ClearCache();
+    // 0x02
+    void GP0FillRectangleInVRAM();
     // 0x28
     void GP0MonochromeFourPointPolygonOpaque();
     // 0x2C

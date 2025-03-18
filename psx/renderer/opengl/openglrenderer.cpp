@@ -56,6 +56,7 @@ void OpenGLRenderer::initialize() {
     glVertexAttribPointer(1, 3, GL_INT, GL_FALSE, 5 * sizeof(int), (void*)(2* sizeof(int)));
     glEnableVertexAttribArray(1);
 
+    glCheckError();
 
     // store VRAM in a texture
     glGenFramebuffers(1, &vramFramebuffer);
@@ -372,6 +373,27 @@ void OpenGLRenderer::writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_
 
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+}
+
+void OpenGLRenderer::fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+    glCheckError();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
+
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(x, y, width, height);
+
+    glClearColor(c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // reset clear color
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+    // disable scissor test
+    glDisable(GL_SCISSOR_TEST);
+
+    // unbind framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void OpenGLRenderer::setDrawingAreaTopLeft(uint32_t x, uint32_t y) {
