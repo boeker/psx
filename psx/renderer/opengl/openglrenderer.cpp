@@ -85,14 +85,10 @@ void OpenGLRenderer::initialize() {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
 
-
-
-    // fill the vram texture with red for debugging purposes
-    glViewport(0, 32, 640, 480);
-    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-
+    //// fill the vram texture with red for debugging purposes
+    //glViewport(0, 32, 640, 480);
+    //glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    //glClear(GL_COLOR_BUFFER_BIT);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

@@ -189,7 +189,7 @@ bool DMA::dataRequested(uint32_t channel) {
     switch(channel) {
         case 2:
             return (fromMainRAM && bus->gpu.transferToGPURequested())
-                   || (!fromMainRAM && bus->gpu.transferToGPURequested());
+                   || (!fromMainRAM && bus->gpu.transferFromGPURequested());
         case 6:
             return false;
         default:
@@ -280,7 +280,7 @@ void DMA::transferToGPU() {
 
         // Clear start/trigger on beginning of transfer
         dmaChannelControl[2] = dmaChannelControl[2] & ~(1 << DCHR_START_TRIGGER);
-        
+
 
         do {
             // read linked list until one encounters the end code (0x00FFFFFF)
@@ -388,7 +388,67 @@ void DMA::transferToGPU() {
 }
 
 void DMA::transferFromGPU() {
-    LOG_DMA(std::format("Transfer from GPU not implemented"));
+    LOG_DMA(std::format("Channel 2 (GPU) transfer: from GPU"));
+    uint32_t syncMode = (dmaChannelControl[2] >> DCHR_SYNC_MODE0) & 3;
+    uint32_t memoryAddressStep = (dmaChannelControl[2] >> DCHR_MEMORY_ADDRESS_STEP) & 1;
+    bool choppingEnabled = (dmaChannelControl[2] >> DCHR_CHOPPING_ENABLE) & 1;
+
+    if (choppingEnabled) {
+        LOG_DMA(std::format("Channel 2 (GPU) transfer: chopping enabled but not implemented"));
+    }
+
+    if (syncMode == 1) { // sync blocks to DMA requests
+        uint32_t address = dmaBaseAddress[2];
+
+        LOG_DMA(std::format("Channel 2 (GPU) transfer: block transfer @0x{:08X}",
+                            address));
+
+        uint32_t blockSize = dmaBlockControl[2] & 0x0000FFFF;
+        uint32_t numberOfBlocks = (dmaBlockControl[2] >> 16) & 0x0000FFFF;
+
+        for (uint32_t i = 0; i < numberOfBlocks; ++i) {
+            LOG_DMA(std::format("Channel 2 (GPU) transfer: start of block 0x{:08X}",
+                                address));
+
+            uint32_t previousAddress = address; // to update base address register
+            for (uint32_t j = 0; j < blockSize; ++j) {
+                uint32_t word = bus->gpu.sendGP0Data();
+                LOGT_DMA(std::format("Channel 2 (GPU) transfer: reading 0x{:08X}",
+                                       word));
+
+                bus->write<uint32_t>(address, word);
+
+                previousAddress = address;
+                if (memoryAddressStep == 0) {
+                    address += 4;
+                } else {
+                    address -= 4;
+                }
+            }
+
+            // decrement counter in block control register
+            dmaBlockControl[2] = (dmaBlockControl[2] & 0x0000FFFF) | (numberOfBlocks << 16);
+            // update base address to end of block
+            dmaBaseAddress[2] = previousAddress;
+
+            // do we have to resume CPU operation?
+        }
+
+
+        // Clear start/busy on completion of transfer
+        dmaChannelControl[2] = dmaChannelControl[2] & ~(1 << DCHR_START_BUSY);
+
+        // Set interrupt flag
+        if ((dmaInterruptRegister >> DICR_ENABLE_FLAG_DMA2) & 1) {
+            LOG_DMA(std::format("Channel 2 (GPU) setting IRQ flag"));
+
+            dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_FLAG_DMA2);
+            processDICRUpdate();
+        }
+
+    } else {
+        LOG_DMA(std::format("Transfer from GPU: sync mode {:d} not implemented", syncMode));
+    }
 }
 
 
