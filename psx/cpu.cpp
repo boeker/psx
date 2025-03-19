@@ -156,7 +156,7 @@ const CPU::Opcode CPU::opcodes[] = {
     // 0b001000
     &CPU::ADDI,     &CPU::ADDIU,    &CPU::SLTI,     &CPU::SLTIU,
     // 0b001100
-    &CPU::ANDI,     &CPU::ORI,      &CPU::UNK,      &CPU::LUI,
+    &CPU::ANDI,     &CPU::ORI,      &CPU::XORI,     &CPU::LUI,
     // 0b010000
     &CPU::CP0,      &CPU::UNK,      &CPU::CP2,      &CPU::UNK,
     // 0b010100
@@ -969,6 +969,21 @@ void CPU::SWR() {
     bus->writeWord(vAddr & 0xFFFFFFFC,
                    (regs.getRegister(rt) << shiftBy)
                    | (bus->readWord(vAddr & 0xFFFFFFFC) & ~(0xFFFFFFFF << shiftBy)));
+}
+
+void CPU::XORI() {
+    // Exclusive OR Immediate
+    // T: GPR[rt] <- GPR[rs] xor (0^{16} || immediate)
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t immediate = 0xFFFF & instruction;
+
+    LOGT_CPU(std::format("XORI {:s},{:s},0x{:04X}",
+                        regs.getRegisterName(rt),
+                        regs.getRegisterName(rs),
+                        immediate));
+
+    regs.setRegister(rt, immediate ^ regs.getRegister(rs));
 }
 
 void CPU::UNKSPCL() {
