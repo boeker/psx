@@ -11,6 +11,9 @@ set(CMAKE_AUTOUIC ON)
 add_executable(psx-qt)
 
 target_sources(psx-qt PRIVATE
+    debuggerwindow.cpp
+    debuggerwindow.h
+    debuggerwindow.ui
     emuthread.cpp
     emuthread.h
     main.cpp

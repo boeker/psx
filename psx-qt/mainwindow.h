@@ -18,6 +18,7 @@ class MainWindow;
 class QFileSystemModel;
 QT_END_NAMESPACE
 
+class DebuggerWindow;
 class EmuThread;
 class OpenGLWindow;
 class VRAMViewerWindow;
@@ -68,11 +69,14 @@ private:
     void makeConnections();
 
 private:
-    // Main Window stuff
+    // Main window
     Ui::MainWindow *ui;
     QFileSystemModel *biosFSModel;
 
-    // VRAM Viewer Window
+    // Debugger window
+    DebuggerWindow *debuggerWindow;
+
+    // VRAM viewer window
     VRAMViewerWindow *vramViewerWindow;
 
     // OpenGL windows

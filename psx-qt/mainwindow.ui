@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>600</height>
+    <height>700</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -68,6 +68,7 @@
     <property name="title">
      <string>Debug</string>
     </property>
+    <addaction name="actionDebugger"/>
     <addaction name="actionVRAMViewer"/>
    </widget>
    <widget class="QMenu" name="menuEmulation">
@@ -153,6 +154,14 @@
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::TextHeuristicRole</enum>
+   </property>
+  </action>
+  <action name="actionDebugger">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Debugger</string>
    </property>
   </action>
  </widget>

@@ -7,6 +7,7 @@
 #include <QOpenGLContext>
 #include <QScrollBar>
 
+#include "debuggerwindow.h"
 #include "emuthread.h"
 #include "openglwindow.h"
 #include "vramviewerwindow.h"
@@ -87,6 +88,7 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     ui->centralwidget->layout()->addWidget(ui->plainTextEditLog);
 
     // Windows
+    debuggerWindow = new DebuggerWindow();
     vramViewerWindow = new VRAMViewerWindow();
 
     // Core and renderer
@@ -116,6 +118,7 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
 MainWindow::~MainWindow() {
     stopEmulation();
 
+    delete debuggerWindow;
     delete vramViewerWindow;
 
     delete ui;
@@ -143,6 +146,13 @@ void MainWindow::makeConnections() {
     connect(emuThread, &EmuThread::emulationShouldStop,
             this, &MainWindow::stopEmulation);
 
+    // Debugger window
+    connect(ui->actionDebugger, &QAction::toggled,
+            debuggerWindow, &QWidget::setVisible);
+    connect(debuggerWindow, &DebuggerWindow::closed,
+            ui->actionDebugger, &QAction::toggle);
+
+    // VRAM viewer window
     connect(ui->actionVRAMViewer, &QAction::toggled,
             vramViewerWindow, &QWidget::setVisible);
     connect(vramViewerWindow, &VRAMViewerWindow::closed,
