@@ -3,6 +3,10 @@
 
 #include <QWidget>
 
+namespace PSX {
+class Core;
+}
+
 namespace Ui {
 class DebuggerWindow;
 }
@@ -12,7 +16,7 @@ class DebuggerWindow : public QWidget
     Q_OBJECT
 
 public:
-    explicit DebuggerWindow(QWidget *parent = nullptr);
+    explicit DebuggerWindow(PSX::Core *core, QWidget *parent = nullptr);
     ~DebuggerWindow();
 
     void closeEvent(QCloseEvent *event) override;

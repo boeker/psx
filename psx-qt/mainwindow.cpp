@@ -87,12 +87,16 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     ui->centralwidget->layout()->removeWidget(ui->plainTextEditLog);
     ui->centralwidget->layout()->addWidget(ui->plainTextEditLog);
 
-    // Windows
-    debuggerWindow = new DebuggerWindow();
+    // VRAM Window
     vramViewerWindow = new VRAMViewerWindow();
 
-    // Core and renderer
+    // Core
     core = new PSX::Core();
+
+    // Debugger Window
+    debuggerWindow = new DebuggerWindow(core);
+
+    // Renderer
     renderer = new PSX::OpenGLRenderer(openGLWindow, vramViewerWindow->getOpenGLWindow());
     core->setRenderer(renderer);
 

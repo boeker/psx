@@ -90,6 +90,7 @@ public:
     virtual ~Bus();
     void reset();
 
+    template <typename T> T debugRead(uint32_t address);
     template <typename T> T read(uint32_t address);
     template <typename T> void write (uint32_t address, T value);
 
