@@ -28,7 +28,7 @@ std::ostream& operator<<(std::ostream &os, const Registers &registers) {
 }
 
 const char* Registers::REGISTER_NAMES[] = {
-    "zero", // always returns zero
+    "zr", // always returns zero
     "at", // assembler temporary (reserved for use by assembler)
     "v0", "v1", // value returned by subroutine
     "a0", "a1", "a2", "a3", // arguments: first four parameters for a subroutine

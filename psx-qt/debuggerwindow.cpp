@@ -3,55 +3,158 @@
 #include "debuggerwindow.h"
 #include "ui_debuggerwindow.h"
 
-#include <QAbstractListModel>
 #include <QFontDatabase>
 #include <QStringListModel>
 #include <QVariant>
 
 #include "psx/core.h"
 
-class InstructionModel : public QAbstractListModel {
-private:
-    PSX::Core *core;
+InstructionModel::InstructionModel(PSX::Core *core)
+    : core(core) {
+}
 
-public:
-    InstructionModel(PSX::Core *core)
-        : core(core) {
+int InstructionModel::rowCount(const QModelIndex &parent) const {
+    if (parent.isValid()) {
+        return 0;
     }
 
-    int rowCount(const QModelIndex &parent) const {
-        if (parent.isValid()) {
-            return 0;
+    return (2048 * 1024) / 4;
+}
+
+QVariant InstructionModel::data(const QModelIndex &index, int role) const {
+    if (role == Qt::DisplayRole) {
+        uint32_t address = index.row() * 4;
+        return QVariant(QString::fromStdString(std::format("0x{:08X}: 0x{:08X}", address, core->bus.debugRead<uint32_t>(address))));
+    }
+
+    return QVariant();
+}
+
+MemoryModel::MemoryModel(PSX::Core *core)
+    : core(core) {
+}
+
+int MemoryModel::columnCount(const QModelIndex &parent) const {
+    if (parent.isValid()) {
+        return 0;
+    }
+
+    return 18;
+}
+
+int MemoryModel::rowCount(const QModelIndex &parent) const {
+    if (parent.isValid()) {
+        return 0;
+    }
+
+    return (2048 * 1024) / 16;
+}
+
+QVariant MemoryModel::data(const QModelIndex &index, int role) const {
+    if (role == Qt::DisplayRole) {
+        if (index.column() == 0) {
+            uint32_t address = index.row() * 16;
+            return QVariant(QString::fromStdString(std::format("0x{:08X}", address)));
+
+        } else if (index.column() <= 16) {
+            uint32_t address = index.row() * 16 + (index.column() - 1);
+            return QVariant(QString::fromStdString(std::format("{:02X}", core->bus.debugRead<uint8_t>(address))));
+
+        } else {
+            uint32_t address = index.row() * 16;
+
+            char str[17];
+            for (int i = 0; i < 16; ++i) {
+                str[i] = core->bus.debugRead<uint8_t>(address + i);
+                if (str[i] < 32 || str[i] > 176) {
+                    str[i] = '.';
+                }
+            }
+            str[16] = '\0';
+
+            return QVariant(QString(str));
         }
-
-        return (2048 * 1024) / 4;
     }
 
-    QVariant data(const QModelIndex &index, int role) const {
-        if (role == Qt::DisplayRole) {
-            uint32_t address = index.row() * 4;
-            return QVariant(QString::fromStdString(std::format("0x{:08X}: 0x{:08X}", address, core->bus.debugRead<uint32_t>(address))));
-	    }
+    return QVariant();
+}
 
-	    return QVariant();
+RegisterModel::RegisterModel(PSX::Core *core)
+    : core(core) {
+}
+
+int RegisterModel::columnCount(const QModelIndex &parent) const {
+    if (parent.isValid()) {
+        return 0;
     }
-};
+
+    return 2;
+}
+
+int RegisterModel::rowCount(const QModelIndex &parent) const {
+    if (parent.isValid()) {
+        return 0;
+    }
+
+    return 17;
+}
+
+QVariant RegisterModel::data(const QModelIndex &index, int role) const {
+    if (role == Qt::DisplayRole) {
+        if (index.row() == 0 && index.column() == 0) {
+            return QVariant(QString::fromStdString(std::format("pc 0x{:08X}",
+                                                               core->bus.cpu.regs.getPC())));
+        } else if (index.row() < 16) {
+            uint8_t registerNumber = (index.column() > 0 ? 16 : 0) + index.row();
+            return QVariant(QString::fromStdString(std::format("{:s} 0x{:08X}",
+                                                               core->bus.cpu.regs.getRegisterName(registerNumber),
+                                                               core->bus.cpu.regs.getRegister(registerNumber))));
+        } else if (index.row() == 16) {
+            if (index.column() == 0) {
+                return QVariant(QString::fromStdString(std::format("hi 0x{:08X}",
+                                                                   core->bus.cpu.regs.getHi())));
+            } else {
+                return QVariant(QString::fromStdString(std::format("lo 0x{:08X}",
+                                                                   core->bus.cpu.regs.getLo())));
+            }
+        }
+    }
+
+    return QVariant();
+}
 
 DebuggerWindow::DebuggerWindow(PSX::Core *core, QWidget *parent)
     : QWidget(parent),
       ui(new Ui::DebuggerWindow) {
     ui->setupUi(this);
-    InstructionModel *memoryModel = new InstructionModel(core);
 
     // set monospace font
     const QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     ui->instructionView->setFont(fixedFont);
+    ui->registerView->setFont(fixedFont);
+
+    ui->registerView->setShowGrid(false);
+    ui->registerView->verticalHeader()->hide();
+    ui->registerView->horizontalHeader()->hide();
+    ui->registerView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+    ui->memoryView->setShowGrid(false);
+    ui->memoryView->verticalHeader()->hide();
+    ui->memoryView->horizontalHeader()->hide();
+    ui->memoryView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
     // all items have the same size, I promise
     ui->instructionView->setUniformItemSizes(true);
 
     // set model
-    ui->instructionView->setModel(memoryModel);
+    InstructionModel *instructionModel = new InstructionModel(core);
+    ui->instructionView->setModel(instructionModel);
+
+    RegisterModel *registerModel = new RegisterModel(core);
+    ui->registerView->setModel(registerModel);
+
+    MemoryModel *memoryModel = new MemoryModel(core);
+    ui->memoryView->setModel(memoryModel);
 }
 
 DebuggerWindow::~DebuggerWindow() {
