@@ -115,8 +115,6 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     makeConnections();
 
     LOG_MISC("Application startup");
-
-    ui->actionVRAMViewer->trigger();
 }
 
 MainWindow::~MainWindow() {
@@ -222,6 +220,14 @@ void MainWindow::stopEmulation() {
         ui->treeView->setHidden(false);
         LOG_MISC("Stopped emulation");
     }
+}
+
+void MainWindow::triggerVRAMViewerWindow() {
+    ui->actionVRAMViewer->trigger();
+}
+
+void MainWindow::triggerDebuggerWindow() {
+    ui->actionDebugger->trigger();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {

@@ -62,6 +62,9 @@ public slots:
     void pauseEmulation();
     void stopEmulation();
 
+    void triggerVRAMViewerWindow();
+    void triggerDebuggerWindow();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
