@@ -9,8 +9,8 @@
 
 #include "psx/core.h"
 
-InstructionModel::InstructionModel(PSX::Core *core)
-    : core(core) {
+InstructionModel::InstructionModel(PSX::Core *core, QObject *parent)
+    : QAbstractListModel(parent), core(core) {
 }
 
 int InstructionModel::rowCount(const QModelIndex &parent) const {
@@ -30,8 +30,8 @@ QVariant InstructionModel::data(const QModelIndex &index, int role) const {
     return QVariant();
 }
 
-MemoryModel::MemoryModel(PSX::Core *core)
-    : core(core) {
+MemoryModel::MemoryModel(PSX::Core *core, QObject *parent)
+    : QAbstractTableModel(parent), core(core) {
 }
 
 int MemoryModel::columnCount(const QModelIndex &parent) const {
@@ -54,7 +54,7 @@ QVariant MemoryModel::data(const QModelIndex &index, int role) const {
     if (role == Qt::DisplayRole) {
         if (index.column() == 0) {
             uint32_t address = index.row() * 16;
-            return QVariant(QString::fromStdString(std::format("0x{:08X}", address)));
+            return QVariant(QString::fromStdString(std::format("0x{:08X}   ", address)));
 
         } else if (index.column() <= 16) {
             uint32_t address = index.row() * 16 + (index.column() - 1);
@@ -72,15 +72,15 @@ QVariant MemoryModel::data(const QModelIndex &index, int role) const {
             }
             str[16] = '\0';
 
-            return QVariant(QString(str));
+            return QVariant(QString("   ") + QString(str));
         }
     }
 
     return QVariant();
 }
 
-RegisterModel::RegisterModel(PSX::Core *core)
-    : core(core) {
+RegisterModel::RegisterModel(PSX::Core *core, QObject *parent)
+    : QAbstractTableModel(parent), core(core) {
 }
 
 int RegisterModel::columnCount(const QModelIndex &parent) const {
@@ -125,36 +125,41 @@ QVariant RegisterModel::data(const QModelIndex &index, int role) const {
 
 DebuggerWindow::DebuggerWindow(PSX::Core *core, QWidget *parent)
     : QWidget(parent),
-      ui(new Ui::DebuggerWindow) {
+      ui(new Ui::DebuggerWindow),
+      instructionModel(new InstructionModel(core)),
+      registerModel(new RegisterModel(core)),
+      memoryModel(new MemoryModel(core)) {
     ui->setupUi(this);
 
-    // set monospace font
+    // Set models
+    ui->instructionView->setModel(instructionModel);
+    ui->registerView->setModel(registerModel);
+    ui->memoryView->setModel(memoryModel);
+
+    // Set monospace font in all views
     const QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     ui->instructionView->setFont(fixedFont);
     ui->registerView->setFont(fixedFont);
+    ui->memoryView->setFont(fixedFont);
 
+    // Set up instruction view
+    // Is this okay? (Do all items have the same size?)
+    ui->instructionView->setUniformItemSizes(true);
+
+
+    // Set up register View
     ui->registerView->setShowGrid(false);
     ui->registerView->verticalHeader()->hide();
     ui->registerView->horizontalHeader()->hide();
     ui->registerView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
+    // Set up memory view
     ui->memoryView->setShowGrid(false);
     ui->memoryView->verticalHeader()->hide();
     ui->memoryView->horizontalHeader()->hide();
-    ui->memoryView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-
-    // all items have the same size, I promise
-    ui->instructionView->setUniformItemSizes(true);
-
-    // set model
-    InstructionModel *instructionModel = new InstructionModel(core);
-    ui->instructionView->setModel(instructionModel);
-
-    RegisterModel *registerModel = new RegisterModel(core);
-    ui->registerView->setModel(registerModel);
-
-    MemoryModel *memoryModel = new MemoryModel(core);
-    ui->memoryView->setModel(memoryModel);
+    ui->memoryView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    ui->memoryView->horizontalHeader()->setMinimumSectionSize(0);
+    ui->memoryView->horizontalHeader()->setSectionResizeMode(17, QHeaderView::Stretch);
 }
 
 DebuggerWindow::~DebuggerWindow() {
