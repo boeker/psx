@@ -30,6 +30,27 @@ QVariant InstructionModel::data(const QModelIndex &index, int role) const {
     return QVariant();
 }
 
+StackModel::StackModel(PSX::Core *core, QObject *parent)
+    : QAbstractListModel(parent), core(core) {
+}
+
+int StackModel::rowCount(const QModelIndex &parent) const {
+    if (parent.isValid()) {
+        return 0;
+    }
+
+    return (2048 * 1024) / 4;
+}
+
+QVariant StackModel::data(const QModelIndex &index, int role) const {
+    if (role == Qt::DisplayRole) {
+        uint32_t address = (2048 * 1024) - (index.row() + 1) * 4;
+        return QVariant(QString::fromStdString(std::format("0x{:08X}: 0x{:08X}", address, core->bus.debugRead<uint32_t>(address))));
+    }
+
+    return QVariant();
+}
+
 MemoryModel::MemoryModel(PSX::Core *core, QObject *parent)
     : QAbstractTableModel(parent), core(core) {
 }
@@ -127,33 +148,36 @@ DebuggerWindow::DebuggerWindow(PSX::Core *core, QWidget *parent)
     : QWidget(parent),
       ui(new Ui::DebuggerWindow),
       instructionModel(new InstructionModel(core)),
+      stackModel(new StackModel(core)),
       registerModel(new RegisterModel(core)),
       memoryModel(new MemoryModel(core)) {
     ui->setupUi(this);
 
-    // Set models
-    ui->instructionView->setModel(instructionModel);
-    ui->registerView->setModel(registerModel);
-    ui->memoryView->setModel(memoryModel);
-
-    // Set monospace font in all views
+    // Monospace font
     const QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    ui->instructionView->setFont(fixedFont);
-    ui->registerView->setFont(fixedFont);
-    ui->memoryView->setFont(fixedFont);
 
     // Set up instruction view
     // Is this okay? (Do all items have the same size?)
+    ui->instructionView->setModel(instructionModel);
+    ui->instructionView->setFont(fixedFont);
     ui->instructionView->setUniformItemSizes(true);
 
+    // Set up the stack view
+    ui->stackView->setModel(stackModel);
+    ui->stackView->setFont(fixedFont);
+    ui->stackView->setUniformItemSizes(true);
 
     // Set up register View
+    ui->registerView->setModel(registerModel);
+    ui->registerView->setFont(fixedFont);
     ui->registerView->setShowGrid(false);
     ui->registerView->verticalHeader()->hide();
     ui->registerView->horizontalHeader()->hide();
     ui->registerView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
     // Set up memory view
+    ui->memoryView->setModel(memoryModel);
+    ui->memoryView->setFont(fixedFont);
     ui->memoryView->setShowGrid(false);
     ui->memoryView->verticalHeader()->hide();
     ui->memoryView->horizontalHeader()->hide();

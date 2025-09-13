@@ -24,6 +24,17 @@ public:
     QVariant data(const QModelIndex &index, int role) const override;
 };
 
+class StackModel : public QAbstractListModel {
+private:
+    PSX::Core *core;
+
+public:
+    StackModel(PSX::Core *core, QObject *parent = nullptr);
+
+    int rowCount(const QModelIndex &parent) const override;
+    QVariant data(const QModelIndex &index, int role) const override;
+};
+
 class MemoryModel : public QAbstractTableModel {
 private:
     PSX::Core *core;
@@ -65,6 +76,7 @@ private:
     Ui::DebuggerWindow *ui;
 
     InstructionModel *instructionModel;
+    StackModel *stackModel;
     RegisterModel *registerModel;
     MemoryModel *memoryModel;
 };
