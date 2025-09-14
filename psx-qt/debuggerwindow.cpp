@@ -9,6 +9,46 @@
 
 #include "psx/core.h"
 
+//#define MAIN_RAM_SIZE (2048 * 1024)
+//#define DCACHE_SIZE 1024
+//#define BIOS_SIZE (512 * 1024)
+
+#define TOTAL_MAPPED_SIZE (MAIN_RAM_SIZE + DCACHE_SIZE + BIOS_SIZE)
+
+bool isMapped(uint32_t address) {
+    return ((address & 0x1FE00000) == 0x00000000) // Main RAM
+           || ((address & 0x1FFFFC00) == 0x1F8FFC00) // D-Cache (Scratchpad)
+           || ((address & 0x1FF80000) == 0x1FC00000); // BIOS ROM
+}
+
+uint32_t addressToLine(uint32_t address) {
+    if ((address & 0x1FE00000) == 0x00000000) { // Main RAM
+        return address & 0x001FFFFF;
+
+    } else if ((address & 0x1FFFFC00) == 0x1F8FFC00) { // D-Cache (Scratchpad)
+        return MAIN_RAM_SIZE + (address & 0x3FF);
+
+    } else { // ((address & 0x1FF80000) == 0x1FC00000); // BIOS ROM
+        return MAIN_RAM_SIZE + DCACHE_SIZE + (address & 0x7FFFFF);
+    }
+}
+
+uint32_t lineToAddress(uint32_t line) {
+    uint32_t address = 0x80000000;
+
+    if (line < MAIN_RAM_SIZE) {
+        address += line;
+
+    } else if (line < MAIN_RAM_SIZE + DCACHE_SIZE) {
+        address += 0x1F800000 + (line - MAIN_RAM_SIZE);
+
+    } else {
+        address += 0x1FC00000 + (line - MAIN_RAM_SIZE - DCACHE_SIZE);
+    }
+
+    return address;
+}
+
 InstructionModel::InstructionModel(PSX::Core *core, QObject *parent)
     : QAbstractListModel(parent), core(core) {
 }
@@ -18,12 +58,12 @@ int InstructionModel::rowCount(const QModelIndex &parent) const {
         return 0;
     }
 
-    return (2048 * 1024) / 4;
+    return TOTAL_MAPPED_SIZE / 4;
 }
 
 QVariant InstructionModel::data(const QModelIndex &index, int role) const {
     if (role == Qt::DisplayRole) {
-        uint32_t address = index.row() * 4;
+        uint32_t address = lineToAddress(index.row() * 4);
         return QVariant(QString::fromStdString(std::format("0x{:08X}: 0x{:08X}", address, core->bus.debugRead<uint32_t>(address))));
     }
 
@@ -39,12 +79,12 @@ int StackModel::rowCount(const QModelIndex &parent) const {
         return 0;
     }
 
-    return (2048 * 1024) / 4;
+    return TOTAL_MAPPED_SIZE / 4;
 }
 
 QVariant StackModel::data(const QModelIndex &index, int role) const {
     if (role == Qt::DisplayRole) {
-        uint32_t address = (2048 * 1024) - (index.row() + 1) * 4;
+        uint32_t address = lineToAddress(TOTAL_MAPPED_SIZE - (index.row() + 1) * 4);
         return QVariant(QString::fromStdString(std::format("0x{:08X}: 0x{:08X}", address, core->bus.debugRead<uint32_t>(address))));
     }
 
@@ -68,21 +108,21 @@ int MemoryModel::rowCount(const QModelIndex &parent) const {
         return 0;
     }
 
-    return (2048 * 1024) / 16;
+    return TOTAL_MAPPED_SIZE / 16;
 }
 
 QVariant MemoryModel::data(const QModelIndex &index, int role) const {
     if (role == Qt::DisplayRole) {
         if (index.column() == 0) {
-            uint32_t address = index.row() * 16;
+            uint32_t address = lineToAddress(index.row() * 16);
             return QVariant(QString::fromStdString(std::format("0x{:08X}   ", address)));
 
         } else if (index.column() <= 16) {
-            uint32_t address = index.row() * 16 + (index.column() - 1);
+            uint32_t address = lineToAddress(index.row() * 16 + (index.column() - 1));
             return QVariant(QString::fromStdString(std::format("{:02X}", core->bus.debugRead<uint8_t>(address))));
 
         } else {
-            uint32_t address = index.row() * 16;
+            uint32_t address = lineToAddress(index.row() * 16);
 
             char str[17];
             for (int i = 0; i < 16; ++i) {
@@ -144,9 +184,16 @@ QVariant RegisterModel::data(const QModelIndex &index, int role) const {
     return QVariant();
 }
 
+void RegisterModel::update() {
+    QModelIndex topLeft = index(0, 0);
+    QModelIndex botRight = index(16, 1);
+    emit dataChanged(topLeft, botRight);
+}
+
 DebuggerWindow::DebuggerWindow(PSX::Core *core, QWidget *parent)
     : QWidget(parent),
       ui(new Ui::DebuggerWindow),
+      core(core),
       instructionModel(new InstructionModel(core)),
       stackModel(new StackModel(core)),
       registerModel(new RegisterModel(core)),
@@ -184,6 +231,8 @@ DebuggerWindow::DebuggerWindow(PSX::Core *core, QWidget *parent)
     ui->memoryView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->memoryView->horizontalHeader()->setMinimumSectionSize(0);
     ui->memoryView->horizontalHeader()->setSectionResizeMode(17, QHeaderView::Stretch);
+
+    jumpToState();
 }
 
 DebuggerWindow::~DebuggerWindow() {
@@ -192,5 +241,20 @@ DebuggerWindow::~DebuggerWindow() {
 
 void DebuggerWindow::closeEvent(QCloseEvent *event) {
     emit closed();
+}
+
+void DebuggerWindow::jumpToState() {
+    uint32_t pc = core->bus.cpu.regs.getPC();
+
+    QModelIndex instructionIndex = instructionModel->index(addressToLine(pc) / 4, 0);
+    ui->instructionView->setCurrentIndex(instructionIndex);
+
+    //uint32_t sp = core->bus.cpu.regs.getRegister(29); // Register 29 is the stack pointer
+    //QModelIndex stackIndex = stackModel->index(128, 0);
+    //ui->stackView->setCurrentIndex(stackIndex);
+}
+
+void DebuggerWindow::update() {
+    registerModel->update();
 }
 

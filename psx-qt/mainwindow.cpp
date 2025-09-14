@@ -201,6 +201,8 @@ void MainWindow::pauseEmulation() {
     ui->actionPause->setEnabled(false);
 
     emuThread->pauseEmulation();
+    debuggerWindow->jumpToState();
+    debuggerWindow->update();
 }
 
 void MainWindow::stopEmulation() {

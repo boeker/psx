@@ -57,6 +57,8 @@ public:
     int columnCount(const QModelIndex &parent) const override;
     int rowCount(const QModelIndex &parent) const override;
     QVariant data(const QModelIndex &index, int role) const override;
+
+    void update();
 };
 
 class DebuggerWindow : public QWidget
@@ -69,11 +71,16 @@ public:
 
     void closeEvent(QCloseEvent *event) override;
 
+    void jumpToState();
+    void update();
+
 signals:
     void closed();
 
 private:
     Ui::DebuggerWindow *ui;
+
+    PSX::Core *core;
 
     InstructionModel *instructionModel;
     StackModel *stackModel;
