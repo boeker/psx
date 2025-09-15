@@ -78,6 +78,8 @@
     <addaction name="actionStart"/>
     <addaction name="actionPause"/>
     <addaction name="actionStop"/>
+    <addaction name="separator"/>
+    <addaction name="actionStep"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEmulation"/>
@@ -162,6 +164,17 @@
    </property>
    <property name="text">
     <string>Debugger</string>
+   </property>
+  </action>
+  <action name="actionStep">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Step</string>
+   </property>
+   <property name="shortcut">
+    <string>F7</string>
    </property>
   </action>
  </widget>

@@ -14,7 +14,8 @@ EmuThread::EmuThread(QObject *parent)
       initialized(false),
       openGLWindow(nullptr),
       vramOpenGLWindow(nullptr),
-      paused(true) {
+      paused(true),
+      justOneStep(false) {
 }
 
 EmuThread::~EmuThread() {
@@ -26,6 +27,10 @@ void EmuThread::pauseEmulation() {
 
 bool EmuThread::emulationIsPaused() {
     return paused.load();
+}
+
+void EmuThread::setJustOneStep(bool justOneStep) {
+    this->justOneStep = justOneStep;
 }
 
 void EmuThread::setOpenGLWindow(OpenGLWindow *window) {
@@ -49,9 +54,16 @@ void EmuThread::run() {
     QOpenGLContext *context = openGLWindow->getContext();
     context->makeCurrent(openGLWindow);
 
-    paused.store(false);
-    while (!paused.load()) {
-        core->emulateUntilVBLANK();
+
+    if (justOneStep) {
+        justOneStep = false;
+        core->emulateStep();
+
+    } else {
+        paused.store(false);
+        while (!paused.load()) {
+            core->emulateUntilVBLANK();
+        }
     }
 
     context->doneCurrent();

@@ -145,6 +145,9 @@ void MainWindow::makeConnections() {
     connect(ui->actionToolbarStop, &QAction::triggered,
             this, &MainWindow::stopEmulation);
 
+    connect(ui->actionStep, &QAction::triggered,
+            this, &MainWindow::emulateOneStep);
+
     connect(emuThread, &EmuThread::emulationShouldStop,
             this, &MainWindow::stopEmulation);
 
@@ -191,6 +194,7 @@ void MainWindow::continueEmulation() {
     ui->actionStart->setEnabled(false);
     ui->actionPause->setEnabled(true);
     ui->actionStop->setEnabled(true);
+    ui->actionStep->setEnabled(false);
 
     emuThread->start();
 }
@@ -199,6 +203,7 @@ void MainWindow::pauseEmulation() {
     ui->actionToolbarStart->setText("Start");
     ui->actionStart->setEnabled(true);
     ui->actionPause->setEnabled(false);
+    ui->actionStep->setEnabled(true);
 
     emuThread->pauseEmulation();
     debuggerWindow->jumpToState();
@@ -222,6 +227,16 @@ void MainWindow::stopEmulation() {
         ui->treeView->setHidden(false);
         LOG_MISC("Stopped emulation");
     }
+}
+
+void MainWindow::emulateOneStep() {
+    LOG_MISC("Emulating a single step");
+
+    emuThread->setJustOneStep(true);
+    emuThread->start();
+    emuThread->wait();
+    debuggerWindow->jumpToState();
+    debuggerWindow->update();
 }
 
 void MainWindow::triggerVRAMViewerWindow() {

@@ -16,6 +16,7 @@ public:
     void reset();
 
     void setRenderer(Renderer *renderer);
+    void emulateStep();
     void emulateBlock();
     void emulateUntilVBLANK();
     void run();

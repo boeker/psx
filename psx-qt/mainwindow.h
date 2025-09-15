@@ -61,6 +61,7 @@ public slots:
     void continueEmulation();
     void pauseEmulation();
     void stopEmulation();
+    void emulateOneStep();
 
     void triggerVRAMViewerWindow();
     void triggerDebuggerWindow();

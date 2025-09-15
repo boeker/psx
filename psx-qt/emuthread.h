@@ -16,6 +16,8 @@ public:
     void pauseEmulation();
     bool emulationIsPaused();
 
+    void setJustOneStep(bool justOneStep);
+
     void setOpenGLWindow(OpenGLWindow *window);
     void setVRAMOpenGLWindow(OpenGLWindow *window);
 
@@ -35,6 +37,7 @@ private:
     OpenGLWindow *vramOpenGLWindow;
 
     std::atomic<bool> paused;
+    bool justOneStep;
 };
 
 #endif
