@@ -44,6 +44,8 @@ target_sources(psx PRIVATE
     timers.cpp
     timers.h
     util/bit.h
+    util/disassembler.h
+    util/disassembler.cpp
     util/log.cpp
     util/log.h
 )

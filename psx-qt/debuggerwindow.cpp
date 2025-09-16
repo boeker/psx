@@ -8,6 +8,7 @@
 #include <QVariant>
 
 #include "psx/core.h"
+#include "psx/util/disassembler.h"
 
 //#define MAIN_RAM_SIZE (2048 * 1024)
 //#define DCACHE_SIZE 1024
@@ -64,7 +65,13 @@ int InstructionModel::rowCount(const QModelIndex &parent) const {
 QVariant InstructionModel::data(const QModelIndex &index, int role) const {
     if (role == Qt::DisplayRole) {
         uint32_t address = lineToAddress(index.row() * 4);
-        return QVariant(QString::fromStdString(std::format("0x{:08X}: 0x{:08X}", address, core->bus.debugRead<uint32_t>(address))));
+        uint32_t data = core->bus.debugRead<uint32_t>(address);
+        uint32_t pc = core->bus.cpu.regs.getPC();
+        return QVariant(QString::fromStdString(std::format("0x{:08X}{:s}0x{:08X}   {:s}",
+                                                           address,
+                                                           pc == address ? " =>" : "   ",
+                                                           data,
+                                                           util::Disassembler::disassemble(data))));
     }
 
     return QVariant();
