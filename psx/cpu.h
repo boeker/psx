@@ -43,6 +43,8 @@ public:
     void generateException(uint8_t exccode);
     void checkAndExecuteInterrupts();
 
+    uint32_t getDelaySlotPC() const;
+
 private:
     Bus *bus;
 

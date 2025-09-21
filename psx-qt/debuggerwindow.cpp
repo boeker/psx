@@ -66,7 +66,7 @@ QVariant InstructionModel::data(const QModelIndex &index, int role) const {
     if (role == Qt::DisplayRole) {
         uint32_t address = lineToAddress(index.row() * 4);
         uint32_t data = core->bus.debugRead<uint32_t>(address);
-        uint32_t pc = core->bus.cpu.regs.getPC();
+        uint32_t pc = core->bus.cpu.getDelaySlotPC();
         return QVariant(QString::fromStdString(std::format("0x{:08X}{:s}0x{:08X}   {:s}",
                                                            address,
                                                            pc == address ? " =>" : "   ",
@@ -171,7 +171,7 @@ QVariant RegisterModel::data(const QModelIndex &index, int role) const {
     if (role == Qt::DisplayRole) {
         if (index.row() == 0 && index.column() == 0) {
             return QVariant(QString::fromStdString(std::format("pc 0x{:08X}",
-                                                               core->bus.cpu.regs.getPC())));
+                                                               core->bus.cpu.getDelaySlotPC())));
         } else if (index.row() < 16) {
             uint8_t registerNumber = (index.column() > 0 ? 16 : 0) + index.row();
             return QVariant(QString::fromStdString(std::format("{:s} 0x{:08X}",
@@ -251,7 +251,7 @@ void DebuggerWindow::closeEvent(QCloseEvent *event) {
 }
 
 void DebuggerWindow::jumpToState() {
-    uint32_t pc = core->bus.cpu.regs.getPC();
+    uint32_t pc = core->bus.cpu.getDelaySlotPC();
 
     QModelIndex instructionIndex = instructionModel->index(addressToLine(pc) / 4, 0);
     ui->instructionView->setCurrentIndex(instructionIndex);

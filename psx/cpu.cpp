@@ -138,6 +138,10 @@ void CPU::checkAndExecuteInterrupts() {
     }
 }
 
+uint32_t CPU::getDelaySlotPC() const {
+    return delaySlotPC;
+}
+
 std::ostream& operator<<(std::ostream &os, const CPU &cpu) {
     os << "Register contents: " << std::endl;
     os << cpu.regs << std::endl;
