@@ -5,15 +5,35 @@
 
 namespace PSX {
 
+class Bus;
+
 class Timers {
 private:
+    Bus *bus;
+
     // 0x1F801100: Timer 0 Current Counter Value
     // 0x1F801104: Timer 0 Counter Mode
     // 0x1F801108: Timer 0 Counter Target Value
-    uint8_t *timerRegisters;
+    //
+    // 0x1F801110: Timer 1 Current Counter Value
+    // 0x1F801114: Timer 1 Counter Mode
+    // 0x1F801118: Timer 1 Counter Target Value
+    //
+    // 0x1F801120: Timer 2 Current Counter Value
+    // 0x1F801124: Timer 2 Counter Mode
+    // 0x1F801128: Timer 2 Counter Target Value
+
+    uint32_t current[3];
+    uint16_t mode[3];
+    uint16_t target[3];
+
+    uint32_t remainingCycles[3];
 
 public:
+    Timers(Bus *bus);
     void reset();
+
+    void catchUpToCPU(uint32_t cpuCycles);
 
     template <typename T>
     void write(uint32_t address, T value);

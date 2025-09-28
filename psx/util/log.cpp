@@ -145,6 +145,9 @@ void LogPack::installAdditionalLog(const std::shared_ptr<Log> &log) {
     spu.installAdditionalLog(log);
     timers.installAdditionalLog(log);
     warning.installAdditionalLog(log);
+
+    timersV.installAdditionalLog(log);
+    timersT.installAdditionalLog(log);
 }
 
 }

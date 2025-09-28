@@ -46,6 +46,7 @@ void Core::emulateBlock() {
     cyclesTaken = bus.cpu.cycles - cyclesTaken;
 
     bus.gpu.catchUpToCPU(cyclesTaken);
+    bus.timers.catchUpToCPU(cyclesTaken);
 }
 
 void Core::emulateUntilVBLANK() {
