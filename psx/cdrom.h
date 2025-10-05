@@ -2,6 +2,7 @@
 #define PSX_CDROM_H
 
 #include <cstdint>
+#include <deque>
 #include <ostream>
 
 namespace PSX {
@@ -66,13 +67,16 @@ private:
     Queue parameterQueue;
     Queue responseQueue;
 
-    uint8_t queuedInterrupt;
+    typedef void (CDROM::*QueuedResponse) ();
+    std::deque<QueuedResponse> queuedResponses;
 
 public:
     CDROM(Bus *bus);
     void reset();
 
     void executeCommand(uint8_t command);
+    void checkAndNotifyINT3();
+    void checkAndNotifyINT5();
 
     uint8_t getStatusRegister();
 
@@ -81,6 +85,8 @@ public:
 
     template <typename T>
     T read(uint32_t address);
+
+    void getIDSecondResponse();
 };
 
 }

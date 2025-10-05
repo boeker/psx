@@ -84,7 +84,6 @@ void CDROM::reset() {
 
     parameterQueue.clear();
     responseQueue.clear();
-    queuedInterrupt = 0;
 }
 
 void CDROM::executeCommand(uint8_t command) {
@@ -99,59 +98,71 @@ void CDROM::executeCommand(uint8_t command) {
         //1  Spindle Motor (0=Motor off, or in spin-up phase, 1=Motor on)
         //0  Error         Invalid Command/parameters (followed by Error Byte)
 
-        responseQueue.push(1 << 3); // GetID denied for now
+        responseQueue.push(0); // Empty drive (?)
+        //responseQueue.push(1 << 3); // GetID denied for now
         //responseQueue.push(1 << 4); // ShellOpen for now
 
-        // INT3
-        if ((interruptEnableRegister >> 2) & 1) {
-            interruptFlagRegister = interruptFlagRegister | 3;
-            bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
-        }
+        checkAndNotifyINT3();
 
     } else if (command == 0x19) { // Test
         LOG_CDROM(std::format("Command: Test"));
         uint8_t subFunction = parameterQueue.pop();
 
         if (subFunction == 0x20) { // Get CDROM BIOS date and version
-            responseQueue.push(90);
-            responseQueue.push(1);
-            responseQueue.push(1);
-            responseQueue.push(1);
+            responseQueue.push(90); // Year
+            responseQueue.push(1); // Month
+            responseQueue.push(1); // Day
+            responseQueue.push(1); // Version
 
-            // INT3
-            if ((interruptEnableRegister >> 2) & 1) {
-                interruptFlagRegister = interruptFlagRegister | 3;
-                bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
-            }
+            checkAndNotifyINT3();
 
         } else {
             LOG_CDROM(std::format("Subfunction 0x{:02X} not implemented", subFunction));
         }
 
     } else if (command == 0x1A) { // GetID
-            // INT3 with status first, then INT5
-            responseQueue.push(0);
-            //responseQueue.push(0x11);
-            //responseQueue.push(0x80);
+        LOG_CDROM(std::format("Command: GetID"));
+        // INT3 with status first, then INT5
+        responseQueue.push(0); // Status code, i.e., drive closed with no disc
+        //responseQueue.push(0x11);
+        //responseQueue.push(0x80);
 
-            // INT3
-            if ((interruptEnableRegister >> 2) & 1) {
-                interruptFlagRegister = interruptFlagRegister | 3;
-                bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
-            }
-            //if ((interruptEnableRegister >> 4) & 1) {
-            //    interruptFlagRegister = interruptFlagRegister | 5;
-            //    bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
-            //}
+        checkAndNotifyINT3();
 
-            queuedInterrupt =  5;
+        queuedResponses.push_back(&CDROM::getIDSecondResponse);
 
     } else {
         LOG_CDROM(std::format("Command 0x{:02X} not implemented", command));
     }
 }
 
+void CDROM::checkAndNotifyINT3() {
+    LOG_CDROM(std::format("INT3 occured"));
+    if ((interruptEnableRegister >> 2) & 1) {
+        LOG_CDROM(std::format("Flagging and notifying about INT3"));
+        interruptFlagRegister = interruptFlagRegister | 3;
+        bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
+    } else {
+        LOG_CDROM(std::format("INT3 not enabled"));
+    }
+}
+
+void CDROM::checkAndNotifyINT5() {
+    LOG_CDROM(std::format("INT5 occured"));
+    if ((interruptEnableRegister >> 4) & 1) {
+        LOG_CDROM(std::format("Flagging and notifying about INT5"));
+        interruptFlagRegister = interruptFlagRegister | 5;
+        bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
+    } else {
+        LOG_CDROM(std::format("INT5 not enabled"));
+    }
+}
+
 uint8_t CDROM::getStatusRegister() {
+    LOG_CDROM(std::format("parameterQueue.isEmpty(): {}", parameterQueue.isEmpty()));
+    LOG_CDROM(std::format("parameterQueue.isFull(): {}", parameterQueue.isFull()));
+    LOG_CDROM(std::format("responseQueue.isEmpty(): {}", responseQueue.isEmpty()));
+    LOG_CDROM(std::format("responseQueue.isFull(): {}", responseQueue.isFull()));
     return (0 << CDROMSTAT_BUSYSTS)
            | (0 << CDROMSTAT_DRQSTS)
            | (!responseQueue.isEmpty() << CDROMSTAT_RSLRRDY)
@@ -214,26 +225,10 @@ void CDROM::write(uint32_t address, uint8_t value) {
             // Clear response queue
             responseQueue.clear();
 
-            if (queuedInterrupt != 0) {
-                // INT5 for now
-
-                LOG_CDROM(std::format("Writing 2nd response"));
-                // hard-coded answer to GetID
-                responseQueue.push(0x08);
-                responseQueue.push(0x40);
-                responseQueue.push(0x00);
-                responseQueue.push(0x00);
-                responseQueue.push(0x00);
-                responseQueue.push(0x00);
-                responseQueue.push(0x00);
-                responseQueue.push(0x00);
-
-                if ((interruptEnableRegister >> 4) & 1) {
-                    interruptFlagRegister = interruptFlagRegister | 5;
-                    bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
-                }
-
-                queuedInterrupt = 0;
+            if (!queuedResponses.empty()) {
+                QueuedResponse response = queuedResponses.front();
+                queuedResponses.pop_front();
+                (this->*response)();
             }
 
         } else {
@@ -296,6 +291,21 @@ uint8_t CDROM::read(uint32_t address) {
     }
 
     return value;
+}
+
+void CDROM::getIDSecondResponse() {
+    LOG_CDROM(std::format("Command: GetID, 2nd response"));
+    // hard-coded answer to GetID
+    responseQueue.push(0x08);
+    responseQueue.push(0x40);
+    responseQueue.push(0x00);
+    responseQueue.push(0x00);
+    //responseQueue.push(0x00);
+    //responseQueue.push(0x00);
+    //responseQueue.push(0x00);
+    //responseQueue.push(0x00);
+
+    checkAndNotifyINT5();
 }
 
 }
