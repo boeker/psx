@@ -101,8 +101,10 @@ LogPack::LogPack()
       INIT_TWL(renderer, "REND"),
       INIT_TWL(spu, "SPU"),
       INIT_TWL(timers, "TMR"),
+      INIT_TWL(tty, "TTY"),
       INIT_TWL(warning, "WRN") {
     misc.setConsoleLogEnabled(true);
+    tty.setConsoleLogEnabled(true);
     //FileLog::logFile.open("trace.txt");
     //enableAllFileLogging();
 }
@@ -125,6 +127,7 @@ void LogPack::enableAllFileLogging() {
     ENABLE_TWL_FILELOG(renderer);
     ENABLE_TWL_FILELOG(spu);
     ENABLE_TWL_FILELOG(timers);
+    ENABLE_TWL_FILELOG(tty);
     ENABLE_TWL_FILELOG(warning);
 }
 
@@ -144,6 +147,7 @@ void LogPack::installAdditionalLog(const std::shared_ptr<Log> &log) {
     renderer.installAdditionalLog(log);
     spu.installAdditionalLog(log);
     timers.installAdditionalLog(log);
+    tty.installAdditionalLog(log);
     warning.installAdditionalLog(log);
 
     timersV.installAdditionalLog(log);

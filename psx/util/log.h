@@ -83,6 +83,7 @@ struct LogPack {
     DECLARE_TWL(renderer);
     DECLARE_TWL(spu);
     DECLARE_TWL(timers);
+    DECLARE_TWL(tty);
     DECLARE_TWL(warning);
 
     void enableAllFileLogging();
@@ -153,9 +154,14 @@ extern LogPack logPack;
 #define LOGV_TMR            MACRO_LOG(timersV)
 #define LOGT_TMR            MACRO_LOG(timersT)
 
+#define LOG_TTY             MACRO_LOG(tty)
+#define LOGV_TTY            MACRO_LOG(ttyV)
+#define LOGT_TTY            MACRO_LOG(ttyT)
+
 #define LOG_WRN             MACRO_LOG(warning)
 #define LOGV_WRN            MACRO_LOG(warningV)
 #define LOGT_WRN            MACRO_LOG(warningT)
+
 
 }
 

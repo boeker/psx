@@ -54,6 +54,9 @@ void CPU::step() {
     // and increase program counter
     fetchDelaySlot();
 
+    // check if TTY output is being made
+    interceptTTYOutput();
+
     // execute instruction
     LOGT_CPU(std::format("@0x{:08X}: ", instructionPC));
     opcode = instruction >> 26;
@@ -73,6 +76,20 @@ void CPU::fetchDelaySlot() {
     // by increasing it before executing the instruction,
     // it may be overwritten by the instruction
     regs.setPC(delaySlotPC + 4);
+}
+
+void CPU::interceptTTYOutput() {
+    uint32_t pc = instructionPC & 0x01FFFFFF;
+    if ((pc == 0xA0 && regs.getRegister(9) == 0x3C)
+        || (pc == 0xB0 && regs.getRegister(9) == 0x3D)) {
+        char c = 0xFF & regs.getRegister(4);
+        if (c != '\n') {
+            ttyOutput << (char)c;
+        } else {
+            LOG_TTY(ttyOutput.str());
+            ttyOutput.str(std::string());
+        }
+    }
 }
 
 void CPU::generateException(uint8_t exccode) {

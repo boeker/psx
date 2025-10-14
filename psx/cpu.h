@@ -2,6 +2,7 @@
 #define PSX_CPU_H
 
 #include <string>
+#include <sstream>
 
 #include "registers.h"
 #include "cp0registers.h"
@@ -40,6 +41,7 @@ public:
     
     void step();
     void fetchDelaySlot();
+    void interceptTTYOutput();
     void generateException(uint8_t exccode);
     void checkAndExecuteInterrupts();
 
@@ -47,6 +49,7 @@ public:
 
 private:
     Bus *bus;
+    std::stringstream ttyOutput;
 
 public:
     uint32_t cycles;
