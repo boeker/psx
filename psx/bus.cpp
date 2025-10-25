@@ -34,6 +34,7 @@ Bus::Bus()
 void Bus::reset() {
     cdrom.reset();
     cpu.reset();
+    executable.reset();
     memory.reset();
     bios.reset();
     timers.reset();

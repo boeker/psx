@@ -6,6 +6,7 @@
 
 #include "cdrom.h"
 #include "cpu.h"
+#include "executable.h"
 #include "memory.h"
 #include "bios.h"
 #include "dma.h"
@@ -75,6 +76,7 @@ class Bus {
 public:
     CDROM cdrom;
     CPU cpu;
+    Executable executable;
     Memory memory;
     Bios bios;
     Timers timers;

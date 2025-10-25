@@ -18,6 +18,11 @@ int main(int argc, char *argv[]) {
                                   "bios");
     parser.addOption(biosOption);
 
+    QCommandLineOption exeOption(QStringList() << "E" << "exe",
+                                  "Load executable file <exe>.",
+                                  "exe");
+    parser.addOption(exeOption);
+
     QCommandLineOption startOption(QStringList() << "S" << "start",
                                    "Start emulation on startup.");
     parser.addOption(startOption);
@@ -40,6 +45,11 @@ int main(int argc, char *argv[]) {
     }
 
     MainWindow mainWindow(biosPath, nullptr);
+
+    if (parser.isSet(exeOption)) {
+        mainWindow.loadExecutable(parser.value(exeOption));
+    }
+
     mainWindow.show();
 
     if (parser.isSet(startOption)) {

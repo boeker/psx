@@ -73,6 +73,7 @@ struct LogPack {
     DECLARE_TWL(cpu);
     DECLARE_TWL(dma);
     DECLARE_TWL(exceptions);
+    DECLARE_TWL(executable);
     DECLARE_TWL(gpu);
     DECLARE_TWL(gte);
     DECLARE_TWL(interrupts);
@@ -113,6 +114,10 @@ extern LogPack logPack;
 #define LOG_EXC             MACRO_LOG(exceptions)
 #define LOGV_EXC            MACRO_LOG(exceptionsV)
 #define LOGT_EXC            MACRO_LOG(exceptionsT)
+
+#define LOG_EXE             MACRO_LOG(executable)
+#define LOGV_EXE            MACRO_LOG(executableV)
+#define LOGT_EXE            MACRO_LOG(executableT)
 
 #define LOG_GPU             MACRO_LOG(gpu)
 #define LOGV_GPU            MACRO_LOG(gpuV)

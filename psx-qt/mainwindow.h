@@ -57,6 +57,9 @@ public:
     ~MainWindow();
 
 public slots:
+    void loadExecutable();
+    void loadExecutable(const QString &fileName);
+
     void startPauseEmulation();
     void continueEmulation();
     void pauseEmulation();

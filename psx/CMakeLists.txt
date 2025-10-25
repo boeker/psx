@@ -18,6 +18,8 @@ target_sources(psx PRIVATE
     dma.cpp
     dma.h
     exceptions/exceptions.h
+    executable.cpp
+    executable.h
     gpu.cpp
     gpu.h
     gte.cpp

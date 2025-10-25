@@ -62,6 +62,7 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionLoadExecutable"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
@@ -175,6 +176,11 @@
    </property>
    <property name="shortcut">
     <string>F7</string>
+   </property>
+  </action>
+  <action name="actionLoadExecutable">
+   <property name="text">
+    <string>Load Executable</string>
    </property>
   </action>
  </widget>

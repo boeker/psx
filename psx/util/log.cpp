@@ -91,6 +91,7 @@ LogPack::LogPack()
       INIT_TWL(cpu, "CPU"),
       INIT_TWL(dma, "DMA"),
       INIT_TWL(exceptions, "EXC"),
+      INIT_TWL(executable, "EXE"),
       INIT_TWL(gpu, "GPU"),
       INIT_TWL(gte, "GTE"),
       INIT_TWL(interrupts, "INT"),
@@ -103,6 +104,7 @@ LogPack::LogPack()
       INIT_TWL(timers, "TMR"),
       INIT_TWL(tty, "TTY"),
       INIT_TWL(warning, "WRN") {
+    executable.setConsoleLogEnabled(true);
     misc.setConsoleLogEnabled(true);
     tty.setConsoleLogEnabled(true);
     //FileLog::logFile.open("trace.txt");
@@ -117,6 +119,7 @@ void LogPack::enableAllFileLogging() {
     ENABLE_TWL_FILELOG(cpu);
     ENABLE_TWL_FILELOG(dma);
     ENABLE_TWL_FILELOG(exceptions);
+    ENABLE_TWL_FILELOG(executable);
     ENABLE_TWL_FILELOG(gpu);
     ENABLE_TWL_FILELOG(gte);
     ENABLE_TWL_FILELOG(interrupts);
@@ -137,6 +140,7 @@ void LogPack::installAdditionalLog(const std::shared_ptr<Log> &log) {
     cpu.installAdditionalLog(log);
     dma.installAdditionalLog(log);
     exceptions.installAdditionalLog(log);
+    executable.installAdditionalLog(log);
     gpu.installAdditionalLog(log);
     gte.installAdditionalLog(log);
     interrupts.installAdditionalLog(log);

@@ -3,8 +3,10 @@
 
 #include <limits>
 #include <QDir>
+#include <QFileDialog>
 #include <QFileSystemModel>
 #include <QOpenGLContext>
+#include <QOverload>
 #include <QScrollBar>
 
 #include "debuggerwindow.h"
@@ -129,6 +131,8 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::makeConnections() {
+    connect(ui->actionLoadExecutable, &QAction::triggered,
+            this, qOverload<>(&MainWindow::loadExecutable));
     connect(ui->actionExit, &QAction::triggered,
             QCoreApplication::instance(), &QCoreApplication::quit);
 
@@ -162,6 +166,15 @@ void MainWindow::makeConnections() {
             vramViewerWindow, &QWidget::setVisible);
     connect(vramViewerWindow, &VRAMViewerWindow::closed,
             ui->actionVRAMViewer, &QAction::toggle);
+}
+
+void MainWindow::loadExecutable() {
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Load Executable"));
+    loadExecutable(fileName);
+}
+
+void MainWindow::loadExecutable(const QString &fileName) {
+    core->bus.executable.readFromFile(fileName.toStdString());
 }
 
 void MainWindow::startPauseEmulation() {
