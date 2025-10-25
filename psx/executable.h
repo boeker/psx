@@ -9,6 +9,7 @@ namespace PSX {
 class Executable {
 private:
     uint8_t* exe;
+    uint32_t exeLength;
 
 public:
     Executable();
@@ -16,6 +17,7 @@ public:
     void reset();
 
     void readFromFile(const std::string &file);
+    void writeExecutableToMemory();
 };
 }
 
