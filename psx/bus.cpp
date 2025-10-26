@@ -27,7 +27,7 @@ std::ostream& operator<<(std::ostream &os, const Bus &bus) {
 }
 
 Bus::Bus()
-    : cdrom(this), cpu(this), dma(this), interrupts(this), gpu(this), timers(this) {
+    : cdrom(this), cpu(this), dma(this), executable(this), interrupts(this), gpu(this), timers(this) {
     reset();
 }
 
