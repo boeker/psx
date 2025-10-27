@@ -57,6 +57,12 @@ void CPU::step() {
     // check if TTY output is being made
     interceptTTYOutput();
 
+    // Executable sideloading
+    if ((instructionPC & 0x1FFFFFFF) == 0x00030000 && bus->executable.loaded()) {
+        LOG_EXE("Sideloading executable");
+        bus->executable.writeToMemory();
+    }
+
     // execute instruction
     LOGT_CPU(std::format("@0x{:08X}: ", instructionPC));
     opcode = instruction >> 26;

@@ -58,7 +58,7 @@ public:
 
 public slots:
     void loadExecutable();
-    void loadExecutable(const QString &fileName);
+    void setExecutableFileName(const QString &fileName);
 
     void startPauseEmulation();
     void continueEmulation();
@@ -79,6 +79,7 @@ private:
     // Main window
     Ui::MainWindow *ui;
     QFileSystemModel *biosFSModel;
+    QString executableFileName;
 
     // Debugger window
     DebuggerWindow *debuggerWindow;

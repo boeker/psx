@@ -169,12 +169,11 @@ void MainWindow::makeConnections() {
 }
 
 void MainWindow::loadExecutable() {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Load Executable"));
-    loadExecutable(fileName);
+    setExecutableFileName(QFileDialog::getOpenFileName(this, tr("Load Executable")));
 }
 
-void MainWindow::loadExecutable(const QString &fileName) {
-    core->bus.executable.readFromFile(fileName.toStdString());
+void MainWindow::setExecutableFileName(const QString &fileName) {
+    executableFileName = fileName;
 }
 
 void MainWindow::startPauseEmulation() {
@@ -183,6 +182,9 @@ void MainWindow::startPauseEmulation() {
 
         QString selectedBios = biosFSModel->filePath(ui->treeView->currentIndex());
         core->bus.bios.readFromFile(selectedBios.toStdString());
+        if (!executableFileName.isEmpty()) {
+            core->bus.executable.readFromFile(executableFileName.toStdString());
+        }
 
         ui->treeView->setHidden(true);
         openGLWindowWidget->show();

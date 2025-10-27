@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
     MainWindow mainWindow(biosPath, nullptr);
 
     if (parser.isSet(exeOption)) {
-        mainWindow.loadExecutable(parser.value(exeOption));
+        mainWindow.setExecutableFileName(parser.value(exeOption));
     }
 
     mainWindow.show();
