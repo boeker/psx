@@ -62,7 +62,7 @@ T Bus::debugRead(uint32_t address) {
     } else if ((address & 0x1F800000) == 0x1F000000) { // Expansion Region 1
         value = 0;
 
-    } else if ((address & 0x1FFFFC00) == 0x1F8FFC00) { // D-Cache (Scratchpad)
+    } else if ((address & 0x1FFFFC00) == 0x1F800000) { // D-Cache (Scratchpad)
         // Also in KSEG1 for now
         value = memory.readDCache<T>(address);
 
@@ -146,7 +146,7 @@ T Bus::read(uint32_t address) {
 
         LOG_WRN(std::format("Unimplemented Expansion Region 1 read @0x{:08X}", address));
 
-    } else if ((address & 0x1FFFFC00) == 0x1F8FFC00) { // D-Cache (Scratchpad)
+    } else if ((address & 0x1FFFFC00) == 0x1F800000) { // D-Cache (Scratchpad)
         // Also in KSEG1 for now
         value = memory.readDCache<T>(address);
 
@@ -231,7 +231,7 @@ void Bus::write (uint32_t address, T value) {
             "Write to unimplemented Expansion Region 1 @0x{:08X}", address));
         return;
 
-    } else if ((address & 0x1FFFFC00) == 0x1F8FFC00) { // D-Cache (Scratchpad)
+    } else if ((address & 0x1FFFFC00) == 0x1F800000) { // D-Cache (Scratchpad)
         // Also in KSEG1 for now
         return memory.writeDCache<T>(address, value);
 
