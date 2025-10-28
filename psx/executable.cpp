@@ -98,7 +98,7 @@ void Executable::parseHeader() {
 
 void Executable::writeToMemory() {
     // Copy to RAM
-    assert(fileSize <= exeLength + 0x800);
+    assert(header.fileSize <= exeLength + 0x800);
     for (uint32_t i = 0; i <= exeLength; ++i) {
         bus->write<uint8_t>(header.destination + i, exe[0x800 + i]);
     }
