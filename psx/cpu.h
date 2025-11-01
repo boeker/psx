@@ -120,6 +120,7 @@ private:
     void JALR();
     void AND();
     void ADD();
+    void SUB();
     void SUBU();
     void SRA();
     void DIV();

@@ -68,6 +68,7 @@ private:
     static std::string JALR();
     static std::string AND();
     static std::string ADD();
+    static std::string SUB();
     static std::string SUBU();
     static std::string SRA();
     static std::string DIV();

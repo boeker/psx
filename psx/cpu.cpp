@@ -228,7 +228,7 @@ const CPU::Opcode CPU::special[] = {
     // 0b011100
     &CPU::UNKSPCL,  &CPU::UNKSPCL,  &CPU::UNKSPCL,  &CPU::UNKSPCL,
     // 0b100000
-    &CPU::ADD,      &CPU::ADDU,     &CPU::UNKSPCL,  &CPU::SUBU,
+    &CPU::ADD,      &CPU::ADDU,     &CPU::SUB,      &CPU::SUBU,
     // 0b100100
     &CPU::AND,      &CPU::OR,       &CPU::XOR,      &CPU::NOR,
     // 0b101000
@@ -1174,6 +1174,34 @@ void CPU::ADD() {
 
     if (carry30 == carry31) {
         regs.setRegister(rd, rsValue + rtValue);
+
+    } else {
+        throw exceptions::ExceptionNotImplemented("Integer Overflow");
+    }
+}
+
+void CPU::SUB() {
+    // Subtract Word
+    // T: GPR[rd] <- GPR[rs] - GPR[rt]
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    LOGT_CPU(std::format("SUB {:s},{:s},{:s}",
+                        regs.getRegisterName(rd),
+                        regs.getRegisterName(rs),
+                        regs.getRegisterName(rt)));
+
+    uint32_t rsValue = regs.getRegister(rs);
+    uint32_t rtValue = regs.getRegister(rt);
+
+    regs.setRegister(rd, rsValue - rtValue);
+
+    bool carry30 = ((0x7FFFFFFF & rsValue) - (0x7FFFFFFF & rtValue)) & 0x80000000;
+    bool carry31 = ((rsValue >> 31) - (rtValue >> 31) + (carry30 ? 1 : 0) >= 2);
+
+    if (carry30 == carry31) {
+        regs.setRegister(rd, rsValue - rtValue);
 
     } else {
         throw exceptions::ExceptionNotImplemented("Integer Overflow");

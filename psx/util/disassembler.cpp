@@ -93,7 +93,7 @@ const Disassembler::Opcode Disassembler::special[] = {
     // 0b011100
     &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,
     // 0b100000
-    &Disassembler::ADD,      &Disassembler::ADDU,     &Disassembler::UNKSPCL,  &Disassembler::SUBU,
+    &Disassembler::ADD,      &Disassembler::ADDU,     &Disassembler::SUB,      &Disassembler::SUBU,
     // 0b100100
     &Disassembler::AND,      &Disassembler::OR,       &Disassembler::XOR,      &Disassembler::NOR,
     // 0b101000
@@ -804,6 +804,19 @@ std::string Disassembler::ADD() {
     uint8_t rd = 0x1F & (instruction >> 11);
 
     return std::format("ADD {:s},{:s},{:s}",
+                       getRegisterName(rd),
+                       getRegisterName(rs),
+                       getRegisterName(rt));
+}
+
+std::string Disassembler::SUB() {
+    // Subtract Word
+    // T: GPR[rd] <- GPR[rs] - GPR[rt]
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    return std::format("SUB {:s},{:s},{:s}",
                        getRegisterName(rd),
                        getRegisterName(rs),
                        getRegisterName(rt));
