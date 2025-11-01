@@ -252,7 +252,7 @@ uint32_t GPU::sendGP0Data() {
             return (value1 << 16) | value2;
 
         default:
-            return 0;
+            return gpuReadResponse;
     }
 }
 
@@ -293,6 +293,9 @@ void GPU::decodeAndExecuteGP1() {
 
     } else if (command == 0x09) {
         GP1NewTextureDisable();
+
+    } else if (command == 0x10) {
+        GP1GetGPUInfo();
 
     } else {
         throw exceptions::UnknownGPUCommandError(std::format("GP1: 0x{:08X}, command 0x{:02X}", gp1, command));
@@ -1080,6 +1083,27 @@ void GPU::GP1NewTextureDisable() {
 
 void GPU::GP1GetGPUInfo() {
     // 0x10...0x1F
+    uint32_t parameter = gp1 & 0x00000007;
+    switch (parameter) {
+        case 0x00: // Return nothing (old value remains unchanged)
+        case 0x01: // Return nothing (old value remains unchanged)
+        case 0x02: // Texture window setting
+            // TODO
+            break;
+        case 0x03: // Draw area top left
+            // TODO
+            break;
+        case 0x04: // Draw area bottom right
+            // TODO
+            break;
+        case 0x05: // Draw offset
+            // TODO
+            break;
+        case 0x06: // Return nothing (old value remains unchanged)
+        case 0x07: // Return nothing (old value remains unchanged)
+        default:
+            break;
+    }
 }
 
 }
