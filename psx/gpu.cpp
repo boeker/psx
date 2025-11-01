@@ -968,7 +968,10 @@ void GPU::GP1ResetGPU() {
 void GPU::GP1ResetCommandBuffer() {
     // 0x01
     LOG_GPU(std::format("GP1 - ResetCommandBuffer"));
+    // First clear command queue
     queue.clear();
+    // And then abort current command
+    state = State::IDLE;
 }
 
 void GPU::GP1AcknowledgeGPUInterrupt() {
