@@ -135,6 +135,7 @@ private:
     void NOR();
     void SRAV();
     void SRLV();
+    void MULT();
     void MULTU();
     void XOR();
 

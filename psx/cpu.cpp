@@ -224,7 +224,7 @@ const CPU::Opcode CPU::special[] = {
     // 0b010100
     &CPU::UNKSPCL,  &CPU::UNKSPCL,  &CPU::UNKSPCL,  &CPU::UNKSPCL,
     // 0b011000
-    &CPU::UNKSPCL,  &CPU::MULTU,    &CPU::DIV,      &CPU::DIVU,
+    &CPU::MULT,     &CPU::MULTU,    &CPU::DIV,      &CPU::DIVU,
     // 0b011100
     &CPU::UNKSPCL,  &CPU::UNKSPCL,  &CPU::UNKSPCL,  &CPU::UNKSPCL,
     // 0b100000
@@ -1437,6 +1437,30 @@ void CPU::SRLV() {
     uint32_t result = rtValue >> s;
 
     regs.setRegister(rd, result);
+}
+
+void CPU::MULT() {
+    // Multiply Word
+    // T-2: LO <- undefined
+    //      HI <- undefined
+    // T-1: LO <- undefined
+    //      HI <- undefined
+    // T:   t <- GPR[rs] * GPR[rt]
+    //      LO <- t_{31...0}
+    //      HI <- t_{63...32}
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+
+    LOGT_CPU(std::format("MULT {:s},{:s}",
+                        regs.getRegisterName(rs),
+                        regs.getRegisterName(rt)));
+
+    int64_t rsValue = regs.getRegister(rs);
+    int64_t rtValue = regs.getRegister(rt);
+    int64_t result = rsValue * rtValue;
+
+    regs.setLo(0x00000000FFFFFFFF & result);
+    regs.setHi(result >> 32);
 }
 
 void CPU::MULTU() {

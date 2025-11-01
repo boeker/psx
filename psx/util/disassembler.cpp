@@ -89,7 +89,7 @@ const Disassembler::Opcode Disassembler::special[] = {
     // 0b010100
     &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,
     // 0b011000
-    &Disassembler::UNKSPCL,  &Disassembler::MULTU,    &Disassembler::DIV,      &Disassembler::DIVU,
+    &Disassembler::MULT,     &Disassembler::MULTU,    &Disassembler::DIV,      &Disassembler::DIVU,
     // 0b011100
     &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,
     // 0b100000
@@ -994,6 +994,23 @@ std::string Disassembler::SRLV() {
                         getRegisterName(rd),
                         getRegisterName(rt),
                         getRegisterName(rs));
+}
+
+std::string Disassembler::MULT() {
+    // Multiply Unsigned Word
+    // T-2: LO <- undefined
+    //      HI <- undefined
+    // T-1: LO <- undefined
+    //      HI <- undefined
+    // T:   t <- (0 || GPR[rs]) * (0 || GPR[rt])
+    //      LO <- t_{31...0}
+    //      HI <- t_{63...32}
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+
+    return std::format("MULT {:s},{:s}",
+                        getRegisterName(rs),
+                        getRegisterName(rt));
 }
 
 std::string Disassembler::MULTU() {

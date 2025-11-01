@@ -83,6 +83,7 @@ private:
     static std::string NOR();
     static std::string SRAV();
     static std::string SRLV();
+    static std::string MULT();
     static std::string MULTU();
     static std::string XOR();
 
