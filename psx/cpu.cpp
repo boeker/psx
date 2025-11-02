@@ -218,7 +218,7 @@ const CPU::Opcode CPU::special[] = {
     // 0b001000
     &CPU::JR,       &CPU::JALR,     &CPU::UNKSPCL,  &CPU::UNKSPCL,
     // 0b001100
-    &CPU::SYSCALL,  &CPU::UNKSPCL,  &CPU::UNKSPCL,  &CPU::UNKSPCL,
+    &CPU::SYSCALL,  &CPU::BREAK,    &CPU::UNKSPCL,  &CPU::UNKSPCL,
     // 0b010000
     &CPU::MFHI,     &CPU::MTHI,     &CPU::MFLO,     &CPU::MTLO,
     // 0b010100
@@ -1536,6 +1536,14 @@ void CPU::XOR() {
     uint32_t rtValue = regs.getRegister(rt);
 
     regs.setRegister(rd, (rsValue & ~rtValue) | (~rsValue & rtValue));
+}
+
+void CPU::BREAK() {
+    // Breakpoint
+    // T: Breakpoint Exception
+    uint8_t code = 0xFFFFF & (instruction >> 6);
+    LOGT_CPU(std::format("BREAK {:d}", code));
+    generateException(EXCCODE_BP);
 }
 
 void CPU::UNKCP0() {

@@ -87,6 +87,7 @@ private:
     static std::string MULT();
     static std::string MULTU();
     static std::string XOR();
+    static std::string BREAK();
 
     // Opcode CP0 encodes further instructions
     static const Opcode cp0[];

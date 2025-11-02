@@ -83,7 +83,7 @@ const Disassembler::Opcode Disassembler::special[] = {
     // 0b001000
     &Disassembler::JR,       &Disassembler::JALR,     &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,
     // 0b001100
-    &Disassembler::SYSCALL,  &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,
+    &Disassembler::SYSCALL,  &Disassembler::BREAK,    &Disassembler::UNKSPCL,  &Disassembler::UNKSPCL,
     // 0b010000
     &Disassembler::MFHI,     &Disassembler::MTHI,     &Disassembler::MFLO,     &Disassembler::MTLO,
     // 0b010100
@@ -1054,6 +1054,13 @@ std::string Disassembler::XOR() {
                         getRegisterName(rd),
                         getRegisterName(rs),
                         getRegisterName(rt));
+}
+
+std::string Disassembler::BREAK() {
+    // BREAK
+    uint8_t code = 0xFFFFF & (instruction >> 6);
+    return "BREAK";
+    return std::format("BREAK {:d}", code);
 }
 
 std::string Disassembler::UNKCP0() {

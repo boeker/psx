@@ -139,6 +139,7 @@ private:
     void MULT();
     void MULTU();
     void XOR();
+    void BREAK();
 
     // Opcode CP0 encodes further instructions
     static const Opcode cp0[];
