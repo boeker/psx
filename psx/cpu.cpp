@@ -539,7 +539,7 @@ void CPU::ADDI() {
         regs.setRegister(rt, rsValue + signExtension);
 
     } else {
-        throw exceptions::ExceptionNotImplemented("Integer Overflow");
+        generateException(EXCCODE_OV);
     }
 }
 
@@ -1176,7 +1176,7 @@ void CPU::ADD() {
         regs.setRegister(rd, rsValue + rtValue);
 
     } else {
-        throw exceptions::ExceptionNotImplemented("Integer Overflow");
+        generateException(EXCCODE_OV);
     }
 }
 
@@ -1204,7 +1204,7 @@ void CPU::SUB() {
         regs.setRegister(rd, rsValue - rtValue);
 
     } else {
-        throw exceptions::ExceptionNotImplemented("Integer Overflow");
+        generateException(EXCCODE_OV);
     }
 }
 
