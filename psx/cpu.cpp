@@ -457,7 +457,7 @@ void CPU::SW() {
     uint32_t data = regs.getRegister(rt);
     bus->writeWord(vAddr, data);
     if (vAddr & 0x3) {
-        throw exceptions::ExceptionNotImplemented("Address Error");
+        generateException(EXCCODE_ADES);
     }
 }
 
@@ -562,8 +562,8 @@ void CPU::LW() {
     uint32_t data = bus->readWord(vAddr);
     regs.setRegister(rt, data);
 
-if (vAddr & 0x3) {
-    throw exceptions::ExceptionNotImplemented("Address Error");
+    if (vAddr & 0x3) {
+        generateException(EXCCODE_ADEL);
     }
 }
 
@@ -589,7 +589,7 @@ void CPU::SH() {
     bus->writeHalfWord(vAddr, data);
 
     if (vAddr & 0x1) {
-        throw exceptions::ExceptionNotImplemented("Address Error");
+        generateException(EXCCODE_ADES);
     }
 }
 
@@ -1112,7 +1112,7 @@ void CPU::JR() {
     delaySlotIsBranchDelaySlot = true;
 
     if (target & 0x3) {
-        throw exceptions::ExceptionNotImplemented("Address Error");
+        generateException(EXCCODE_ADEL);
     }
 }
 
@@ -1135,7 +1135,7 @@ void CPU::JALR() {
     delaySlotIsBranchDelaySlot = true;
 
     if (target & 0x3) {
-        throw exceptions::ExceptionNotImplemented("Address Error");
+        generateException(EXCCODE_ADEL);
     }
 }
 
