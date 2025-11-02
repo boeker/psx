@@ -220,21 +220,21 @@ const Disassembler::Opcode Disassembler::cp2Move[] = {
 
 const Disassembler::Opcode Disassembler::regimm[] = {
     // 0b00000
-    &Disassembler::BLTZ,     &Disassembler::BGEZ,     &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,
+    &Disassembler::BLTZ,     &Disassembler::BGEZ,     &Disassembler::BLTZ,     &Disassembler::BGEZ,
     // 0b00100
-    &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,
+    &Disassembler::BLTZ,     &Disassembler::BGEZ,     &Disassembler::BLTZ,     &Disassembler::BGEZ,
     // 0b01000
-    &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,
+    &Disassembler::BLTZ,     &Disassembler::BGEZ,     &Disassembler::BLTZ,     &Disassembler::BGEZ,
     // 0b01100
-    &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,
+    &Disassembler::BLTZ,     &Disassembler::BGEZ,     &Disassembler::BLTZ,     &Disassembler::BGEZ,
     // 0b10000
-    &Disassembler::BLTZAL,   &Disassembler::BGEZAL,   &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,
+    &Disassembler::BLTZAL,   &Disassembler::BGEZAL,   &Disassembler::BLTZ,     &Disassembler::BGEZ,
     // 0b10100
-    &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,
+    &Disassembler::BLTZ,     &Disassembler::BGEZ,     &Disassembler::BLTZ,     &Disassembler::BGEZ,
     // 0b11000
-    &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,
+    &Disassembler::BLTZ,     &Disassembler::BGEZ,     &Disassembler::BLTZ,     &Disassembler::BGEZ,
     // 0b11100
-    &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM
+    &Disassembler::BLTZ,     &Disassembler::BGEZ,     &Disassembler::BLTZ,     &Disassembler::BGEZ
 };
 
 std::string Disassembler::UNK() {

@@ -355,21 +355,21 @@ const CPU::Opcode CPU::cp2Move[] = {
 
 const CPU::Opcode CPU::regimm[] = {
     // 0b00000
-    &CPU::BLTZ,     &CPU::BGEZ,     &CPU::UNKRGMM,  &CPU::UNKRGMM,
+    &CPU::BLTZ,     &CPU::BGEZ,     &CPU::BLTZ,     &CPU::BGEZ,
     // 0b00100
-    &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,
+    &CPU::BLTZ,     &CPU::BGEZ,     &CPU::BLTZ,     &CPU::BGEZ,
     // 0b01000
-    &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,
+    &CPU::BLTZ,     &CPU::BGEZ,     &CPU::BLTZ,     &CPU::BGEZ,
     // 0b01100
-    &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,
+    &CPU::BLTZ,     &CPU::BGEZ,     &CPU::BLTZ,     &CPU::BGEZ,
     // 0b10000
-    &CPU::BLTZAL,   &CPU::BGEZAL,   &CPU::UNKRGMM,  &CPU::UNKRGMM,
+    &CPU::BLTZAL,   &CPU::BGEZAL,   &CPU::BLTZ,     &CPU::BGEZ,
     // 0b10100
-    &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,
+    &CPU::BLTZ,     &CPU::BGEZ,     &CPU::BLTZ,     &CPU::BGEZ,
     // 0b11000
-    &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,
+    &CPU::BLTZ,     &CPU::BGEZ,     &CPU::BLTZ,     &CPU::BGEZ,
     // 0b11100
-    &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM
+    &CPU::BLTZ,     &CPU::BGEZ,     &CPU::BLTZ,     &CPU::BGEZ
 };
 
 void CPU::UNK() {
