@@ -1266,8 +1266,12 @@ void CPU::DIV() {
     int32_t rsValue = (int32_t)regs.getRegister(rs);
     int32_t rtValue = (int32_t)regs.getRegister(rt);
 
-    regs.setLo(rsValue / rtValue);
-    regs.setHi(rsValue % rtValue);
+    if (rtValue != 0) { // Result is undefined if rt is zero
+        if (rsValue != std::numeric_limits<int32_t>::min() || rtValue != -1) { // division of min() by -1 is undefined
+            regs.setLo(rsValue / rtValue);
+            regs.setHi(rsValue % rtValue);
+        }
+    }
 }
 
 void CPU::MFLO() {
@@ -1313,8 +1317,10 @@ void CPU::DIVU() {
     uint32_t rsValue = regs.getRegister(rs);
     uint32_t rtValue = regs.getRegister(rt);
 
-    regs.setLo(rsValue / rtValue);
-    regs.setHi(rsValue % rtValue);
+    if (rtValue != 0) {
+        regs.setLo(rsValue / rtValue);
+        regs.setHi(rsValue % rtValue);
+    }
 }
 
 void CPU::MFHI() {
