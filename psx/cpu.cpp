@@ -363,7 +363,7 @@ const CPU::Opcode CPU::regimm[] = {
     // 0b01100
     &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,
     // 0b10000
-    &CPU::BLTZAL,   &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,
+    &CPU::BLTZAL,   &CPU::BGEZAL,   &CPU::UNKRGMM,  &CPU::UNKRGMM,
     // 0b10100
     &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,  &CPU::UNKRGMM,
     // 0b11000
@@ -1738,6 +1738,35 @@ void CPU::BGEZ() {
                         rsValue, actualTarget));
 
     if (!(rsValue >> 31)) {
+        regs.setPC(actualTarget);
+        delaySlotIsBranchDelaySlot = true;
+    }
+}
+
+void CPU::BGEZAL() {
+    // Branch On Greater Than Or Equal To Zero And Link
+    // T: target <- (offset_{15})^{14} || offset || 0^2
+    //    condition <- (GPR[rs]_{31} = 0)
+    // T+1: if condition then
+    //          PC <- PC + target
+    //      endif
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint32_t offset = 0xFFFF & instruction;
+
+    LOGT_CPU(std::format("BGEZAL {:s},{:04X}",
+                        regs.getRegisterName(rs),
+                        offset));
+
+    uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
+    uint32_t target = signExtension << 2;
+    uint32_t actualTarget = delaySlotPC + target;
+
+    uint32_t rsValue = regs.getRegister(rs);
+    LOGT_CPU(std::format(" (0x{:08X} > 0? -0x{:08X}-> pc)",
+                        rsValue, actualTarget));
+
+    if (!(rsValue >> 31)) {
+        regs.setRegister(31, instructionPC + 8);
         regs.setPC(actualTarget);
         delaySlotIsBranchDelaySlot = true;
     }

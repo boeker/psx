@@ -117,6 +117,7 @@ private:
     static std::string BLTZ();
     static std::string BLTZAL();
     static std::string BGEZ();
+    static std::string BGEZAL();
 
 };
 }

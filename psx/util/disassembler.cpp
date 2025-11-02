@@ -228,7 +228,7 @@ const Disassembler::Opcode Disassembler::regimm[] = {
     // 0b01100
     &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,
     // 0b10000
-    &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,
+    &Disassembler::BLTZAL,   &Disassembler::BGEZAL,   &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,
     // 0b10100
     &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,  &Disassembler::UNKRGMM,
     // 0b11000
@@ -1191,6 +1191,21 @@ std::string Disassembler::BGEZ() {
     uint32_t offset = 0xFFFF & instruction;
 
     return std::format("BGEZ {:s},{:04X}",
+                        getRegisterName(rs),
+                        offset);
+}
+
+std::string Disassembler::BGEZAL() {
+    // Branch On Greater Than Or Equal To Zero And Link
+    // T: target <- (offset_{15})^{14} || offset || 0^2
+    //    condition <- (GPR[rs]_{31} = 0)
+    // T+1: if condition then
+    //          PC <- PC + target
+    //      endif
+    uint8_t rs = 0x1F & (instruction >> 21);
+    uint32_t offset = 0xFFFF & instruction;
+
+    return std::format("BGEZAL {:s},{:04X}",
                         getRegisterName(rs),
                         offset);
 }

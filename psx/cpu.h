@@ -169,6 +169,7 @@ private:
     void BLTZ();
     void BLTZAL();
     void BGEZ();
+    void BGEZAL();
 
 };
 }
