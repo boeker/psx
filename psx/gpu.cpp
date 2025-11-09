@@ -161,7 +161,9 @@ void GPU::receiveGP0Data(uint32_t word) {
 
     switch (state) {
         case State::TRANSFER_TO_VRAM:
-            LOGT_GPU(std::format("To VRAM: Remaining words: {:d}", transferToVRAMRemainingWords));
+            LOGV_GPU(std::format("To VRAM: Remaining words: {:d}", transferToVRAMRemainingWords));
+            LOGV_GPU(std::format("Transfering word: 0x{:08X}", word));
+
 
             renderer->writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word & 0x0000FFFF));
             advanceCurrentDestinationPosition();
@@ -206,7 +208,7 @@ void GPU::receiveGP0Data(uint32_t word) {
             if (transferToVRAMRemainingWords == 0) {
                 renderer->writeToVRAM(destinationX, destinationY, destinationSizeX, destinationSizeY, &toVRAMBuffer[0]);
                 state = State::IDLE;
-                LOG_GPU(std::format("State::IDLE"));
+                LOGT_GPU(std::format("State::IDLE"));
             }
             break;
 
@@ -241,7 +243,7 @@ uint32_t GPU::sendGP0Data() {
             if (transferToCPURemainingWords == 0) {
                 state = State::IDLE;
                 setGPUStatusRegisterBit(GPUSTAT_VRAM_SEND_READY, 0);
-                LOG_GPU(std::format("State::IDLE"));
+                LOGT_GPU(std::format("State::IDLE"));
             }
 
             value2 = renderer->readFromVRAM(sourceCurrentY, sourceCurrentX);
@@ -301,8 +303,8 @@ void GPU::decodeAndExecuteGP1() {
         throw exceptions::UnknownGPUCommandError(std::format("GP1: 0x{:08X}, command 0x{:02X}", gp1, command));
     }
 
-    LOG_GPU(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation()));
-    LOG_GPU(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation2()));
+    LOGT_GPU(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation()));
+    LOGT_GPU(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation2()));
 }
 
 void GPU::advanceCurrentDestinationPosition() {
@@ -459,85 +461,6 @@ void GPU::setGPUStatusRegisterBit(uint32_t bit, uint32_t value) {
     gpuStatusRegister = (gpuStatusRegister & ~(1 << bit)) | ((value & 1) << bit);
 }
 
-uint8_t* GPU::decodeTexture(uint16_t texpage, uint16_t palette) {
-    LOG_GPU(std::format("Decoding texture"));
-    decodedTexture.clear();
-
-    uint32_t xBase = (texpage & 0xF) * 64; // in halfwords
-    uint32_t yBase = ((texpage >> 4) & 1) * 256; // in lines
-    uint8_t semiTransparency = (texpage >> 5) & 3;
-    uint8_t texturePageColors = (texpage >> 7) & 3;
-    uint8_t textureDisable = (texpage >> 11) & 1;
-
-    uint32_t xPalette = (palette & 0x3F) * 16; // in halfwords
-    uint32_t yPalette = (palette >> 6) & 0x1FF; // in lines
-
-    LOG_GPU(std::format("XBase[{:d}], YBase[{:d}], Semi Transparency[{:d}], Texture Page Colors[{:d}], Texture Disable[{:d}], XPalette[{:d}], YPalette[{:d}]", xBase, yBase, semiTransparency, texturePageColors, textureDisable, xPalette, yPalette));
-
-    if (texturePageColors == 0) { // 4-bit colors
-        uint8_t colors[64];
-        for (uint32_t x = 0; x < 16; ++x) {
-            uint16_t halfword = renderer->readFromVRAM(yPalette, xPalette + x);
-            uint8_t r = halfword & 0x1F;
-            uint8_t g = (halfword >> 5) & 0x1F;
-            uint8_t b = (halfword >> 10) & 0x1F;
-            uint8_t semiTransparency = (halfword >> 15) & 1;
-
-            colors[4*x+0] = r << 3;
-            colors[4*x+1] = g << 3;
-            colors[4*x+2] = b << 3;
-
-            colors[4*x+3] = 255;
-            if (semiTransparency == 0 && r == 0 & g == 0 & b == 0) {
-                colors[4*x+3] = 0;
-            }
-        }
-
-        for (uint32_t y = yBase; y < yBase + 256; ++y) {
-            for (uint32_t x = xBase; x < xBase + 64; ++x) {
-                uint16_t halfword = renderer->readFromVRAM(y, x);
-
-                uint8_t p1 = halfword & 0xF;
-                uint8_t p2 = (halfword >> 4) & 0xF;
-                uint8_t p3 = (halfword >> 8) & 0xF;
-                uint8_t p4 = (halfword >> 12) & 0xF;
-
-                decodedTexture.push_back(colors[4*p1+0]);
-                decodedTexture.push_back(colors[4*p1+1]);
-                decodedTexture.push_back(colors[4*p1+2]);
-                decodedTexture.push_back(colors[4*p1+3]);
-
-                decodedTexture.push_back(colors[4*p2+0]);
-                decodedTexture.push_back(colors[4*p2+1]);
-                decodedTexture.push_back(colors[4*p2+2]);
-                decodedTexture.push_back(colors[4*p2+3]);
-
-                decodedTexture.push_back(colors[4*p3+0]);
-                decodedTexture.push_back(colors[4*p3+1]);
-                decodedTexture.push_back(colors[4*p3+2]);
-                decodedTexture.push_back(colors[4*p3+3]);
-
-                decodedTexture.push_back(colors[4*p4+0]);
-                decodedTexture.push_back(colors[4*p4+1]);
-                decodedTexture.push_back(colors[4*p4+2]);
-                decodedTexture.push_back(colors[4*p4+3]);
-            }
-        }
-
-    } else {
-        LOG_GPU(std::format("Texture format not implemented"));
-    }
-
-    LOG_GPU(std::format("Decoded texture size: {:d} bytes", decodedTexture.size()));
-
-    if (decodedTexture.size() > 0) {
-        return &decodedTexture[0];
-
-    } else {
-        return nullptr;
-    }
-}
-
 const GPU::Command GPU::gp0Commands[] = {
     // 0x00
     &GPU::GP0NOP,
@@ -584,7 +507,9 @@ const GPU::Command GPU::gp0Commands[] = {
     // 0x60
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x68
+    &GPU::GP0MonochromeRectangleDotOpaque,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x70
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
@@ -661,7 +586,7 @@ const uint8_t GPU::gp0ParameterNumbers[] = {
     // 0x50
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x60
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
     // 0x70
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x80
@@ -709,8 +634,8 @@ void GPU::GP0FillRectangleInVRAM() {
     uint32_t width = widthAndHeight & 0xFFFF;
     uint32_t height = (widthAndHeight >> 16) & 0xFFFF;
 
-    LOG_GPU(std::format("GP0 - FillRectangleInVRAM({}, {}, {}, {}, {})",
-                        c, topLeftX, topLeftY, width, height));
+    LOGT_GPU(std::format("GP0 - FillRectangleInVRAM({}, {}, {}, {}, {})",
+                         c, topLeftX, topLeftY, width, height));
 
     renderer->fillRectangleInVRAM(c, topLeftX, topLeftY, width, height);
 }
@@ -724,8 +649,8 @@ void GPU::GP0MonochromeFourPointPolygonOpaque() {
     Vertex v3(gp0Parameters[2]);
     Vertex v4(gp0Parameters[3]);
 
-    LOG_GPU(std::format("GP0 - MonochromeFourPointPolygonOpaque({}, {}, {}, {}, {})",
-                        c, v1, v2, v3, v4));
+    LOGT_GPU(std::format("GP0 - MonochromeFourPointPolygonOpaque({}, {}, {}, {}, {})",
+                         c, v1, v2, v3, v4));
 
     Triangle t(v1, c, v2, c, v3, c);
     Triangle t2(v2, c, v3, c, v4, c);
@@ -751,14 +676,11 @@ void GPU::GP0TexturedFourPointPolygonOpaqueTextureBlending() {
     TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
     TextureCoordinate tc4(gp0Parameters[7] & 0xFFFF);
 
-    LOG_GPU(std::format("GP0 - TexturedFourPointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
+    LOGT_GPU(std::format("GP0 - TexturedFourPointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
                          palette, texpage, c, v1, tc1, v2, tc2, v3, tc3, v4, tc4));
 
-    uint8_t *texture = decodeTexture(texpage, palette);
-    renderer->loadTexture(texture);
-
-    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3);
-    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4);
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
 
     renderer->drawTexturedTriangle(t);
     renderer->drawTexturedTriangle(t2);
@@ -774,7 +696,7 @@ void GPU::GP0ShadedThreePointPolygonOpaque() {
     Vertex v2(gp0Parameters[2]);
     Vertex v3(gp0Parameters[4]);
 
-    LOG_GPU(std::format("GP0 - ShadedThreePointPolygonOpaque({}, {}, {}, {}, {}, {})",
+    LOGT_GPU(std::format("GP0 - ShadedThreePointPolygonOpaque({}, {}, {}, {}, {}, {})",
                          c1, v1, c2, v2, c3, v3));
 
     Triangle t(v1, c1, v2, c2, v3, c3);
@@ -793,11 +715,30 @@ void GPU::GP0ShadedFourPointPolygonOpaque() {
     Vertex v3(gp0Parameters[4]);
     Vertex v4(gp0Parameters[6]);
 
-    LOG_GPU(std::format("GP0 - ShadedFourPointPolygonOpaque({}, {}, {}, {}, {}, {}, {}, {})",
+    LOGT_GPU(std::format("GP0 - ShadedFourPointPolygonOpaque({}, {}, {}, {}, {}, {}, {}, {})",
                          c1, v1, c2, v2, c3, v3, c4, v4));
 
     Triangle t(v1, c1, v2, c2, v3, c3);
     Triangle t2(v2, c2, v3, c3, v4, c4);
+
+    renderer->drawTriangle(t);
+    renderer->drawTriangle(t2);
+}
+
+void GPU::GP0MonochromeRectangleDotOpaque() {
+    // 0x68
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(v1.x + 1, v1.y);
+    Vertex v3(v1.x, v1.y + 1);
+    Vertex v4(v1.x + 1, v1.y + 1);
+
+    LOGT_GPU(std::format("GP0 - MonochromeRectangleDotOpaque({}, {})",
+                          c, v1));
+
+    Triangle t(v1, c, v2, c, v3, c);
+    Triangle t2(v2, c, v3, c, v4, c);
 
     renderer->drawTriangle(t);
     renderer->drawTriangle(t2);
@@ -816,14 +757,14 @@ void GPU::GP0CopyRectangleToVRAM() {
     destinationSizeX = widthAndHeight & 0x0000FFFF;
     destinationSizeY  = widthAndHeight >> 16;
 
-    LOG_GPU(std::format("GP0 - CopyRectangleToVRAM({:d}, {:d}, {:d}x{:d})",
-                         destinationX, destinationY, destinationSizeX, destinationSizeY));
+    LOGT_GPU(std::format("GP0 - CopyRectangleToVRAM({:d}, {:d}, {:d}x{:d})",
+                          destinationX, destinationY, destinationSizeX, destinationSizeY));
 
     // read data from GPUREAD
     transferToVRAMRemainingWords = (destinationSizeX * destinationSizeY) / 2;
     if (transferToVRAMRemainingWords > 0) {
         state = State::TRANSFER_TO_VRAM;
-        LOG_GPU(std::format("State::TRANSFER_TO_VRAM"));
+        LOGT_GPU(std::format("State::TRANSFER_TO_VRAM"));
         destinationCurrentX = destinationX;
         destinationCurrentY = destinationY;
         toVRAMBuffer.clear();
@@ -842,15 +783,15 @@ void GPU::GP0CopyRectangleVRAMToCPU() {
     sourceSizeX = widthAndHeight & 0x0000FFFF;
     sourceSizeY = widthAndHeight >> 16;
 
-    LOG_GPU(std::format("GP0 - CopyRectangleVRAMToCPU({:d}, {:d}, {:d}x{:d})",
-                         sourceX, sourceY, sourceSizeX, sourceSizeY));
+    LOGT_GPU(std::format("GP0 - CopyRectangleVRAMToCPU({:d}, {:d}, {:d}x{:d})",
+                          sourceX, sourceY, sourceSizeX, sourceSizeY));
 
     // write data to GPUREAD
     transferToCPURemainingWords = (sourceSizeX * sourceSizeY) / 2;
     if (transferToCPURemainingWords > 0) {
         state = State::TRANSFER_TO_CPU;
         setGPUStatusRegisterBit(GPUSTAT_VRAM_SEND_READY, 1);
-        LOG_GPU(std::format("State::TRANSFER_TO_CPU"));
+        LOGT_GPU(std::format("State::TRANSFER_TO_CPU"));
         sourceCurrentX = sourceX;
         sourceCurrentY = sourceY;
     }
@@ -970,7 +911,7 @@ void GPU::GP1ResetGPU() {
 
 void GPU::GP1ResetCommandBuffer() {
     // 0x01
-    LOG_GPU(std::format("GP1 - ResetCommandBuffer"));
+    LOGV_GPU(std::format("GP1 - ResetCommandBuffer"));
     // First clear command queue
     queue.clear();
     // And then abort current command
@@ -979,7 +920,7 @@ void GPU::GP1ResetCommandBuffer() {
 
 void GPU::GP1AcknowledgeGPUInterrupt() {
     // 0x02
-    LOG_GPU(std::format("GP1 - AcknowledgeGPUInterrupt"));
+    LOGV_GPU(std::format("GP1 - AcknowledgeGPUInterrupt"));
 
     gpuStatusRegister = gpuStatusRegister & ~(1 << GPUSTAT_IRQ);
 }
@@ -988,7 +929,7 @@ void GPU::GP1DisplayEnable() {
     // 0x03
     uint32_t parameter = gp1 & 0x00FFFFFF;
 
-    LOG_GPU(std::format("GP1 - DisplayEnable (0x{:06X})", parameter));
+    LOGV_GPU(std::format("GP1 - DisplayEnable (0x{:06X})", parameter));
 
     setGPUStatusRegisterBit(GPUSTAT_DISPLAY_ENABLE, parameter & 1);
 }
@@ -997,7 +938,7 @@ void GPU::GP1DMADirection() {
     // 0x04
     uint32_t parameter = gp1 & 0x00FFFFFF;
 
-    LOG_GPU(std::format("GP1 - DMADirection(0x{:06X})", parameter));
+    LOGV_GPU(std::format("GP1 - DMADirection(0x{:06X})", parameter));
 
     uint32_t direction = parameter & 3;
     gpuStatusRegister = (gpuStatusRegister & ~(3 << GPUSTAT_DMA_DIRECTION0))
@@ -1032,8 +973,8 @@ void GPU::GP1StartOfDisplayArea() {
     startOfDisplayAreaX = parameter & 0x000003FF;
     startOfDisplayAreaY = (parameter >> 10) & 0x000001FF;
 
-    LOG_GPU(std::format("GP1 - StartOfDisplayArena({:d}, {:d})",
-                        startOfDisplayAreaX, startOfDisplayAreaY));
+    LOGV_GPU(std::format("GP1 - StartOfDisplayArena({:d}, {:d})",
+                         startOfDisplayAreaX, startOfDisplayAreaY));
 }
 
 void GPU::GP1HorizontalDisplayRange() {
@@ -1043,8 +984,8 @@ void GPU::GP1HorizontalDisplayRange() {
     horizontalDisplayRangeX1 = parameter & 0x00000FFF;
     horizontalDisplayRangeX2 = (parameter >> 12) & 0x00000FFF;
 
-    LOG_GPU(std::format("GP1 - HorizontalDisplayRange(0x{:03X}, 0x{:03X})",
-                        horizontalDisplayRangeX1, horizontalDisplayRangeX2));
+    LOGV_GPU(std::format("GP1 - HorizontalDisplayRange(0x{:03X}, 0x{:03X})",
+                         horizontalDisplayRangeX1, horizontalDisplayRangeX2));
 }
 
 void GPU::GP1VerticalDisplayRange() {
@@ -1054,7 +995,7 @@ void GPU::GP1VerticalDisplayRange() {
     verticalDisplayRangeY1 = parameter & 0x000003FF;
     verticalDisplayRangeY2 = (parameter >> 10) & 0x000003FF;
 
-    LOG_GPU(std::format("GP1 - VerticalDisplayRange(0x{:03X}, 0x{:03X})",
+    LOGV_GPU(std::format("GP1 - VerticalDisplayRange(0x{:03X}, 0x{:03X})",
                         verticalDisplayRangeY1, verticalDisplayRangeY2));
 }
 
@@ -1065,7 +1006,7 @@ void GPU::GP1DisplayMode() {
     // parameter bit 5 is GPUSTAT bit 14
     uint32_t parameter = gp1 & 0x00FFFFFF;
 
-    LOG_GPU(std::format("GP1 - DisplayMode(0x{:06X})", parameter));
+    LOGV_GPU(std::format("GP1 - DisplayMode(0x{:06X})", parameter));
 
     gpuStatusRegister = (gpuStatusRegister & 0xFFFFFC00) | (gp0 & 0x000003FF);
     setGPUStatusRegisterBit(16 , (parameter >> 6) & 1);
@@ -1076,7 +1017,7 @@ void GPU::GP1NewTextureDisable() {
     // 0x09
     uint32_t parameter = gp1 & 0x00FFFFFF;
 
-    LOG_GPU(std::format("GP1 - NewTextureDisable(0x{:06X})", parameter));
+    LOGV_GPU(std::format("GP1 - NewTextureDisable(0x{:06X})", parameter));
 
     setGPUStatusRegisterBit(GPUSTAT_TEXTURE_DISABLE, parameter & 1);
 }

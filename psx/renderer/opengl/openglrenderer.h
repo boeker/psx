@@ -2,6 +2,7 @@
 #define PSX_RENDERER_OPENGLRENDERER_H
 
 #include <cstdint>
+#include <vector>
 
 #include "renderer/renderer.h"
 
@@ -32,6 +33,7 @@ public:
 
     void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) override;
     uint16_t readFromVRAM(uint32_t line, uint32_t pos) override;
+    void prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height) override;
 
     void writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) override;
     void fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
@@ -40,10 +42,12 @@ public:
     void setDrawingAreaBottomRight(uint32_t x, uint32_t y) override;
     void setViewportIntoVRAM();
 
+    uint8_t* decodeTexture(uint16_t texpage, uint16_t palette);
+
 private:
     Screen *screen;
     Screen *vramViewer;
-    uint8_t *vram;
+    uint8_t *vramCache;
 
     Shader *shader;
     unsigned int vbo;
@@ -70,6 +74,9 @@ private:
     uint32_t drawingAreaTopLeftY;
     uint32_t drawingAreaBottomRightX;
     uint32_t drawingAreaBottomRightY;
+
+    std::vector<uint8_t> decodedTexture;
+
 };
 
 }

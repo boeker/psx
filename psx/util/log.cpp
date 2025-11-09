@@ -156,6 +156,9 @@ void LogPack::installAdditionalLog(const std::shared_ptr<Log> &log) {
 
     timersV.installAdditionalLog(log);
     timersT.installAdditionalLog(log);
+
+    //gpuV.installAdditionalLog(log);
+    //gpuT.installAdditionalLog(log);
 }
 
 }

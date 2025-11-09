@@ -194,7 +194,6 @@ private:
     void setGPUStatusRegisterBit(uint32_t bit, uint32_t value);
 
     std::vector<uint8_t> decodedTexture;
-    uint8_t* decodeTexture(uint16_t texpage, uint16_t palette);
 
     // GPU commands
     typedef void (GPU::*Command) ();
@@ -217,6 +216,8 @@ private:
     void GP0ShadedThreePointPolygonOpaque();
     // 0x38
     void GP0ShadedFourPointPolygonOpaque();
+    // 0x68
+    void GP0MonochromeRectangleDotOpaque();
     // 0xA0
     void GP0CopyRectangleToVRAM();
     // 0xC0

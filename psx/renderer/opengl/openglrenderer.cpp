@@ -17,7 +17,7 @@ namespace PSX {
 OpenGLRenderer::OpenGLRenderer(Screen *screen, Screen *vramViewer)
     : screen(screen), vramViewer(vramViewer) {
 
-    vram = new uint8_t[VRAM_SIZE];
+    vramCache = new uint8_t[VRAM_SIZE];
     reset();
 }
 
@@ -168,7 +168,7 @@ void OpenGLRenderer::initialize() {
 }
 
 OpenGLRenderer::~OpenGLRenderer() {
-    delete[] vram;
+    delete[] vramCache;
 
     //glDeleteVertexArrays(1, &vao);
     //glDeleteBuffers(1, &vbo);
@@ -179,12 +179,14 @@ void OpenGLRenderer::installVRAMViewer(Screen *vramViewer) {
 }
 
 void OpenGLRenderer::reset() {
-    std::memset(vram, 0, VRAM_SIZE);
+    std::memset(vramCache, 0, VRAM_SIZE);
 
     drawingAreaTopLeftX = 0;
     drawingAreaTopLeftY = 0;
     drawingAreaBottomRightX = 639;
     drawingAreaBottomRightY = 479;
+
+    decodedTexture.clear();
 }
 
 void OpenGLRenderer::clear() {
@@ -321,7 +323,89 @@ void OpenGLRenderer::loadTexture(uint8_t *textureData) {
     glCheckError();
 }
 
+uint8_t* OpenGLRenderer::decodeTexture(uint16_t texpage, uint16_t palette) {
+    LOGT_GPU(std::format("Decoding texture"));
+    decodedTexture.clear();
+
+    uint32_t xBase = (texpage & 0xF) * 64; // in halfwords
+    uint32_t yBase = ((texpage >> 4) & 1) * 256; // in lines
+    uint8_t semiTransparency = (texpage >> 5) & 3;
+    uint8_t texturePageColors = (texpage >> 7) & 3;
+    uint8_t textureDisable = (texpage >> 11) & 1;
+
+    uint32_t xPalette = (palette & 0x3F) * 16; // in halfwords
+    uint32_t yPalette = (palette >> 6) & 0x1FF; // in lines
+
+    LOG_REND(std::format("Decoding texture: XBase[{:d}], YBase[{:d}], Semi Transparency[{:d}], Texture Page Colors[{:d}], Texture Disable[{:d}], XPalette[{:d}], YPalette[{:d}]", xBase, yBase, semiTransparency, texturePageColors, textureDisable, xPalette, yPalette));
+
+    if (texturePageColors == 0) { // 4-bit colors
+        uint8_t colors[64];
+        for (uint32_t x = 0; x < 16; ++x) {
+            uint16_t halfword = readFromVRAM(yPalette, xPalette + x);
+            uint8_t r = halfword & 0x1F;
+            uint8_t g = (halfword >> 5) & 0x1F;
+            uint8_t b = (halfword >> 10) & 0x1F;
+            uint8_t semiTransparency = (halfword >> 15) & 1;
+
+            colors[4*x+0] = r << 3;
+            colors[4*x+1] = g << 3;
+            colors[4*x+2] = b << 3;
+
+            colors[4*x+3] = 255;
+            if (semiTransparency == 0 && r == 0 & g == 0 & b == 0) {
+                colors[4*x+3] = 0;
+            }
+        }
+
+        for (uint32_t y = yBase; y < yBase + 256; ++y) {
+            for (uint32_t x = xBase; x < xBase + 64; ++x) {
+                uint16_t halfword = readFromVRAM(y, x);
+
+                uint8_t p1 = halfword & 0xF;
+                uint8_t p2 = (halfword >> 4) & 0xF;
+                uint8_t p3 = (halfword >> 8) & 0xF;
+                uint8_t p4 = (halfword >> 12) & 0xF;
+
+                decodedTexture.push_back(colors[4*p1+0]);
+                decodedTexture.push_back(colors[4*p1+1]);
+                decodedTexture.push_back(colors[4*p1+2]);
+                decodedTexture.push_back(colors[4*p1+3]);
+
+                decodedTexture.push_back(colors[4*p2+0]);
+                decodedTexture.push_back(colors[4*p2+1]);
+                decodedTexture.push_back(colors[4*p2+2]);
+                decodedTexture.push_back(colors[4*p2+3]);
+
+                decodedTexture.push_back(colors[4*p3+0]);
+                decodedTexture.push_back(colors[4*p3+1]);
+                decodedTexture.push_back(colors[4*p3+2]);
+                decodedTexture.push_back(colors[4*p3+3]);
+
+                decodedTexture.push_back(colors[4*p4+0]);
+                decodedTexture.push_back(colors[4*p4+1]);
+                decodedTexture.push_back(colors[4*p4+2]);
+                decodedTexture.push_back(colors[4*p4+3]);
+            }
+        }
+
+    } else {
+        LOG_GPU(std::format("Texture format not implemented"));
+    }
+
+    LOGT_GPU(std::format("Decoded texture size: {:d} bytes", decodedTexture.size()));
+
+    if (decodedTexture.size() > 0) {
+        return &decodedTexture[0];
+
+    } else {
+        return nullptr;
+    }
+}
+
 void OpenGLRenderer::drawTexturedTriangle(const TexturedTriangle &t) {
+    uint8_t *texture = decodeTexture(t.texpage, t.palette);
+    loadTexture(texture);
+
     glCheckError();
 
     setViewportIntoVRAM();
@@ -353,18 +437,8 @@ void OpenGLRenderer::writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) {
     LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
                               value, line, pos));
 
-    uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
+    uint16_t *vramLine = (uint16_t*)&(vramCache[512 * line]);
     vramLine[pos] = value;
-}
-
-uint16_t OpenGLRenderer::readFromVRAM(uint32_t line, uint32_t pos) {
-    uint16_t *vramLine = (uint16_t*)&(vram[512 * line]);
-    uint16_t value = vramLine[pos];
-
-    LOGT_REND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
-                              line, pos, value));
-
-    return value;
 }
 
 void OpenGLRenderer::writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) {
@@ -374,6 +448,23 @@ void OpenGLRenderer::writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
 }
+
+void OpenGLRenderer::prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height) {
+    LOGV_REND(std::format("prepareReadFromVRAM: from {:d}, {:d} of size {:d}x{:d}",
+                              line, pos, width, height));
+
+}
+
+uint16_t OpenGLRenderer::readFromVRAM(uint32_t line, uint32_t pos) {
+    uint16_t *vramLine = (uint16_t*)&(vramCache[512 * line]);
+    uint16_t value = vramLine[pos];
+
+    LOGT_REND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
+                              line, pos, value));
+
+    return value;
+}
+
 
 void OpenGLRenderer::fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     glCheckError();

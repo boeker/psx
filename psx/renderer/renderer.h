@@ -35,6 +35,10 @@ struct Vertex {
     int16_t x;
     int16_t y;
 
+    Vertex(int16_t x, int16_t y)
+        : x(x), y(y) {
+    }
+
     Vertex(uint32_t vertex) {
         x = Bit::extendSign11To16(vertex & 0x000007FF);
         y = Bit::extendSign11To16((vertex >> 16) & 0x000007FF);
@@ -63,8 +67,11 @@ struct TexturedTriangle {
     Vertex v3;
     TextureCoordinate tc3;
 
-    TexturedTriangle(Color c, Vertex v1, TextureCoordinate tc1, Vertex v2, TextureCoordinate tc2, Vertex v3, TextureCoordinate tc3)
-        : c(c), v1(v1), tc1(tc1), v2(v2), tc2(tc2), v3(v3), tc3(tc3) {
+    uint16_t texpage;
+    uint16_t palette;
+
+    TexturedTriangle(Color c, Vertex v1, TextureCoordinate tc1, Vertex v2, TextureCoordinate tc2, Vertex v3, TextureCoordinate tc3, uint16_t texpage, uint16_t palette)
+        : c(c), v1(v1), tc1(tc1), v2(v2), tc2(tc2), v3(v3), tc3(tc3), texpage(texpage), palette(palette) {
     }
 };
 
@@ -81,10 +88,13 @@ public:
     virtual void loadTexture(uint8_t *textureData) = 0;
     virtual void drawTexturedTriangle(const TexturedTriangle &triangle) = 0;
 
+    //virtual void prepareWriteToVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height);
     virtual void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) = 0;
-    virtual uint16_t readFromVRAM(uint32_t line, uint32_t pos) = 0;
-
     virtual void writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) = 0;
+
+    virtual uint16_t readFromVRAM(uint32_t line, uint32_t pos) = 0;
+    virtual void prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height) = 0;
+
     virtual void fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
 
     virtual void setDrawingAreaTopLeft(uint32_t x, uint32_t y) = 0;
