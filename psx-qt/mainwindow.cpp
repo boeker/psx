@@ -15,12 +15,12 @@
 #include "vramviewerwindow.h"
 
 #include "psx/core.h"
-#include "psx/renderer/opengl/openglrenderer.h"
+#include "psx/renderer/software/softwarerenderer.h"
 #include "psx/util/log.h"
 
 bool running = false;
 PSX::Core *core = nullptr;
-PSX::OpenGLRenderer *renderer = nullptr;
+PSX::SoftwareRenderer *renderer = nullptr;
 EmuThread *emuThread = nullptr;
 
 PlainTextEditLog::PlainTextEditLog(QPlainTextEdit *plainTextEdit)
@@ -99,7 +99,7 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     debuggerWindow = new DebuggerWindow(core);
 
     // Renderer
-    renderer = new PSX::OpenGLRenderer(openGLWindow, vramViewerWindow->getOpenGLWindow());
+    renderer = new PSX::SoftwareRenderer(openGLWindow, vramViewerWindow->getOpenGLWindow());
     core->setRenderer(renderer);
 
     // Emulation thread

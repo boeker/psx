@@ -39,6 +39,13 @@ target_sources(psx PRIVATE
     renderer/opengl/openglrenderer.h
     renderer/opengl/shader.cpp
     renderer/opengl/shader.h
+    renderer/software/gl.cpp
+    renderer/software/gl.h
+    renderer/software/glad.cpp
+    renderer/software/softwarerenderer.cpp
+    renderer/software/softwarerenderer.h
+    renderer/software/shader.cpp
+    renderer/software/shader.h
     renderer/renderer.h
     renderer/screen.h
     spu.cpp

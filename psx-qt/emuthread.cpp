@@ -7,7 +7,7 @@
 #include "mainwindow.h"
 #include "openglwindow.h"
 #include "psx/core.h"
-#include "psx/renderer/opengl/openglrenderer.h"
+#include "psx/renderer/software/softwarerenderer.h"
 
 EmuThread::EmuThread(QObject *parent)
     : QThread(parent),
