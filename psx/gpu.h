@@ -193,8 +193,6 @@ private:
     std::string getGPUStatusRegisterExplanation2() const;
     void setGPUStatusRegisterBit(uint32_t bit, uint32_t value);
 
-    std::vector<uint8_t> decodedTexture;
-
     // GPU commands
     typedef void (GPU::*Command) ();
     static const Command gp0Commands[];
