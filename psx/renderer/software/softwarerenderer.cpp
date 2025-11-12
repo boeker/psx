@@ -1,6 +1,7 @@
 #include "softwarerenderer.h"
 
 #include <glad/glad.h>
+#include <cmath>
 #include <cstring>
 #include <format>
 #include <iostream>
@@ -230,6 +231,22 @@ void SoftwareRenderer::computeVRAMViewport() {
 }
 
 void SoftwareRenderer::swapBuffers() {
+    transferToVRAM.clear();
+    for (int y = 0; y < 512; ++y) {
+        for (int x = 0; x < 1024; ++x) {
+            uint16_t *vramLine = (uint16_t*)&(vramCache[2048 * y]);
+            uint16_t value = vramLine[x];
+
+            transferToVRAM.push_back(((value >> 0) & 0x1F) << 3);
+            transferToVRAM.push_back(((value >> 5) & 0x1F) << 3);
+            transferToVRAM.push_back(((value >> 10) & 0x1F) << 3);
+        }
+    }
+    //writeToVRAM(0, 0, 1024, 512, &transferToVRAM[0]);
+    glBindTexture(GL_TEXTURE_2D, vramTexture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGB, GL_UNSIGNED_BYTE, &transferToVRAM[0]);
+
+
     glCheckError();
 
     // compute viewport coordinates from window size
@@ -312,6 +329,9 @@ void SoftwareRenderer::drawTriangle(const Triangle &t) {
 
     // unbind framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    drawLine(30, 40, 200, 210, 0x0000FF);
+    drawTriangle(30, 30, 40, 150, 117, 60, 0x00FF00);
 }
 
 void SoftwareRenderer::loadTexture(uint8_t *textureData) {
@@ -437,7 +457,7 @@ void SoftwareRenderer::writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) 
     LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
                               value, line, pos));
 
-    uint16_t *vramLine = (uint16_t*)&(vramCache[512 * line]);
+    uint16_t *vramLine = (uint16_t*)&(vramCache[2048 * line]);
     vramLine[pos] = value;
 }
 
@@ -445,8 +465,8 @@ void SoftwareRenderer::writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint3
     LOGV_REND(std::format("VRAM write to {:d}, {:d} of size {:d}x{:d}",
                               x, y, width, height));
 
-    glBindTexture(GL_TEXTURE_2D, vramTexture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+    //glBindTexture(GL_TEXTURE_2D, vramTexture);
+    //glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
 }
 
 void SoftwareRenderer::prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height) {
@@ -456,7 +476,7 @@ void SoftwareRenderer::prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t
 }
 
 uint16_t SoftwareRenderer::readFromVRAM(uint32_t line, uint32_t pos) {
-    uint16_t *vramLine = (uint16_t*)&(vramCache[512 * line]);
+    uint16_t *vramLine = (uint16_t*)&(vramCache[2048 * line]);
     uint16_t value = vramLine[pos];
 
     LOGT_REND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
@@ -505,6 +525,81 @@ void SoftwareRenderer::setViewportIntoVRAM() {
     glViewport(drawingAreaTopLeftX, drawingAreaTopLeftY,
                drawingAreaBottomRightX - drawingAreaTopLeftX + 1,
                drawingAreaBottomRightY - drawingAreaTopLeftY + 1);
+}
+
+void SoftwareRenderer::drawLine(int ax, int ay, int bx, int by, uint16_t color) {
+    bool swapCoordinates = std::abs(ax - bx) < std::abs(ay - by);
+    if (swapCoordinates) { // Make sure that we avoid gaps if line is too steep by swapping x and y
+        std::swap(ax, ay);
+        std::swap(bx, by);
+    }
+
+    if (ax > bx) { // Make sure that we are drawing from left to right
+        std::swap(ax, bx);
+        std::swap(ay, by);
+    }
+
+    for (int x = ax; x <= bx; x++) {
+        // f(x) = ay + (by - ay) * (x - ax) / (bx - ax)
+        float t = (x - ax) / static_cast<float>(bx - ax);
+        int y = std::round(ay + (by - ay) * t);
+
+        if (!swapCoordinates) {
+            write(x, y, color);
+        } else {
+            write(y, x, color);
+        }
+    }
+}
+
+void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, uint16_t color) {
+    // Sort the points by their y-coordinates
+    if (ay > by) {
+        std::swap(ax, bx);
+        std::swap(ay, by);
+    }
+    if (ay > cy) {
+        std::swap(ax, cx);
+        std::swap(ay, cy);
+    }
+    if (by > cy) {
+        std::swap(bx, cx);
+        std::swap(by, cy);
+    }
+    // We now have ay <= by <= cy
+    int total_height = cy - ay;
+
+    // Bottom half
+    if (ay != by) {
+        int segment_height = by - ay;
+        for (int y = ay; y <= by; y++) {
+            int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
+            int x2 = ax + ((bx - ax) * (y - ay)) / segment_height;
+
+            // Draw line from left to right
+            for (int x = std::min(x1, x2); x < std::max(x1, x2); x++) {
+                write(x, y, color);
+            }
+        }
+    }
+
+    // Top half
+    if (by != cy) {
+        int segment_height = cy - by;
+        for (int y = by; y <= cy; y++) {
+            int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
+            int x2 = bx + ((cx - bx) * (y - by)) / segment_height;
+
+            // Draw line from left to right
+            for (int x = std::min(x1, x2); x < std::max(x1, x2); x++) {
+                write(x, y, color);
+            }
+        }
+    }
+}
+
+void SoftwareRenderer::write(uint32_t x, uint32_t y, uint16_t value) {
+        ((uint16_t*)vramCache)[y * 1024 + x] = value;
 }
 
 }

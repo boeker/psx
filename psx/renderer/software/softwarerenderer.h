@@ -44,6 +44,11 @@ public:
 
     uint8_t* decodeTexture(uint16_t texpage, uint16_t palette);
 
+    void drawLine(int ax, int ay, int bx, int by, uint16_t color);
+    void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, uint16_t color);
+
+    void write(uint32_t x, uint32_t y, uint16_t value);
+
 private:
     Screen *screen;
     Screen *vramViewer;
@@ -76,6 +81,8 @@ private:
     uint32_t drawingAreaBottomRightY;
 
     std::vector<uint8_t> decodedTexture;
+
+    std::vector<uint8_t> transferToVRAM;
 
 };
 
