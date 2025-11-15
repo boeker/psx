@@ -19,6 +19,16 @@ struct Color {
         g = (color >> 8) & 0x000000FF;
         b = (color >> 16) & 0x000000FF;
     }
+
+    Color(uint8_t r, uint8_t g, uint8_t b)
+        : r(r), g(g), b(b) {
+    }
+
+    uint16_t to16Bit() const {
+        return ((r >> 3) << 0)
+               | ((g >> 3) << 5)
+               | ((b >> 3) << 10);
+    }
 };
 
 struct TextureCoordinate {

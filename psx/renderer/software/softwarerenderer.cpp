@@ -306,32 +306,33 @@ void SoftwareRenderer::swapBuffers() {
 }
 
 void SoftwareRenderer::drawTriangle(const Triangle &t) {
-    glCheckError();
+    drawTriangleTest(t);
+    //glCheckError();
 
-    setViewportIntoVRAM();
-    glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
+    //setViewportIntoVRAM();
+    //glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
 
-    int vertices[] =  {
-        t.v1.x, t.v1.y, t.c1.r, t.c1.g, t.c1.b,
-        t.v2.x, t.v2.y, t.c2.r, t.c2.g, t.c2.b,
-        t.v3.x, t.v3.y, t.c3.r, t.c3.g, t.c3.b
-    };
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_DYNAMIC_DRAW);
+    //int vertices[] =  {
+    //    t.v1.x, t.v1.y, t.c1.r, t.c1.g, t.c1.b,
+    //    t.v2.x, t.v2.y, t.c2.r, t.c2.g, t.c2.b,
+    //    t.v3.x, t.v3.y, t.c3.r, t.c3.g, t.c3.b
+    //};
+    //glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_DYNAMIC_DRAW);
 
-    shader->use();
-    glBindVertexArray(vao);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    //shader->use();
+    //glBindVertexArray(vao);
+    //glDrawArrays(GL_TRIANGLES, 0, 3);
 
-    // unbind VBO and VAO
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    //// unbind VBO and VAO
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //glBindVertexArray(0);
 
-    // unbind framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //// unbind framebuffer
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    drawLine(30, 40, 200, 210, 0x0000FF);
-    drawTriangle(30, 30, 40, 150, 117, 60, 0x00FF00);
+    //drawLine(30, 40, 200, 210, 0x0000FF);
+    //drawTriangle(30, 30, 40, 150, 117, 60, 0x00FF00);
 }
 
 void SoftwareRenderer::loadTexture(uint8_t *textureData) {
@@ -552,7 +553,23 @@ void SoftwareRenderer::drawLine(int ax, int ay, int bx, int by, uint16_t color) 
     }
 }
 
-void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, uint16_t color) {
+void SoftwareRenderer::drawTriangleTest(const Triangle &triangle) {
+    drawTriangle(triangle.v1.x,
+                 triangle.v1.y,
+                 triangle.v2.x,
+                 triangle.v2.y,
+                 triangle.v3.x,
+                 triangle.v3.y,
+                 //Color(0xFF, 0, 0),
+                 //Color(0, 0xFF, 0),
+                 //Color(0, 0, 0xFF)
+                 triangle.c1,
+                 triangle.c2,
+                 triangle.c3
+                 );
+}
+
+void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, Color ac, Color bc, Color cc) {
     // Sort the points by their y-coordinates
     if (ay > by) {
         std::swap(ax, bx);
@@ -576,9 +593,45 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
             int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
             int x2 = ax + ((bx - ax) * (y - ay)) / segment_height;
 
+            uint32_t r1 = (cc.r * (y - ay) + ac.r * (cy - y)) / total_height;
+            uint32_t g1 = (cc.g * (y - ay) + ac.g * (cy - y)) / total_height;
+            uint32_t b1 = (cc.b * (y - ay) + ac.b * (cy - y)) / total_height;
+
+            uint32_t r2 = (bc.r * (y - ay) + ac.r * (by - y)) / segment_height;
+            uint32_t g2 = (bc.g * (y - ay) + ac.g * (by - y)) / segment_height;
+            uint32_t b2 = (bc.b * (y - ay) + ac.b * (by - y)) / segment_height;
+
             // Draw line from left to right
-            for (int x = std::min(x1, x2); x < std::max(x1, x2); x++) {
-                write(x, y, color);
+            int min, max;
+            uint32_t minr, ming, minb, maxr, maxg, maxb;
+
+            if (x1 < x2) {
+                min = x1;
+                max = x2;
+                minr = r1;
+                ming = g1;
+                minb = b1;
+                maxr = r2;
+                maxg = g2;
+                maxb = b2;
+            } else {
+                min = x2;
+                max = x1;
+                minr = r2;
+                ming = g2;
+                minb = b2;
+                maxr = r1;
+                maxg = g1;
+                maxb = b1;
+            }
+            int line_length = max - min;
+            for (int x = min; x < max; x++) {
+                uint32_t r = (maxr * (x - min) + minr * (max - x)) / line_length;
+                uint32_t g = (maxg * (x - min) + ming * (max - x)) / line_length;
+                uint32_t b = (maxb * (x - min) + minb * (max - x)) / line_length;
+
+                Color c(r, g, b);
+                write(x, y, c.to16Bit());
             }
         }
     }
@@ -590,9 +643,46 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
             int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
             int x2 = bx + ((cx - bx) * (y - by)) / segment_height;
 
+            uint32_t r1 = (cc.r * (y - ay) + ac.r * (cy - y)) / total_height;
+            uint32_t g1 = (cc.g * (y - ay) + ac.g * (cy - y)) / total_height;
+            uint32_t b1 = (cc.b * (y - ay) + ac.b * (cy - y)) / total_height;
+
+            uint32_t r2 = (cc.r * (y - by) + bc.r * (cy - y)) / segment_height;
+            uint32_t g2 = (cc.g * (y - by) + bc.g * (cy - y)) / segment_height;
+            uint32_t b2 = (cc.b * (y - by) + bc.b * (cy - y)) / segment_height;
+
+
             // Draw line from left to right
-            for (int x = std::min(x1, x2); x < std::max(x1, x2); x++) {
-                write(x, y, color);
+            int min, max;
+            uint32_t minr, ming, minb, maxr, maxg, maxb;
+
+            if (x1 < x2) {
+                min = x1;
+                max = x2;
+                minr = r1;
+                ming = g1;
+                minb = b1;
+                maxr = r2;
+                maxg = g2;
+                maxb = b2;
+            } else {
+                min = x2;
+                max = x1;
+                minr = r2;
+                ming = g2;
+                minb = b2;
+                maxr = r1;
+                maxg = g1;
+                maxb = b1;
+            }
+            int line_length = max - min;
+            for (int x = min; x < max; x++) {
+                uint32_t r = (maxr * (x - min) + minr * (max - x)) / line_length;
+                uint32_t g = (maxg * (x - min) + ming * (max - x)) / line_length;
+                uint32_t b = (maxb * (x - min) + minb * (max - x)) / line_length;
+
+                Color c(r, g, b);
+                write(x, y, c.to16Bit());
             }
         }
     }

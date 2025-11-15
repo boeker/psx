@@ -45,7 +45,8 @@ public:
     uint8_t* decodeTexture(uint16_t texpage, uint16_t palette);
 
     void drawLine(int ax, int ay, int bx, int by, uint16_t color);
-    void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, uint16_t color);
+    void drawTriangleTest(const Triangle &triangle);
+    void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, Color ac, Color bc, Color cc);
 
     void write(uint32_t x, uint32_t y, uint16_t value);
 
