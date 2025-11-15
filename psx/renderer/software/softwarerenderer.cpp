@@ -574,14 +574,17 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
     if (ay > by) {
         std::swap(ax, bx);
         std::swap(ay, by);
+        std::swap(ac, bc);
     }
     if (ay > cy) {
         std::swap(ax, cx);
         std::swap(ay, cy);
+        std::swap(ac, cc);
     }
     if (by > cy) {
         std::swap(bx, cx);
         std::swap(by, cy);
+        std::swap(bc, cc);
     }
     // We now have ay <= by <= cy
     int total_height = cy - ay;
