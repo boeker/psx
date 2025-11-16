@@ -424,39 +424,40 @@ uint8_t* SoftwareRenderer::decodeTexture(uint16_t texpage, uint16_t palette) {
 }
 
 void SoftwareRenderer::drawTexturedTriangle(const TexturedTriangle &t) {
-    uint8_t *texture = decodeTexture(t.texpage, t.palette);
-    loadTexture(texture);
+    drawTexturedTriangleTest(t);
+    //uint8_t *texture = decodeTexture(t.texpage, t.palette);
+    //loadTexture(texture);
 
-    glCheckError();
+    //glCheckError();
 
-    setViewportIntoVRAM();
-    glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
+    //setViewportIntoVRAM();
+    //glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
 
-    float vertices[] =  {
-        t.v1.x/320.0f - 1.0f, t.v1.y/240.0f - 1.0f, 0.0f, t.tc1.x/255.0f, t.tc1.y/255.0f,
-        t.v2.x/320.0f - 1.0f, t.v2.y/240.0f - 1.0f, 0.0f, t.tc2.x/255.0f, t.tc2.y/255.0f,
-        t.v3.x/320.0f - 1.0f, t.v3.y/240.0f - 1.0f, 0.0f, t.tc3.x/255.0f, t.tc3.y/255.0f
-    };
+    //float vertices[] =  {
+    //    t.v1.x/320.0f - 1.0f, t.v1.y/240.0f - 1.0f, 0.0f, t.tc1.x/255.0f, t.tc1.y/255.0f,
+    //    t.v2.x/320.0f - 1.0f, t.v2.y/240.0f - 1.0f, 0.0f, t.tc2.x/255.0f, t.tc2.y/255.0f,
+    //    t.v3.x/320.0f - 1.0f, t.v3.y/240.0f - 1.0f, 0.0f, t.tc3.x/255.0f, t.tc3.y/255.0f
+    //};
 
-    glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+    //glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
-    textureShader->use();
-    glBindVertexArray(textureVAO);
-    glBindTexture(GL_TEXTURE_2D, textureTexture);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    //textureShader->use();
+    //glBindVertexArray(textureVAO);
+    //glBindTexture(GL_TEXTURE_2D, textureTexture);
+    //glDrawArrays(GL_TRIANGLES, 0, 3);
 
-    // unbind VBO and VAO
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    //// unbind VBO and VAO
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //glBindVertexArray(0);
 
-    // unbind framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //// unbind framebuffer
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void SoftwareRenderer::writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) {
-    LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
-                              value, line, pos));
+    //LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
+    //                          value, line, pos));
 
     uint16_t *vramLine = (uint16_t*)&(vramCache[2048 * line]);
     vramLine[pos] = value;
@@ -480,8 +481,8 @@ uint16_t SoftwareRenderer::readFromVRAM(uint32_t line, uint32_t pos) {
     uint16_t *vramLine = (uint16_t*)&(vramCache[2048 * line]);
     uint16_t value = vramLine[pos];
 
-    LOGT_REND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
-                              line, pos, value));
+    //LOGT_REND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
+    //                          line, pos, value));
 
     return value;
 }
@@ -554,6 +555,7 @@ void SoftwareRenderer::drawLine(int ax, int ay, int bx, int by, uint16_t color) 
 }
 
 void SoftwareRenderer::drawTriangleTest(const Triangle &triangle) {
+    LOG_REND(std::format("drawTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
     drawTriangle(triangle.v1.x,
                  triangle.v1.y,
                  triangle.v2.x,
@@ -592,7 +594,7 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
     // Bottom half
     if (ay != by) {
         int segment_height = by - ay;
-        for (int y = ay; y <= by; y++) {
+        for (int y = ay; y < by; y++) { // Exclude by
             int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
             int x2 = ax + ((bx - ax) * (y - ay)) / segment_height;
 
@@ -642,7 +644,7 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
     // Top half
     if (by != cy) {
         int segment_height = cy - by;
-        for (int y = by; y <= cy; y++) {
+        for (int y = by; y < cy; y++) { // Exclude last point
             int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
             int x2 = bx + ((cx - bx) * (y - by)) / segment_height;
 
@@ -689,6 +691,166 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
             }
         }
     }
+}
+
+void SoftwareRenderer::drawTexturedTriangleTest(const TexturedTriangle &triangle) {
+    LOG_REND(std::format("drawTexturedTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
+    drawTexturedTriangle(triangle.v1.x,
+                         triangle.v1.y,
+                         triangle.v2.x,
+                         triangle.v2.y,
+                         triangle.v3.x,
+                         triangle.v3.y,
+                         triangle.tc1.x,
+                         triangle.tc1.y,
+                         triangle.tc2.x,
+                         triangle.tc2.y,
+                         triangle.tc3.x,
+                         triangle.tc3.y,
+                         triangle.texpage,
+                         triangle.palette
+                         );
+}
+
+void SoftwareRenderer::drawTexturedTriangle(int ax, int ay, int bx, int by, int cx, int cy, int tx1, int ty1, int tx2, int ty2, int tx3, int ty3, uint16_t texpage, uint16_t palette) {
+    uint32_t xBase = (texpage & 0xF) * 64; // in halfwords
+    uint32_t yBase = ((texpage >> 4) & 1) * 256; // in lines
+    uint8_t semiTransparency = (texpage >> 5) & 3;
+    uint8_t texturePageColors = (texpage >> 7) & 3;
+    uint8_t textureDisable = (texpage >> 11) & 1;
+
+    uint32_t xPalette = (palette & 0x3F) * 16; // in halfwords
+    uint32_t yPalette = (palette >> 6) & 0x1FF; // in lines
+
+    LOG_REND(std::format("drawTexturedTriangle() texture: XBase[{:d}], YBase[{:d}], Semi Transparency[{:d}], Texture Page Colors[{:d}], Texture Disable[{:d}], XPalette[{:d}], YPalette[{:d}]", xBase, yBase, semiTransparency, texturePageColors, textureDisable, xPalette, yPalette));
+
+    if (texturePageColors != 0) { // 0 means 4-bit colors
+        LOG_REND(std::format("Texture format not implemented"));
+        return;
+    }
+
+    // Sort the points by their y-coordinates
+    if (ay > by) {
+        std::swap(ax, bx);
+        std::swap(ay, by);
+        std::swap(tx1, tx2);
+        std::swap(ty1, ty2);
+    }
+    if (ay > cy) {
+        std::swap(ax, cx);
+        std::swap(ay, cy);
+        std::swap(tx1, tx3);
+        std::swap(ty1, ty3);
+    }
+    if (by > cy) {
+        std::swap(bx, cx);
+        std::swap(by, cy);
+        std::swap(tx2, tx3);
+        std::swap(ty2, ty3);
+    }
+    // We now have ay <= by <= cy
+    int total_height = cy - ay;
+
+    // Bottom half
+    if (ay != by) {
+        int segment_height = by - ay;
+        for (int y = ay; y < by; y++) {
+            int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
+            int x2 = ax + ((bx - ax) * (y - ay)) / segment_height;
+
+            uint32_t txl = (tx3 * (y - ay) + tx1 * (cy - y)) / total_height;
+            uint32_t tyl = (ty3 * (y - ay) + ty1 * (cy - y)) / total_height;
+
+            uint32_t txr = (tx2 * (y - ay) + tx1 * (by - y)) / segment_height;
+            uint32_t tyr = (ty2 * (y - ay) + ty1 * (by - y)) / segment_height;
+
+            // Draw line from left to right
+            int min, max;
+            uint32_t mintx, minty, maxtx, maxty;
+
+            if (x1 < x2) {
+                min = x1;
+                max = x2;
+                mintx = txl;
+                minty = tyl;
+                maxtx = txr;
+                maxty = tyr;
+            } else {
+                min = x2;
+                max = x1;
+                mintx = txr;
+                minty = tyr;
+                maxtx = txl;
+                maxty = tyl;
+            }
+            int line_length = max - min;
+            for (int x = min; x < max; x++) {
+                uint32_t tx = (maxtx * (x - min) + mintx * (max - x)) / line_length;
+                uint32_t ty = (maxty * (x - min) + minty * (max - x)) / line_length;
+
+                uint16_t halfword = read(xBase + (tx / 4), yBase + ty);
+                uint8_t textureIndex = (halfword >> (4 *(tx % 4))) & 0xF;
+                uint16_t color = read(xPalette + textureIndex, yPalette);
+
+                if (color) { // nothing, not even semiTransparency set -> transparent
+                    write(x, y, color & 0x7FFF); // set mask bit to 0 for now
+                }
+            }
+        }
+    }
+
+    // Top half
+    if (by != cy) {
+        int segment_height = cy - by;
+        for (int y = by; y < cy; y++) {
+            int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
+            int x2 = bx + ((cx - bx) * (y - by)) / segment_height;
+
+            uint32_t txl = (tx3 * (y - ay) + tx1 * (cy - y)) / total_height;
+            uint32_t tyl = (ty3 * (y - ay) + ty1 * (cy - y)) / total_height;
+
+            uint32_t txr = (tx3 * (y - by) + tx2 * (cy - y)) / segment_height;
+            uint32_t tyr = (ty3 * (y - by) + ty2 * (cy - y)) / segment_height;
+
+
+            // Draw line from left to right
+            int min, max;
+            uint32_t mintx, minty, maxtx, maxty;
+
+            if (x1 < x2) {
+                min = x1;
+                max = x2;
+                mintx = txl;
+                minty = tyl;
+                maxtx = txr;
+                maxty = tyr;
+            } else {
+                min = x2;
+                max = x1;
+                mintx = txr;
+                minty = tyr;
+                maxtx = txl;
+                maxty = tyl;
+            }
+            int line_length = max - min;
+            for (int x = min; x < max; x++) {
+                uint32_t tx = (maxtx * (x - min) + mintx * (max - x)) / line_length;
+                uint32_t ty = (maxty * (x - min) + minty * (max - x)) / line_length;
+
+                uint16_t halfword = read(xBase + (tx / 4), yBase + ty);
+                uint8_t textureIndex = (halfword >> (4 *(tx % 4))) & 0xF;
+                uint16_t color = read(xPalette + textureIndex, yPalette);
+
+                if (color) { // nothing, not even semiTransparency set -> transparent
+                    write(x, y, color & 0x7FFF); // set mask bit to 0 for now
+                }
+            }
+        }
+    }
+}
+
+uint16_t SoftwareRenderer::read(uint32_t x, uint32_t y) {
+        return ((uint16_t*)vramCache)[y * 1024 + x];
 }
 
 void SoftwareRenderer::write(uint32_t x, uint32_t y, uint16_t value) {

@@ -48,6 +48,10 @@ public:
     void drawTriangleTest(const Triangle &triangle);
     void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, Color ac, Color bc, Color cc);
 
+    void drawTexturedTriangleTest(const TexturedTriangle &triangle);
+    void drawTexturedTriangle(int ax, int ay, int bx, int by, int cx, int cy, int tx1, int ty1, int tx2, int ty2, int tx3, int ty3, uint16_t texpage, uint16_t palette);
+
+    uint16_t read(uint32_t x, uint32_t y);
     void write(uint32_t x, uint32_t y, uint16_t value);
 
 private:
