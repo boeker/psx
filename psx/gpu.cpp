@@ -165,9 +165,9 @@ void GPU::receiveGP0Data(uint32_t word) {
             LOGV_GPU(std::format("Transfering word: 0x{:08X}", word));
 
 
-            renderer->writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word & 0x0000FFFF));
+            renderer->writeToVRAM(destinationCurrentX, destinationCurrentY, (uint16_t)(word & 0x0000FFFF));
             advanceCurrentDestinationPosition();
-            renderer->writeToVRAM(destinationCurrentY, destinationCurrentX, (uint16_t)(word >> 16));
+            renderer->writeToVRAM(destinationCurrentX, destinationCurrentY, (uint16_t)(word >> 16));
             advanceCurrentDestinationPosition();
 
             //toVRAMBuffer.push_back((word >> 24) & 0xFF);
@@ -246,9 +246,9 @@ uint32_t GPU::sendGP0Data() {
                 LOGT_GPU(std::format("State::IDLE"));
             }
 
-            value2 = renderer->readFromVRAM(sourceCurrentY, sourceCurrentX);
+            value2 = renderer->readFromVRAM(sourceCurrentX, sourceCurrentY);
             advanceCurrentSourcePosition();
-            value1 = renderer->readFromVRAM(sourceCurrentY, sourceCurrentX);
+            value1 = renderer->readFromVRAM(sourceCurrentX, sourceCurrentY);
             advanceCurrentSourcePosition();
 
             return (value1 << 16) | value2;

@@ -27,9 +27,7 @@ public:
     void computeViewport();
     void computeVRAMViewport();
     void swapBuffers() override;
-    void drawTriangle(const Triangle &triangle) override;
     void loadTexture(uint8_t *textureData) override;
-    void drawTexturedTriangle(const TexturedTriangle &triangle) override;
 
     void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) override;
     uint16_t readFromVRAM(uint32_t line, uint32_t pos) override;
@@ -44,15 +42,15 @@ public:
 
     uint8_t* decodeTexture(uint16_t texpage, uint16_t palette);
 
+    void drawTriangle(const Triangle &triangle) override;
+    void drawTexturedTriangle(const TexturedTriangle &triangle) override;
+
+    // drawDot();
+    // drawRectangle();
+private:
     void drawLine(int ax, int ay, int bx, int by, uint16_t color);
-    void drawTriangleTest(const Triangle &triangle);
     void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, Color ac, Color bc, Color cc);
-
-    void drawTexturedTriangleTest(const TexturedTriangle &triangle);
     void drawTexturedTriangle(int ax, int ay, int bx, int by, int cx, int cy, int tx1, int ty1, int tx2, int ty2, int tx3, int ty3, uint16_t texpage, uint16_t palette);
-
-    uint16_t read(uint32_t x, uint32_t y);
-    void write(uint32_t x, uint32_t y, uint16_t value);
 
 private:
     Screen *screen;

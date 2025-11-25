@@ -305,36 +305,6 @@ void SoftwareRenderer::swapBuffers() {
     }
 }
 
-void SoftwareRenderer::drawTriangle(const Triangle &t) {
-    drawTriangleTest(t);
-    //glCheckError();
-
-    //setViewportIntoVRAM();
-    //glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
-
-    //int vertices[] =  {
-    //    t.v1.x, t.v1.y, t.c1.r, t.c1.g, t.c1.b,
-    //    t.v2.x, t.v2.y, t.c2.r, t.c2.g, t.c2.b,
-    //    t.v3.x, t.v3.y, t.c3.r, t.c3.g, t.c3.b
-    //};
-    //glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_DYNAMIC_DRAW);
-
-    //shader->use();
-    //glBindVertexArray(vao);
-    //glDrawArrays(GL_TRIANGLES, 0, 3);
-
-    //// unbind VBO and VAO
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //glBindVertexArray(0);
-
-    //// unbind framebuffer
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    //drawLine(30, 40, 200, 210, 0x0000FF);
-    //drawTriangle(30, 30, 40, 150, 117, 60, 0x00FF00);
-}
-
 void SoftwareRenderer::loadTexture(uint8_t *textureData) {
     glCheckError();
     glBindTexture(GL_TEXTURE_2D, textureTexture);
@@ -423,44 +393,11 @@ uint8_t* SoftwareRenderer::decodeTexture(uint16_t texpage, uint16_t palette) {
     }
 }
 
-void SoftwareRenderer::drawTexturedTriangle(const TexturedTriangle &t) {
-    drawTexturedTriangleTest(t);
-    //uint8_t *texture = decodeTexture(t.texpage, t.palette);
-    //loadTexture(texture);
-
-    //glCheckError();
-
-    //setViewportIntoVRAM();
-    //glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
-
-    //float vertices[] =  {
-    //    t.v1.x/320.0f - 1.0f, t.v1.y/240.0f - 1.0f, 0.0f, t.tc1.x/255.0f, t.tc1.y/255.0f,
-    //    t.v2.x/320.0f - 1.0f, t.v2.y/240.0f - 1.0f, 0.0f, t.tc2.x/255.0f, t.tc2.y/255.0f,
-    //    t.v3.x/320.0f - 1.0f, t.v3.y/240.0f - 1.0f, 0.0f, t.tc3.x/255.0f, t.tc3.y/255.0f
-    //};
-
-    //glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-
-    //textureShader->use();
-    //glBindVertexArray(textureVAO);
-    //glBindTexture(GL_TEXTURE_2D, textureTexture);
-    //glDrawArrays(GL_TRIANGLES, 0, 3);
-
-    //// unbind VBO and VAO
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //glBindVertexArray(0);
-
-    //// unbind framebuffer
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void SoftwareRenderer::writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) {
+void SoftwareRenderer::writeToVRAM(uint32_t x, uint32_t y, uint16_t value) {
     //LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
     //                          value, line, pos));
 
-    uint16_t *vramLine = (uint16_t*)&(vramCache[2048 * line]);
-    vramLine[pos] = value;
+    ((uint16_t*)vramCache)[y * 1024 + x] = value;
 }
 
 void SoftwareRenderer::writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) {
@@ -477,9 +414,8 @@ void SoftwareRenderer::prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t
 
 }
 
-uint16_t SoftwareRenderer::readFromVRAM(uint32_t line, uint32_t pos) {
-    uint16_t *vramLine = (uint16_t*)&(vramCache[2048 * line]);
-    uint16_t value = vramLine[pos];
+uint16_t SoftwareRenderer::readFromVRAM(uint32_t x, uint32_t y) {
+    uint16_t value = ((uint16_t*)vramCache)[y * 1024 + x];
 
     //LOGT_REND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
     //                          line, pos, value));
@@ -547,14 +483,14 @@ void SoftwareRenderer::drawLine(int ax, int ay, int bx, int by, uint16_t color) 
         int y = std::round(ay + (by - ay) * t);
 
         if (!swapCoordinates) {
-            write(x, y, color);
+            writeToVRAM(x, y, color);
         } else {
-            write(y, x, color);
+            writeToVRAM(y, x, color);
         }
     }
 }
 
-void SoftwareRenderer::drawTriangleTest(const Triangle &triangle) {
+void SoftwareRenderer::drawTriangle(const Triangle &triangle) {
     LOG_REND(std::format("drawTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
     drawTriangle(triangle.v1.x,
                  triangle.v1.y,
@@ -636,7 +572,7 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
                 uint32_t b = (maxb * (x - min) + minb * (max - x)) / line_length;
 
                 Color c(r, g, b);
-                write(x, y, c.to16Bit());
+                writeToVRAM(x, y, c.to16Bit());
             }
         }
     }
@@ -687,13 +623,13 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
                 uint32_t b = (maxb * (x - min) + minb * (max - x)) / line_length;
 
                 Color c(r, g, b);
-                write(x, y, c.to16Bit());
+                writeToVRAM(x, y, c.to16Bit());
             }
         }
     }
 }
 
-void SoftwareRenderer::drawTexturedTriangleTest(const TexturedTriangle &triangle) {
+void SoftwareRenderer::drawTexturedTriangle(const TexturedTriangle &triangle) {
     LOG_REND(std::format("drawTexturedTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
     drawTexturedTriangle(triangle.v1.x,
                          triangle.v1.y,
@@ -788,12 +724,12 @@ void SoftwareRenderer::drawTexturedTriangle(int ax, int ay, int bx, int by, int 
                 uint32_t tx = (maxtx * (x - min) + mintx * (max - x)) / line_length;
                 uint32_t ty = (maxty * (x - min) + minty * (max - x)) / line_length;
 
-                uint16_t halfword = read(xBase + (tx / 4), yBase + ty);
+                uint16_t halfword = readFromVRAM(xBase + (tx / 4), yBase + ty);
                 uint8_t textureIndex = (halfword >> (4 *(tx % 4))) & 0xF;
-                uint16_t color = read(xPalette + textureIndex, yPalette);
+                uint16_t color = readFromVRAM(xPalette + textureIndex, yPalette);
 
                 if (color) { // nothing, not even semiTransparency set -> transparent
-                    write(x, y, color & 0x7FFF); // set mask bit to 0 for now
+                    writeToVRAM(x, y, color & 0x7FFF); // set mask bit to 0 for now
                 }
             }
         }
@@ -837,24 +773,16 @@ void SoftwareRenderer::drawTexturedTriangle(int ax, int ay, int bx, int by, int 
                 uint32_t tx = (maxtx * (x - min) + mintx * (max - x)) / line_length;
                 uint32_t ty = (maxty * (x - min) + minty * (max - x)) / line_length;
 
-                uint16_t halfword = read(xBase + (tx / 4), yBase + ty);
+                uint16_t halfword = readFromVRAM(xBase + (tx / 4), yBase + ty);
                 uint8_t textureIndex = (halfword >> (4 *(tx % 4))) & 0xF;
-                uint16_t color = read(xPalette + textureIndex, yPalette);
+                uint16_t color = readFromVRAM(xPalette + textureIndex, yPalette);
 
                 if (color) { // nothing, not even semiTransparency set -> transparent
-                    write(x, y, color & 0x7FFF); // set mask bit to 0 for now
+                    writeToVRAM(x, y, color & 0x7FFF); // set mask bit to 0 for now
                 }
             }
         }
     }
-}
-
-uint16_t SoftwareRenderer::read(uint32_t x, uint32_t y) {
-        return ((uint16_t*)vramCache)[y * 1024 + x];
-}
-
-void SoftwareRenderer::write(uint32_t x, uint32_t y, uint16_t value) {
-        ((uint16_t*)vramCache)[y * 1024 + x] = value;
 }
 
 }
