@@ -123,7 +123,6 @@ private:
     uint32_t destinationSizeY;
     uint32_t destinationCurrentX;
     uint32_t destinationCurrentY;
-    std::vector<uint8_t> toVRAMBuffer;
 
     // transfer from VRAM
     uint32_t transferToCPURemainingWords;

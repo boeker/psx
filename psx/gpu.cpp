@@ -170,43 +170,9 @@ void GPU::receiveGP0Data(uint32_t word) {
             renderer->writeToVRAM(destinationCurrentX, destinationCurrentY, (uint16_t)(word >> 16));
             advanceCurrentDestinationPosition();
 
-            //toVRAMBuffer.push_back((word >> 24) & 0xFF);
-            //toVRAMBuffer.push_back((word >> 16) & 0xFF);
-            //toVRAMBuffer.push_back((word >> 8) & 0xFF);
-            //toVRAMBuffer.push_back(word & 0xFF);
-
-            toVRAMBuffer.push_back(((word >> 0) & 0x1F) << 3);
-            toVRAMBuffer.push_back(((word >> 5) & 0x1F) << 3);
-            toVRAMBuffer.push_back(((word >> 10) & 0x1F) << 3);
-
-            toVRAMBuffer.push_back(((word >> 16) & 0x1F) << 3);
-            toVRAMBuffer.push_back(((word >> 21) & 0x1F) << 3);
-            toVRAMBuffer.push_back(((word >> 26) & 0x1F) << 3);
-
-
-            //toVRAMBuffer.push_back(((word >> 16) & 0xF) << 4);
-            //toVRAMBuffer.push_back(((word >> 12) & 0xF) << 4);
-            //toVRAMBuffer.push_back(((word >> 8) & 0xF) << 4);
-            //toVRAMBuffer.push_back(((word >> 4) & 0xF) << 4);
-            //toVRAMBuffer.push_back(((word >> 0) & 0xF) << 4);
-
-            //toVRAMBuffer.push_back((word >> 16) & 0xFF);
-            //toVRAMBuffer.push_back((word >> 8) & 0xFF);
-            //toVRAMBuffer.push_back(word & 0xFF);
-
-            //toVRAMBuffer.push_back((word >> 24) & 0xF);
-            //toVRAMBuffer.push_back((word >> 20) & 0xF);
-            //toVRAMBuffer.push_back((word >> 16) & 0xF);
-            ////toVRAMBuffer.push_back((word >> 16) & 0xF);
-            //toVRAMBuffer.push_back((word >> 12) & 0xF);
-            //toVRAMBuffer.push_back((word >> 8) & 0xF);
-            //toVRAMBuffer.push_back((word >> 4) & 0xF);
-            //toVRAMBuffer.push_back((word & 0x0000FFFF) & 0xF);
-
             transferToVRAMRemainingWords--;
 
             if (transferToVRAMRemainingWords == 0) {
-                renderer->writeToVRAM(destinationX, destinationY, destinationSizeX, destinationSizeY, &toVRAMBuffer[0]);
                 state = State::IDLE;
                 LOGT_GPU(std::format("State::IDLE"));
             }
@@ -767,7 +733,6 @@ void GPU::GP0CopyRectangleToVRAM() {
         LOGT_GPU(std::format("State::TRANSFER_TO_VRAM"));
         destinationCurrentX = destinationX;
         destinationCurrentY = destinationY;
-        toVRAMBuffer.clear();
     }
 }
 

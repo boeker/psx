@@ -28,14 +28,14 @@ public:
     void computeVRAMViewport();
     void swapBuffers() override;
     void drawTriangle(const Triangle &triangle) override;
-    void loadTexture(uint8_t *textureData) override;
+    void loadTexture(uint8_t *textureData);
     void drawTexturedTriangle(const TexturedTriangle &triangle) override;
 
     void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) override;
     uint16_t readFromVRAM(uint32_t line, uint32_t pos) override;
-    void prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height) override;
+    void prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height);
 
-    void writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) override;
+    void writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data);
     void fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 
     void setDrawingAreaTopLeft(uint32_t x, uint32_t y) override;

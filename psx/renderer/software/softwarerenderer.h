@@ -27,25 +27,17 @@ public:
     void computeViewport();
     void computeVRAMViewport();
     void swapBuffers() override;
-    void loadTexture(uint8_t *textureData) override;
 
     void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) override;
     uint16_t readFromVRAM(uint32_t line, uint32_t pos) override;
-
-    void prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height) override;
-
-    void writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) override;
     void fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 
     void setDrawingAreaTopLeft(uint32_t x, uint32_t y) override;
     void setDrawingAreaBottomRight(uint32_t x, uint32_t y) override;
-    void setViewportIntoVRAM();
 
     void drawTriangle(const Triangle &triangle) override;
     void drawTexturedTriangle(const TexturedTriangle &triangle) override;
 
-    // drawDot();
-    // drawRectangle();
 private:
     void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, Color ac, Color bc, Color cc);
     void drawTexturedTriangle(int ax, int ay, int bx, int by, int cx, int cy, int tx1, int ty1, int tx2, int ty2, int tx3, int ty3, uint16_t texpage, uint16_t palette);
@@ -53,7 +45,7 @@ private:
 private:
     Screen *screen;
     Screen *vramViewer;
-    uint8_t *vramCache;
+    uint8_t *vram;
 
     Shader *shader;
     unsigned int vbo;

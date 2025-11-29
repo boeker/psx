@@ -18,7 +18,7 @@ namespace PSX {
 SoftwareRenderer::SoftwareRenderer(Screen *screen, Screen *vramViewer)
     : screen(screen), vramViewer(vramViewer) {
 
-    vramCache = new uint8_t[VRAM_SIZE];
+    vram = new uint8_t[VRAM_SIZE];
     reset();
 }
 
@@ -169,7 +169,7 @@ void SoftwareRenderer::initialize() {
 }
 
 SoftwareRenderer::~SoftwareRenderer() {
-    delete[] vramCache;
+    delete[] vram;
 
     //glDeleteVertexArrays(1, &vao);
     //glDeleteBuffers(1, &vbo);
@@ -180,7 +180,7 @@ void SoftwareRenderer::installVRAMViewer(Screen *vramViewer) {
 }
 
 void SoftwareRenderer::reset() {
-    std::memset(vramCache, 0, VRAM_SIZE);
+    std::memset(vram, 0, VRAM_SIZE);
 
     drawingAreaTopLeftX = 0;
     drawingAreaTopLeftY = 0;
@@ -232,7 +232,7 @@ void SoftwareRenderer::swapBuffers() {
     transferToVRAM.clear();
     for (int y = 0; y < 512; ++y) {
         for (int x = 0; x < 1024; ++x) {
-            uint16_t *vramLine = (uint16_t*)&(vramCache[2048 * y]);
+            uint16_t *vramLine = (uint16_t*)&(vram[2048 * y]);
             uint16_t value = vramLine[x];
 
             transferToVRAM.push_back(((value >> 0) & 0x1F) << 3);
@@ -303,45 +303,21 @@ void SoftwareRenderer::swapBuffers() {
     }
 }
 
-void SoftwareRenderer::loadTexture(uint8_t *textureData) {
-    glCheckError();
-    glBindTexture(GL_TEXTURE_2D, textureTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glCheckError();
-}
-
 void SoftwareRenderer::writeToVRAM(uint32_t x, uint32_t y, uint16_t value) {
     //LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
     //                          value, line, pos));
 
-    ((uint16_t*)vramCache)[y * 1024 + x] = value;
-}
-
-void SoftwareRenderer::writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) {
-    LOGV_REND(std::format("VRAM write to {:d}, {:d} of size {:d}x{:d}",
-                              x, y, width, height));
-
-    //glBindTexture(GL_TEXTURE_2D, vramTexture);
-    //glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
-}
-
-void SoftwareRenderer::prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height) {
-    LOGV_REND(std::format("prepareReadFromVRAM: from {:d}, {:d} of size {:d}x{:d}",
-                              line, pos, width, height));
-
+    ((uint16_t*)vram)[y * 1024 + x] = value;
 }
 
 uint16_t SoftwareRenderer::readFromVRAM(uint32_t x, uint32_t y) {
-    uint16_t value = ((uint16_t*)vramCache)[y * 1024 + x];
+    uint16_t value = ((uint16_t*)vram)[y * 1024 + x];
 
     //LOGT_REND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
     //                          line, pos, value));
 
     return value;
 }
-
 
 void SoftwareRenderer::fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     for (uint32_t i = x; i < x + width; ++i) {
@@ -363,12 +339,6 @@ void SoftwareRenderer::setDrawingAreaBottomRight(uint32_t x, uint32_t y) {
     shader->setIVec2("drawingAreaBottomRight", x, y);
     drawingAreaBottomRightX = x;
     drawingAreaBottomRightY = y;
-}
-
-void SoftwareRenderer::setViewportIntoVRAM() {
-    glViewport(drawingAreaTopLeftX, drawingAreaTopLeftY,
-               drawingAreaBottomRightX - drawingAreaTopLeftX + 1,
-               drawingAreaBottomRightY - drawingAreaTopLeftY + 1);
 }
 
 void SoftwareRenderer::drawTriangle(const Triangle &triangle) {

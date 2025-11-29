@@ -95,16 +95,10 @@ public:
     virtual void clear() = 0;
     virtual void swapBuffers() = 0;
     virtual void drawTriangle(const Triangle &triangle) = 0;
-    virtual void loadTexture(uint8_t *textureData) = 0;
     virtual void drawTexturedTriangle(const TexturedTriangle &triangle) = 0;
 
-    //virtual void prepareWriteToVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height);
-    virtual void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) = 0;
-    virtual void writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) = 0;
-
     virtual uint16_t readFromVRAM(uint32_t line, uint32_t pos) = 0;
-    virtual void prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height) = 0;
-
+    virtual void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) = 0;
     virtual void fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
 
     virtual void setDrawingAreaTopLeft(uint32_t x, uint32_t y) = 0;
