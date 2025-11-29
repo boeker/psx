@@ -186,8 +186,6 @@ void SoftwareRenderer::reset() {
     drawingAreaTopLeftY = 0;
     drawingAreaBottomRightX = 639;
     drawingAreaBottomRightY = 479;
-
-    decodedTexture.clear();
 }
 
 void SoftwareRenderer::clear() {
@@ -314,85 +312,6 @@ void SoftwareRenderer::loadTexture(uint8_t *textureData) {
     glCheckError();
 }
 
-uint8_t* SoftwareRenderer::decodeTexture(uint16_t texpage, uint16_t palette) {
-    LOGT_GPU(std::format("Decoding texture"));
-    decodedTexture.clear();
-
-    uint32_t xBase = (texpage & 0xF) * 64; // in halfwords
-    uint32_t yBase = ((texpage >> 4) & 1) * 256; // in lines
-    uint8_t semiTransparency = (texpage >> 5) & 3;
-    uint8_t texturePageColors = (texpage >> 7) & 3;
-    uint8_t textureDisable = (texpage >> 11) & 1;
-
-    uint32_t xPalette = (palette & 0x3F) * 16; // in halfwords
-    uint32_t yPalette = (palette >> 6) & 0x1FF; // in lines
-
-    LOG_REND(std::format("Decoding texture: XBase[{:d}], YBase[{:d}], Semi Transparency[{:d}], Texture Page Colors[{:d}], Texture Disable[{:d}], XPalette[{:d}], YPalette[{:d}]", xBase, yBase, semiTransparency, texturePageColors, textureDisable, xPalette, yPalette));
-
-    if (texturePageColors == 0) { // 4-bit colors
-        uint8_t colors[64];
-        for (uint32_t x = 0; x < 16; ++x) {
-            uint16_t halfword = readFromVRAM(yPalette, xPalette + x);
-            uint8_t r = halfword & 0x1F;
-            uint8_t g = (halfword >> 5) & 0x1F;
-            uint8_t b = (halfword >> 10) & 0x1F;
-            uint8_t semiTransparency = (halfword >> 15) & 1;
-
-            colors[4*x+0] = r << 3;
-            colors[4*x+1] = g << 3;
-            colors[4*x+2] = b << 3;
-
-            colors[4*x+3] = 255;
-            if (semiTransparency == 0 && r == 0 & g == 0 & b == 0) {
-                colors[4*x+3] = 0;
-            }
-        }
-
-        for (uint32_t y = yBase; y < yBase + 256; ++y) {
-            for (uint32_t x = xBase; x < xBase + 64; ++x) {
-                uint16_t halfword = readFromVRAM(y, x);
-
-                uint8_t p1 = halfword & 0xF;
-                uint8_t p2 = (halfword >> 4) & 0xF;
-                uint8_t p3 = (halfword >> 8) & 0xF;
-                uint8_t p4 = (halfword >> 12) & 0xF;
-
-                decodedTexture.push_back(colors[4*p1+0]);
-                decodedTexture.push_back(colors[4*p1+1]);
-                decodedTexture.push_back(colors[4*p1+2]);
-                decodedTexture.push_back(colors[4*p1+3]);
-
-                decodedTexture.push_back(colors[4*p2+0]);
-                decodedTexture.push_back(colors[4*p2+1]);
-                decodedTexture.push_back(colors[4*p2+2]);
-                decodedTexture.push_back(colors[4*p2+3]);
-
-                decodedTexture.push_back(colors[4*p3+0]);
-                decodedTexture.push_back(colors[4*p3+1]);
-                decodedTexture.push_back(colors[4*p3+2]);
-                decodedTexture.push_back(colors[4*p3+3]);
-
-                decodedTexture.push_back(colors[4*p4+0]);
-                decodedTexture.push_back(colors[4*p4+1]);
-                decodedTexture.push_back(colors[4*p4+2]);
-                decodedTexture.push_back(colors[4*p4+3]);
-            }
-        }
-
-    } else {
-        LOG_GPU(std::format("Texture format not implemented"));
-    }
-
-    LOGT_GPU(std::format("Decoded texture size: {:d} bytes", decodedTexture.size()));
-
-    if (decodedTexture.size() > 0) {
-        return &decodedTexture[0];
-
-    } else {
-        return nullptr;
-    }
-}
-
 void SoftwareRenderer::writeToVRAM(uint32_t x, uint32_t y, uint16_t value) {
     //LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
     //                          value, line, pos));
@@ -425,24 +344,11 @@ uint16_t SoftwareRenderer::readFromVRAM(uint32_t x, uint32_t y) {
 
 
 void SoftwareRenderer::fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
-    glCheckError();
-
-    glBindFramebuffer(GL_FRAMEBUFFER, vramFramebuffer);
-
-    glEnable(GL_SCISSOR_TEST);
-    glScissor(x, y, width, height);
-
-    glClearColor(c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    // reset clear color
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-    // disable scissor test
-    glDisable(GL_SCISSOR_TEST);
-
-    // unbind framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    for (uint32_t i = x; i < x + width; ++i) {
+        for (uint32_t j = y; j < y + height; ++j) {
+            writeToVRAM(i, j, c.to16Bit());
+        }
+    }
 }
 
 void SoftwareRenderer::setDrawingAreaTopLeft(uint32_t x, uint32_t y) {
@@ -463,31 +369,6 @@ void SoftwareRenderer::setViewportIntoVRAM() {
     glViewport(drawingAreaTopLeftX, drawingAreaTopLeftY,
                drawingAreaBottomRightX - drawingAreaTopLeftX + 1,
                drawingAreaBottomRightY - drawingAreaTopLeftY + 1);
-}
-
-void SoftwareRenderer::drawLine(int ax, int ay, int bx, int by, uint16_t color) {
-    bool swapCoordinates = std::abs(ax - bx) < std::abs(ay - by);
-    if (swapCoordinates) { // Make sure that we avoid gaps if line is too steep by swapping x and y
-        std::swap(ax, ay);
-        std::swap(bx, by);
-    }
-
-    if (ax > bx) { // Make sure that we are drawing from left to right
-        std::swap(ax, bx);
-        std::swap(ay, by);
-    }
-
-    for (int x = ax; x <= bx; x++) {
-        // f(x) = ay + (by - ay) * (x - ax) / (bx - ax)
-        float t = (x - ax) / static_cast<float>(bx - ax);
-        int y = std::round(ay + (by - ay) * t);
-
-        if (!swapCoordinates) {
-            writeToVRAM(x, y, color);
-        } else {
-            writeToVRAM(y, x, color);
-        }
-    }
 }
 
 void SoftwareRenderer::drawTriangle(const Triangle &triangle) {

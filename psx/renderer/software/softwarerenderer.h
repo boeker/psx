@@ -31,6 +31,7 @@ public:
 
     void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) override;
     uint16_t readFromVRAM(uint32_t line, uint32_t pos) override;
+
     void prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height) override;
 
     void writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) override;
@@ -40,15 +41,12 @@ public:
     void setDrawingAreaBottomRight(uint32_t x, uint32_t y) override;
     void setViewportIntoVRAM();
 
-    uint8_t* decodeTexture(uint16_t texpage, uint16_t palette);
-
     void drawTriangle(const Triangle &triangle) override;
     void drawTexturedTriangle(const TexturedTriangle &triangle) override;
 
     // drawDot();
     // drawRectangle();
 private:
-    void drawLine(int ax, int ay, int bx, int by, uint16_t color);
     void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, Color ac, Color bc, Color cc);
     void drawTexturedTriangle(int ax, int ay, int bx, int by, int cx, int cy, int tx1, int ty1, int tx2, int ty2, int tx3, int ty3, uint16_t texpage, uint16_t palette);
 
@@ -82,8 +80,6 @@ private:
     uint32_t drawingAreaTopLeftY;
     uint32_t drawingAreaBottomRightX;
     uint32_t drawingAreaBottomRightY;
-
-    std::vector<uint8_t> decodedTexture;
 
     std::vector<uint8_t> transferToVRAM;
 
