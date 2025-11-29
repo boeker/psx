@@ -8,7 +8,6 @@
 
 #include "renderer/screen.h"
 #include "util/log.h"
-#include "shader.h"
 #include "gl.h"
 
 using namespace util;
@@ -23,40 +22,6 @@ SoftwareRenderer::SoftwareRenderer(Screen *screen, Screen *vramViewer)
 }
 
 void SoftwareRenderer::initialize() {
-    glCheckError();
-
-    shader = new Shader("shaders/color.vs", "shaders/color.fs");
-    shader->use();
-
-    glCheckError();
-
-    // vertex array object and vertex buffer object
-    glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &vbo);
-    glBindVertexArray(vao);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    //float vertices[] =  {
-    //    -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-    //    1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-    //    1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f
-    //};
-    //int vertices[] =  {
-    //    0, 100,  255, 250, 100,
-    //    100, 0,  255, 250, 0,
-    //    100, 100,  255, 250, 0
-    //};
-
-
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-
-    // position attribute
-    glVertexAttribPointer(0, 2, GL_INT, GL_FALSE, 5 * sizeof(int), (void*)0);
-    glEnableVertexAttribArray(0);
-    // color attribute
-    glVertexAttribPointer(1, 3, GL_INT, GL_FALSE, 5 * sizeof(int), (void*)(2* sizeof(int)));
-    glEnableVertexAttribArray(1);
-
     glCheckError();
 
     // store VRAM in a texture
@@ -75,104 +40,17 @@ void SoftwareRenderer::initialize() {
 
     glCheckError();
 
-    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
-    //unsigned int rbo;
-    //glGenRenderbuffers(1, &rbo);
-    //glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    //glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 1024, 512); // use a single renderbuffer object for both a depth AND stencil buffer.
-    //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
-
-    glCheckError();
-
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
 
-    //// fill the vram texture with red for debugging purposes
-    //glViewport(0, 32, 640, 480);
-    //glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
-    //glClear(GL_COLOR_BUFFER_BIT);
-
+    // bind default framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     glCheckError();
-
-    // quad
-    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-        // positions   // texCoords
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
-    };
-
-    glCheckError();
-
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-
-    glCheckError();
-
-    screenShader = new Shader("shaders/screen.vs", "shaders/screen.fs");
-    screenShader->use();
-    screenShader->setInt("screenTexture", 0);
-
-    textureShader = new Shader("shaders/texture.vs", "shaders/texture.fs");
-    textureShader->use();
-    textureShader->setInt("textureTexture", 0);
-
-    glCheckError();
-
-    // texture for rendering textured triangles
-    glGenTextures(1, &textureTexture);
-    glBindTexture(GL_TEXTURE_2D, textureTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    glCheckError();
-
-    // vertex array object and vertex buffer object
-    glGenVertexArrays(1, &textureVAO);
-    glGenBuffers(1, &textureVBO);
-    glBindVertexArray(textureVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
-    float textureVertices[] =  {
-        -1.0f, -1.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, -1.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, 1.0f, 0.0f, 0.0f, 1.0f
-    };
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(textureVertices), textureVertices, GL_DYNAMIC_DRAW);
-
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    // texture coordinates
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3* sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // wireframe mode
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
 SoftwareRenderer::~SoftwareRenderer() {
     delete[] vram;
-
-    //glDeleteVertexArrays(1, &vao);
-    //glDeleteBuffers(1, &vbo);
 }
 
 void SoftwareRenderer::installVRAMViewer(Screen *vramViewer) {
@@ -189,8 +67,6 @@ void SoftwareRenderer::reset() {
 }
 
 void SoftwareRenderer::clear() {
-    //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    //glClear(GL_COLOR_BUFFER_BIT);
 }
 
 void SoftwareRenderer::computeViewport() {
@@ -229,9 +105,9 @@ void SoftwareRenderer::computeVRAMViewport() {
 }
 
 void SoftwareRenderer::swapBuffers() {
+    // upload vram to texture
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA,  GL_UNSIGNED_SHORT_1_5_5_5_REV, vram);
-
 
     glCheckError();
 
@@ -243,15 +119,6 @@ void SoftwareRenderer::swapBuffers() {
 
     // set new viewport
     glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
-
-    //// render (part of) vram texture to screen (default framebuffer)
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    //screenShader->use();
-    //glBindVertexArray(quadVAO);
-    //glBindTexture(GL_TEXTURE_2D, vramTexture);
-    //glDrawArrays(GL_TRIANGLES, 0, 6);
-    //glCheckError();
-
 
     // blit vram framebuffer to default framebuffer
     glBindFramebuffer(GL_READ_FRAMEBUFFER, vramFramebuffer);
@@ -316,15 +183,11 @@ void SoftwareRenderer::fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t 
 }
 
 void SoftwareRenderer::setDrawingAreaTopLeft(uint32_t x, uint32_t y) {
-    shader->use();
-    shader->setIVec2("drawingAreaTopLeft", x, y);
     drawingAreaTopLeftX = x;
     drawingAreaTopLeftY = y;
 }
 
 void SoftwareRenderer::setDrawingAreaBottomRight(uint32_t x, uint32_t y) {
-    shader->use();
-    shader->setIVec2("drawingAreaBottomRight", x, y);
     drawingAreaBottomRightX = x;
     drawingAreaBottomRightY = y;
 }

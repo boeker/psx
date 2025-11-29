@@ -11,7 +11,6 @@ namespace PSX {
 #define VRAM_SIZE (1024 * 1024)
 
 class Screen;
-class Shader;
 
 class SoftwareRenderer : public Renderer {
 public:
@@ -47,26 +46,13 @@ private:
     Screen *vramViewer;
     uint8_t *vram;
 
-    Shader *shader;
-    unsigned int vbo;
-    unsigned int vao;
-
     unsigned int vramFramebuffer;
     unsigned int vramTexture;
-    unsigned int quadVAO;
-    unsigned int quadVBO;
-
-    Shader *screenShader;
 
     int viewportX, viewportY;
     int viewportWidth, viewportHeight;
     int vramViewportX, vramViewportY;
     int vramViewportWidth, vramViewportHeight;
-
-    Shader *textureShader;
-    unsigned int textureVBO;
-    unsigned int textureVAO;
-    unsigned int textureTexture;
 
     uint32_t drawingAreaTopLeftX;
     uint32_t drawingAreaTopLeftY;
