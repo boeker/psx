@@ -68,7 +68,7 @@ void SoftwareRenderer::initialize() {
     // texture attachment
     glGenTextures(1, &vramTexture);
     glBindTexture(GL_TEXTURE_2D, vramTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 512, 0, GL_RGBA,  GL_UNSIGNED_SHORT_1_5_5_5_REV, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, vramTexture, 0);
@@ -229,20 +229,8 @@ void SoftwareRenderer::computeVRAMViewport() {
 }
 
 void SoftwareRenderer::swapBuffers() {
-    transferToVRAM.clear();
-    for (int y = 0; y < 512; ++y) {
-        for (int x = 0; x < 1024; ++x) {
-            uint16_t *vramLine = (uint16_t*)&(vram[2048 * y]);
-            uint16_t value = vramLine[x];
-
-            transferToVRAM.push_back(((value >> 0) & 0x1F) << 3);
-            transferToVRAM.push_back(((value >> 5) & 0x1F) << 3);
-            transferToVRAM.push_back(((value >> 10) & 0x1F) << 3);
-        }
-    }
-    //writeToVRAM(0, 0, 1024, 512, &transferToVRAM[0]);
     glBindTexture(GL_TEXTURE_2D, vramTexture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGB, GL_UNSIGNED_BYTE, &transferToVRAM[0]);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA,  GL_UNSIGNED_SHORT_1_5_5_5_REV, vram);
 
 
     glCheckError();

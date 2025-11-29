@@ -72,9 +72,6 @@ private:
     uint32_t drawingAreaTopLeftY;
     uint32_t drawingAreaBottomRightX;
     uint32_t drawingAreaBottomRightY;
-
-    std::vector<uint8_t> transferToVRAM;
-
 };
 
 }
