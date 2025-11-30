@@ -193,7 +193,7 @@ void SoftwareRenderer::setDrawingAreaBottomRight(uint32_t x, uint32_t y) {
 }
 
 void SoftwareRenderer::drawTriangle(const Triangle &triangle) {
-    LOG_REND(std::format("drawTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
+    LOGT_REND(std::format("drawTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
     drawTriangle(triangle.v1.x,
                  triangle.v1.y,
                  triangle.v2.x,
@@ -332,7 +332,7 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
 }
 
 void SoftwareRenderer::drawTexturedTriangle(const TexturedTriangle &triangle) {
-    LOG_REND(std::format("drawTexturedTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
+    LOGT_REND(std::format("drawTexturedTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
     drawTexturedTriangle(triangle.v1.x,
                          triangle.v1.y,
                          triangle.v2.x,
@@ -360,7 +360,7 @@ void SoftwareRenderer::drawTexturedTriangle(int ax, int ay, int bx, int by, int 
     uint32_t xPalette = (palette & 0x3F) * 16; // in halfwords
     uint32_t yPalette = (palette >> 6) & 0x1FF; // in lines
 
-    LOG_REND(std::format("drawTexturedTriangle() texture: XBase[{:d}], YBase[{:d}], Semi Transparency[{:d}], Texture Page Colors[{:d}], Texture Disable[{:d}], XPalette[{:d}], YPalette[{:d}]", xBase, yBase, semiTransparency, texturePageColors, textureDisable, xPalette, yPalette));
+    LOGT_REND(std::format("drawTexturedTriangle() texture: XBase[{:d}], YBase[{:d}], Semi Transparency[{:d}], Texture Page Colors[{:d}], Texture Disable[{:d}], XPalette[{:d}], YPalette[{:d}]", xBase, yBase, semiTransparency, texturePageColors, textureDisable, xPalette, yPalette));
 
     if (texturePageColors != 0) { // 0 means 4-bit colors
         LOG_REND(std::format("Texture format not implemented"));
