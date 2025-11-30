@@ -530,16 +530,15 @@ void CPU::ADDI() {
                         regs.getRegisterName(rs),
                         immediate));
 
-    uint32_t rsValue = regs.getRegister(rs);
-    uint32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
-    bool carry30 = ((0x7FFFFFFF & rsValue) + (0x7FFFFFFF & signExtension)) & 0x80000000;
-    bool carry31 = ((rsValue >> 31) + (signExtension >> 31) + (carry30 ? 1 : 0) >= 2);
+    int32_t rsValue = regs.getRegister(rs);
+    int32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
 
-    if (carry30 == carry31) {
-        regs.setRegister(rt, rsValue + signExtension);
+    if ((signExtension > 0 && rsValue > std::numeric_limits<int32_t>::max() - signExtension) // overflow
+        || (signExtension < 0 && rsValue < std::numeric_limits<int32_t>::min() - signExtension)) { // underflow
+        generateException(EXCCODE_OV);
 
     } else {
-        generateException(EXCCODE_OV);
+        regs.setRegister(rt, (uint32_t)(rsValue + signExtension));
     }
 }
 
@@ -1166,17 +1165,15 @@ void CPU::ADD() {
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
 
-    uint32_t rsValue = regs.getRegister(rs);
-    uint32_t rtValue = regs.getRegister(rt);
+    int32_t rsValue = (int32_t)regs.getRegister(rs);
+    int32_t rtValue = (int32_t)regs.getRegister(rt);
 
-    bool carry30 = ((0x7FFFFFFF & rsValue) + (0x7FFFFFFF & rtValue)) & 0x80000000;
-    bool carry31 = ((rsValue >> 31) + (rtValue >> 31) + (carry30 ? 1 : 0) >= 2);
-
-    if (carry30 == carry31) {
-        regs.setRegister(rd, rsValue + rtValue);
+    if ((rtValue > 0 && rsValue > std::numeric_limits<int32_t>::max() - rtValue) // overflow
+        || (rtValue < 0 && rsValue < std::numeric_limits<int32_t>::min() - rtValue)) { // underflow
+        generateException(EXCCODE_OV);
 
     } else {
-        generateException(EXCCODE_OV);
+        regs.setRegister(rd, (uint32_t)(rsValue + rtValue));
     }
 }
 
@@ -1192,19 +1189,15 @@ void CPU::SUB() {
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
 
-    uint32_t rsValue = regs.getRegister(rs);
-    uint32_t rtValue = regs.getRegister(rt);
+    int32_t rsValue = (int32_t)regs.getRegister(rs);
+    int32_t rtValue = (int32_t)regs.getRegister(rt);
 
-    regs.setRegister(rd, rsValue - rtValue);
-
-    bool carry30 = ((0x7FFFFFFF & rsValue) - (0x7FFFFFFF & rtValue)) & 0x80000000;
-    bool carry31 = ((rsValue >> 31) - (rtValue >> 31) + (carry30 ? 1 : 0) >= 2);
-
-    if (carry30 == carry31) {
-        regs.setRegister(rd, rsValue - rtValue);
+    if ((rtValue < 0 && rsValue > std::numeric_limits<int32_t>::max() + rtValue) // overflow
+        || (rtValue > 0 && rsValue < std::numeric_limits<int32_t>::min() + rtValue)) { // underflow
+        generateException(EXCCODE_OV);
 
     } else {
-        generateException(EXCCODE_OV);
+        regs.setRegister(rd, (uint32_t)(rsValue - rtValue));
     }
 }
 
