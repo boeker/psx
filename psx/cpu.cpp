@@ -114,6 +114,10 @@ void CPU::generateException(uint8_t exccode) {
 
     } else {
         cp0regs.setCP0Register(CP0_REGISTER_EPC, instructionPC);
+
+        // Make sure that BD bit is not set
+        uint32_t cause = cp0regs.getCP0Register(CP0_REGISTER_CAUSE);
+        cp0regs.setCP0Register(CP0_REGISTER_CAUSE, cause & ~(0x1u << CAUSE_BIT_BD));
     }
 
     // save user-mode-enable and interrupt-enable flags in SR
