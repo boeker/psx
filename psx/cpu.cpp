@@ -1256,14 +1256,8 @@ void CPU::SRA() {
                         regs.getRegisterName(rt),
                         regs.getRegisterName(sa)));
 
-    uint32_t rtValue = regs.getRegister(rt);
-    uint32_t result = rtValue >> sa;
-    if (rtValue >> 31) {
-        assert (sa <= 32);
-        result = result | (0xFFFFFFFF << (32 - sa));
-    }
-
-    regs.setRegister(rd, result);
+    int32_t rtValue = (int32_t)regs.getRegister(rt);
+    regs.setRegister(rd, (uint32_t)(rtValue >> sa));
 }
 
 void CPU::DIV() {
@@ -1461,14 +1455,8 @@ void CPU::SRAV() {
                         regs.getRegisterName(rs)));
 
     uint8_t s = regs.getRegister(rs);
-    uint32_t rtValue = regs.getRegister(rt);
-    uint32_t result = rtValue >> s;
-    if (rtValue >> 31) {
-        assert (s <= 32);
-        result = result | (0xFFFFFFFF << (32 - s));
-    }
-
-    regs.setRegister(rd, result);
+    int32_t rtValue = (int32_t)regs.getRegister(rt);
+    regs.setRegister(rd, (uint32_t)(rtValue >> s));
 }
 
 void CPU::SRLV() {
