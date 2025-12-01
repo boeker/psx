@@ -1495,8 +1495,8 @@ void CPU::MULT() {
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt)));
 
-    int64_t rsValue = regs.getRegister(rs);
-    int64_t rtValue = regs.getRegister(rt);
+    int64_t rsValue = (int32_t)regs.getRegister(rs);
+    int64_t rtValue = (int32_t)regs.getRegister(rt);
     int64_t result = rsValue * rtValue;
 
     regs.setLo(0x00000000FFFFFFFF & result);
