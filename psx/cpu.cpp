@@ -1282,7 +1282,17 @@ void CPU::DIV() {
         if (rsValue != std::numeric_limits<int32_t>::min() || rtValue != -1) { // division of min() by -1 is undefined
             regs.setLo(rsValue / rtValue);
             regs.setHi(rsValue % rtValue);
+        } else {
+            regs.setLo(0x80000000);
+            regs.setHi(0x00000000);
         }
+    } else {
+        if (rsValue < 0) {
+            regs.setLo(1);
+        } else {
+            regs.setLo((uint32_t)-1);
+        }
+        regs.setHi(rsValue);
     }
 }
 
@@ -1332,6 +1342,9 @@ void CPU::DIVU() {
     if (rtValue != 0) {
         regs.setLo(rsValue / rtValue);
         regs.setHi(rsValue % rtValue);
+    } else {
+        regs.setLo(0xFFFFFFFF);
+        regs.setHi(rsValue);
     }
 }
 
