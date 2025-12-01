@@ -458,10 +458,13 @@ void CPU::SW() {
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
                      + regs.getRegister(base);
-    uint32_t data = regs.getRegister(rt);
-    bus->writeWord(vAddr, data);
     if (vAddr & 0x3) {
+        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
         generateException(EXCCODE_ADES);
+
+    } else {
+        uint32_t data = regs.getRegister(rt);
+        bus->writeWord(vAddr, data);
     }
 }
 
@@ -562,11 +565,14 @@ void CPU::LW() {
                         regs.getRegisterName(base)));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset) + regs.getRegister(base);
-    uint32_t data = bus->readWord(vAddr);
-    regs.setRegister(rt, data);
 
     if (vAddr & 0x3) {
+        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
         generateException(EXCCODE_ADEL);
+
+    } else {
+        uint32_t data = bus->readWord(vAddr);
+        regs.setRegister(rt, data);
     }
 }
 
@@ -588,11 +594,13 @@ void CPU::SH() {
                         regs.getRegisterName(base)));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
-    uint16_t data = (uint16_t)(0x0000FFFF & regs.getRegister(rt));
-    bus->writeHalfWord(vAddr, data);
-
     if (vAddr & 0x1) {
+        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
         generateException(EXCCODE_ADES);
+
+    } else {
+        uint16_t data = (uint16_t)(0x0000FFFF & regs.getRegister(rt));
+        bus->writeHalfWord(vAddr, data);
     }
 }
 
@@ -857,9 +865,15 @@ void CPU::LHU() {
                         regs.getRegisterName(base)));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
-    uint16_t mem = bus->readHalfWord(vAddr);
-    uint32_t zeroExtension = mem;
-    regs.setRegister(rt, zeroExtension);
+    if (vAddr & 0x1) {
+        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
+        generateException(EXCCODE_ADEL);
+
+    } else {
+        uint16_t mem = bus->readHalfWord(vAddr);
+        uint32_t zeroExtension = mem;
+        regs.setRegister(rt, zeroExtension);
+    }
 }
 
 void CPU::LH() {
@@ -880,9 +894,16 @@ void CPU::LH() {
                         regs.getRegisterName(base)));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
-    uint16_t mem = bus->readHalfWord(vAddr);
-    uint32_t signExtension = ((mem >> 15) ? 0xFFFF0000 : 0x00000000) + mem;
-    regs.setRegister(rt, signExtension);
+
+    if (vAddr & 0x1) {
+        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
+        generateException(EXCCODE_ADEL);
+
+    } else {
+        uint16_t mem = bus->readHalfWord(vAddr);
+        uint32_t signExtension = ((mem >> 15) ? 0xFFFF0000 : 0x00000000) + mem;
+        regs.setRegister(rt, signExtension);
+    }
 }
 
 void CPU::LWL() {
