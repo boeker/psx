@@ -1735,8 +1735,8 @@ void CPU::BLTZAL() {
     LOGT_CPU(std::format(" (0x{:08X} < 0? -0x{:08X}-> pc)",
                         rsValue, actualTarget));
 
+    regs.setRegister(31, instructionPC + 8);
     if (rsValue >> 31) {
-        regs.setRegister(31, instructionPC + 8);
         regs.setPC(actualTarget);
         delaySlotIsBranchDelaySlot = true;
     }
@@ -1792,8 +1792,8 @@ void CPU::BGEZAL() {
     LOGT_CPU(std::format(" (0x{:08X} > 0? -0x{:08X}-> pc)",
                         rsValue, actualTarget));
 
+    regs.setRegister(31, instructionPC + 8);
     if (!(rsValue >> 31)) {
-        regs.setRegister(31, instructionPC + 8);
         regs.setPC(actualTarget);
         delaySlotIsBranchDelaySlot = true;
     }
