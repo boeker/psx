@@ -70,6 +70,8 @@ void CPU::step() {
     (this->*opcodes[opcode])();
 
     cycles += 1;
+
+    regs.applyDelayedLoad();
 }
 
 void CPU::fetchDelaySlot() {
@@ -572,7 +574,8 @@ void CPU::LW() {
 
     } else {
         uint32_t data = bus->readWord(vAddr);
-        regs.setRegister(rt, data);
+
+        regs.setRegisterDelayed(rt, data);
     }
 }
 
@@ -677,7 +680,8 @@ void CPU::LB() {
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
     uint8_t mem = bus->readByte(vAddr);
     uint32_t signExtension = ((mem >> 7) ? 0xFFFFFF00 : 0x00000000) + mem;
-    regs.setRegister(rt, signExtension);
+
+    regs.setRegisterDelayed(rt, signExtension);
 }
 
 void CPU::BEQ() {
@@ -787,7 +791,8 @@ void CPU::LBU() {
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
     uint8_t mem = bus->readByte(vAddr);
     uint32_t zeroExtension = mem;
-    regs.setRegister(rt, zeroExtension);
+
+    regs.setRegisterDelayed(rt, zeroExtension);
 }
 
 void CPU::SLTI() {
@@ -872,7 +877,8 @@ void CPU::LHU() {
     } else {
         uint16_t mem = bus->readHalfWord(vAddr);
         uint32_t zeroExtension = mem;
-        regs.setRegister(rt, zeroExtension);
+
+        regs.setRegisterDelayed(rt, zeroExtension);
     }
 }
 
@@ -902,7 +908,8 @@ void CPU::LH() {
     } else {
         uint16_t mem = bus->readHalfWord(vAddr);
         uint32_t signExtension = ((mem >> 15) ? 0xFFFF0000 : 0x00000000) + mem;
-        regs.setRegister(rt, signExtension);
+
+        regs.setRegisterDelayed(rt, signExtension);
     }
 }
 
@@ -931,8 +938,9 @@ void CPU::LWL() {
     uint32_t mem = bus->readWord(vAddr & 0xFFFFFFFC);
 
     uint8_t shiftBy = (24 - 8 * (vAddr & 3));
-    regs.setRegister(rt, (mem << shiftBy)
-                         | (regs.getRegister(rt) & ~(0xFFFFFFFF << shiftBy)));
+
+    regs.setRegisterDelayed(rt, (mem << shiftBy)
+                                | (regs.getRegister(rt) & ~(0xFFFFFFFF << shiftBy)));
 }
 
 void CPU::LWR() {
@@ -960,8 +968,9 @@ void CPU::LWR() {
     uint32_t mem = bus->readWord(vAddr & 0xFFFFFFFC);
 
     uint8_t shiftBy = 8 * (vAddr & 3);
-    regs.setRegister(rt, (mem >> shiftBy)
-                         | (regs.getRegister(rt) & ~(0xFFFFFFFF >> shiftBy)));
+
+    regs.setRegisterDelayed(rt, (mem >> shiftBy)
+                                | (regs.getRegister(rt) & ~(0xFFFFFFFF >> shiftBy)));
 }
 
 void CPU::SWL() {

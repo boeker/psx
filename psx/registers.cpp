@@ -94,7 +94,31 @@ void Registers::setRegister(uint8_t rt, uint32_t value) {
 
     if (rt > 0) {
         registers[rt] = value;
+
+        if (currentDelayedLoad.targetRegister == rt) {
+            currentDelayedLoad.active = false;
+        }
     }
+}
+
+void Registers::setRegisterDelayed(uint8_t rt, uint32_t value) {
+    assert (rt < 32);
+    LOGT_CPU(std::format(" {{0x{:08X} -> {:s}}} (delayed)", value, getRegisterName(rt)));
+
+    if (rt > 0) {
+        nextDelayedLoad.targetRegister = rt;
+        nextDelayedLoad.value = value;
+        nextDelayedLoad.active = true;
+    }
+}
+
+void Registers::applyDelayedLoad() {
+    if (currentDelayedLoad.active) {
+        setRegister(currentDelayedLoad.targetRegister, currentDelayedLoad.value);
+        currentDelayedLoad.active = false;
+    }
+    std::swap(currentDelayedLoad, nextDelayedLoad);
+
 }
 
 uint32_t Registers::getHi() {

@@ -52,12 +52,27 @@ where the allocated 20h bytes have the following purpose:
 */
 
 namespace PSX {
+
+struct DelayedLoad {
+    bool active;
+    uint8_t targetRegister;
+    uint32_t value;
+    DelayedLoad()
+    : active(false),
+      targetRegister(0),
+      value(0) {
+    };
+};
+
 class Registers {
 private:
     uint32_t registers[32];
     uint32_t pc;
     uint32_t hi;
     uint32_t lo;
+
+    DelayedLoad currentDelayedLoad;
+    DelayedLoad nextDelayedLoad;
 
     friend std::ostream& operator<<(std::ostream &os, const Registers &registers);
 
@@ -73,6 +88,8 @@ public:
     void setPC(uint32_t pc);
     uint32_t getRegister(uint8_t reg);
     void setRegister(uint8_t reg, uint32_t value);
+    void setRegisterDelayed(uint8_t reg, uint32_t value);
+    void applyDelayedLoad();
     uint32_t getHi();
     void setHi(uint32_t value);
     uint32_t getLo();
