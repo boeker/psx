@@ -940,7 +940,7 @@ void CPU::LWL() {
     uint8_t shiftBy = (24 - 8 * (vAddr & 3));
 
     regs.setRegisterDelayed(rt, (mem << shiftBy)
-                                | (regs.getRegister(rt) & ~(0xFFFFFFFF << shiftBy)));
+                                | (regs.getRegisterSneakPeek(rt) & ~(0xFFFFFFFF << shiftBy)));
 }
 
 void CPU::LWR() {
@@ -970,7 +970,7 @@ void CPU::LWR() {
     uint8_t shiftBy = 8 * (vAddr & 3);
 
     regs.setRegisterDelayed(rt, (mem >> shiftBy)
-                                | (regs.getRegister(rt) & ~(0xFFFFFFFF >> shiftBy)));
+                                | (regs.getRegisterSneakPeek(rt) & ~(0xFFFFFFFF >> shiftBy)));
 }
 
 void CPU::SWL() {

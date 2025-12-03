@@ -88,6 +88,18 @@ uint32_t Registers::getRegister(uint8_t rt) {
     return word;
 }
 
+uint32_t Registers::getRegisterSneakPeek(uint8_t rt) {
+    assert (rt < 32);
+    uint32_t word = registers[rt];
+    if (currentDelayedLoad.active && currentDelayedLoad.targetRegister == rt) {
+        word = currentDelayedLoad.value;
+    }
+
+    LOGT_CPU(std::format("{{{:s} -> 0x{:08X}}}", getRegisterName(rt), word));
+
+    return word;
+}
+
 void Registers::setRegister(uint8_t rt, uint32_t value) {
     assert (rt < 32);
     LOGT_CPU(std::format(" {{0x{:08X} -> {:s}}}", value, getRegisterName(rt)));
@@ -106,6 +118,9 @@ void Registers::setRegisterDelayed(uint8_t rt, uint32_t value) {
     LOGT_CPU(std::format(" {{0x{:08X} -> {:s}}} (delayed)", value, getRegisterName(rt)));
 
     if (rt > 0) {
+        if (currentDelayedLoad.targetRegister == rt) {
+            currentDelayedLoad.active = false; // This new load cancels the current load
+        }
         nextDelayedLoad.targetRegister = rt;
         nextDelayedLoad.value = value;
         nextDelayedLoad.active = true;

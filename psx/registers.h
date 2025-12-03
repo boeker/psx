@@ -87,6 +87,7 @@ public:
     uint32_t getPC();
     void setPC(uint32_t pc);
     uint32_t getRegister(uint8_t reg);
+    uint32_t getRegisterSneakPeek(uint8_t reg);
     void setRegister(uint8_t reg, uint32_t value);
     void setRegisterDelayed(uint8_t reg, uint32_t value);
     void applyDelayedLoad();
