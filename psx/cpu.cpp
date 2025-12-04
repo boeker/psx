@@ -126,7 +126,7 @@ void CPU::generateException(uint8_t exccode) {
     // by pushing the 3-entry stack inside of SR
     uint32_t sr = cp0regs.getCP0Register(CP0_REGISTER_SR);
     // we clear KUc and IEc, not sure if this is correct
-    cp0regs.setCP0Register(CP0_REGISTER_SR, (sr & 0xFFFFFFC0) | ((sr & 0x3F) << 2));
+    cp0regs.setCP0Register(CP0_REGISTER_SR, (sr & 0xFFFFFFC0) | ((sr & 0xF) << 2)); // KUo and IEo are lost
 
     // set up ExcCode in Cause register
     uint32_t cause = cp0regs.getCP0Register(CP0_REGISTER_CAUSE);
