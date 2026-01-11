@@ -104,6 +104,9 @@ private:
         TRANSFER_TO_CPU
     };
     State state;
+    uint32_t remainingGPUCycles;
+    uint32_t currentScanline;
+    uint32_t currentScanlineCycles;
 
     // 1F801810
     // Write GP0     Send GP0 Commands/Packets (Rendering and VRAM Access)
@@ -113,7 +116,6 @@ private:
     uint8_t gp0Command;
     uint8_t neededParams;
     std::vector<uint32_t> gp0Parameters;
-
 
     // transfer to VRAM
     uint32_t transferToVRAMRemainingWords;
@@ -169,6 +171,7 @@ public:
     void setRenderer(Renderer *renderer);
 
     void catchUpToCPU(uint32_t cpuCycles);
+    void updateTimers(uint32_t cpuCycles);
     void decodeAndExecuteGP1();
 
     void advanceCurrentDestinationPosition();

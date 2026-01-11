@@ -92,6 +92,9 @@ GPU::~GPU() {
 
 void GPU::reset() {
     state = State::IDLE;
+    remainingGPUCycles = 0;
+    currentScanline = 0;
+    currentScanlineCycles = 0;
 
     gp0 = 0;
     queue.clear();
@@ -114,6 +117,8 @@ void GPU::setRenderer(Renderer *renderer) {
 }
 
 void GPU::catchUpToCPU(uint32_t cpuCycles) {
+    updateTimers(cpuCycles);
+
     while (true) {
         switch (state) {
             case State::IDLE:
@@ -152,6 +157,64 @@ void GPU::catchUpToCPU(uint32_t cpuCycles) {
             case State::TRANSFER_TO_VRAM:
                 return;
                 break;
+        }
+    }
+}
+
+void GPU::updateTimers(uint32_t cpuCycles) {
+    // The GPU clock can be obtained (approximately) from the CPU clock by
+    // multiplication with 103896 / 65536
+    // remainingGPUCycles stores the remaining GPU cycles multiplied by 65536
+    remainingGPUCycles += cpuCycles * 103896;
+
+    // We work with 263 scanlines, 3413 GPU cycles per scanline
+    uint32_t todoGPUCycles = remainingGPUCycles >> 16; // Division by 65536
+    remainingGPUCycles = remainingGPUCycles & 0xFFFF;
+
+    // TODO Other resolutions than 640 pixels
+    uint32_t horizontalResolution = 640;
+    uint32_t resolutionFactor = 2560 / horizontalResolution;
+
+    while (todoGPUCycles > 0) {
+        if (currentScanlineCycles < 2560) { // In screen part of scanline
+            uint32_t todoUntilHBlank = 2560 - currentScanlineCycles;
+            uint32_t cycles = std::min(todoUntilHBlank, todoGPUCycles);
+            currentScanlineCycles += cycles;
+            todoGPUCycles -= cycles;
+
+            bus->timers.notifyAboutDots(cycles / resolutionFactor);
+            if (currentScanlineCycles == 2560) {
+                bus->timers.notifyAboutHBlankStart();
+            }
+
+        } else { // In horizontal retrace
+            assert(currentScanlineCycles < 3412); // Round down (4 * 853 = 3412)
+            uint32_t todoUntilHBlankEnd = 3412 - currentScanlineCycles;
+            uint32_t cycles = std::min(todoUntilHBlankEnd, todoGPUCycles);
+
+            currentScanlineCycles += cycles;
+            todoGPUCycles -= cycles;
+
+            bus->timers.notifyAboutDots(cycles / resolutionFactor);
+            if (currentScanlineCycles == 3412) {
+                // Next scanline
+                currentScanlineCycles = 0;
+                currentScanline++;
+
+                bus->timers.notifyAboutHBlankEnd();
+
+                // Check for VBlank start/end
+                assert(currentScanline <= 263);
+                if (currentScanline == 240) {
+                    bus->timers.notifyAboutVBlankStart();
+                    // Just continue with scanline handling during vertical retrace
+
+                } else if (currentScanline == 263) {
+                    currentScanline = 0;
+
+                    bus->timers.notifyAboutVBlankEnd();
+                }
+            }
         }
     }
 }

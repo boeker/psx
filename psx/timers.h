@@ -27,13 +27,28 @@ private:
     uint16_t mode[3];
     uint16_t target[3];
 
+    bool oneShotFired[3];
     uint32_t remainingCycles[3];
+
+    bool horizontalRetrace;
+    bool verticalRetrace;
+
+    bool timer1HadVBlank;
 
 public:
     Timers(Bus *bus);
     void reset();
 
     void catchUpToCPU(uint32_t cpuCycles);
+    void notifyAboutDots(uint32_t dots);
+    void notifyAboutHBlankStart();
+    void notifyAboutHBlankEnd();
+    void notifyAboutVBlankStart();
+    void notifyAboutVBlankEnd();
+
+    void updateTimer0(uint32_t increase);
+    void updateTimer1(uint32_t increase);
+    void updateTimer2(uint32_t increase);
 
     template <typename T>
     void write(uint32_t address, T value);
