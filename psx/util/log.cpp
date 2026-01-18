@@ -107,6 +107,10 @@ LogPack::LogPack()
     executable.setConsoleLogEnabled(true);
     misc.setConsoleLogEnabled(true);
     tty.setConsoleLogEnabled(true);
+    timers.setConsoleLogEnabled(true);
+    timersV.setConsoleLogEnabled(true);
+    timersT.setConsoleLogEnabled(true);
+    exceptions.setConsoleLogEnabled(true);
     //FileLog::logFile.open("trace.txt");
     //enableAllFileLogging();
 }

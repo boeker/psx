@@ -7,14 +7,14 @@
 
 namespace PSX {
 
-// Timer reached 0xFFFF (0 = no, 1 = yes), reset on read
+// Timer reached 0xFFFF (0 = no, 1 = yes), reset on read, read-only
 #define TIMER_MODE_REACHED_FFFF_VALUE 12
-// Timer reached target value (0 = no, 1 = yes), reset on read
+// Timer reached target value (0 = no, 1 = yes), reset on read, read-only
 #define TIMER_MODE_REACHED_TARGET_VALUE 11
-// Interrupt request (0 = yes, 1 = no), set after writing 1
+// Interrupt request (0 = yes, 1 = no), set after writing 1, else read-only
 // Issues interrupt when going from 1 to 0
 #define TIMER_MODE_INTERRUPT_REQUEST 10
-// Clock source: 
+// Clock source:
 // Counter 0: 0 or 2 = system clock, 1 or 3 = dotclock
 // Counter 1: 0 or 2 = system clock, 1 or 3 = hblank
 // Counter 2: 0 or 1 = system clock, 2 or 3 = system clock / 8
@@ -97,7 +97,7 @@ public:
     void checkResetPulse();
 
     template<uint32_t N>
-    void increaseTimer0Or1(uint32_t increase);
+    void increaseTimer0Or1(uint32_t increase, bool retrace);
 
     template<uint32_t N>
     void checkResetValue();

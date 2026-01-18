@@ -16,6 +16,11 @@ namespace Bit {
     }
 
     template<uint32_t N, typename T>
+    inline T getBits(T target) {
+        return target & ~(~0u << N);
+    }
+
+    template<uint32_t N, typename T>
     inline T getBits(T target, uint8_t bit) {
         return (target >> bit) & ~(~0u << N);
     }
