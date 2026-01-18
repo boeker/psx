@@ -23,19 +23,21 @@ private:
     // 0x1F801124: Timer 2 Counter Mode
     // 0x1F801128: Timer 2 Counter Target Value
 
+    // Timer registers
     uint32_t current[3];
     uint16_t mode[3];
     uint16_t target[3];
 
-    bool resetPulse[3];
-    bool isToggling[3];
-    bool oneShotFired[3];
+    // Internal state
+    // Timer 0, 1, and 3
     uint32_t remainingCycles[3];
-
+    bool resetPulse[3];
+    bool oneShotFired[3];
+    // Timer 0 and 1
+    bool startConditionMet[2];
+    // General
     bool horizontalRetrace;
     bool verticalRetrace;
-
-    bool timer1HadVBlank;
 
 public:
     Timers(Bus *bus);
@@ -49,9 +51,20 @@ public:
     void notifyAboutVBlankEnd();
 
     void updateTimer0(uint32_t increase);
-    void handleInterruptTimer1();
     void updateTimer1(uint32_t increase);
     void updateTimer2(uint32_t increase);
+
+    template<uint32_t N>
+    void checkResetPulse();
+
+    template<uint32_t N>
+    void increaseTimer0Or1(uint32_t increase);
+
+    template<uint32_t N>
+    void checkResetValue();
+
+    template<uint32_t N>
+    void handleInterrupt();
 
     template <typename T>
     void write(uint32_t address, T value);

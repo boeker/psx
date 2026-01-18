@@ -24,16 +24,17 @@ void Timers::reset() {
         mode[i] = 0;
         target[i] = 0;
 
-        resetPulse[i] = false;
-        isToggling[i] = false;
-        oneShotFired[i] = false;
         remainingCycles[i] = 0;
+        resetPulse[i] = false;
+        oneShotFired[i] = false;
+    }
+
+    for (int i = 0; i < 2; ++i) {
+        startConditionMet[i] = false;
     }
 
     horizontalRetrace = false;
     verticalRetrace = false;
-
-    timer1HadVBlank = false;
 }
 
 void Timers::catchUpToCPU(uint32_t cpuCycles) {
@@ -66,6 +67,19 @@ void Timers::notifyAboutDots(uint32_t dots) {
 void Timers::notifyAboutHBlankStart() {
     horizontalRetrace = true;
 
+    // Check if timer 0 has to be reset or started
+    if (mode[0] & 0x1) { // Synchronize via bit 1 and 2
+        uint32_t synchronizationMode = (mode[0] >> 1) & 0x3;
+
+        if (synchronizationMode == 1 || synchronizationMode == 2) { // Reset to 0 at VBlanks/Reset to 0 at VBlanks and pause outside of VBlanks
+            current[0] = 0;
+
+        } else if (synchronizationMode == 3) { // Pause until first VBlank, then free run
+            startConditionMet[0] = true;
+        }
+    }
+
+    // Check if timer 1 has to be increased
     if ((mode[1] >> 8) & 0x1) { // Clock source is HBlanks
         updateTimer1(1);
     }
@@ -85,9 +99,8 @@ void Timers::notifyAboutVBlankStart() {
             current[1] = 0;
 
         } else if (synchronizationMode == 3) { // Pause until first VBlank, then free run
-            timer1HadVBlank = true;
+            startConditionMet[1] = true;
         }
-
     }
 }
 
@@ -96,147 +109,138 @@ void Timers::notifyAboutVBlankEnd() {
 }
 
 void Timers::updateTimer0(uint32_t increase) {
-    
+    // We already checked the clock source, no need to do that here
+
+    // Check if we have to reset the current pulse
+    checkResetPulse<0>();
+
+    // Increase counter
+    increaseTimer0Or1<0>(increase);
+
+    // Check if reset value reached
+    checkResetValue<0>();
 }
 
 void Timers::updateTimer1(uint32_t increase) {
     // We already checked the clock source, no need to do that here
-    // Check if we have to reset the current pulse
 
-    if (resetPulse[1]) {
-        Bit::setBit(mode[1], 10);
-        resetPulse[1] = false;
-    }
+    // Check if we have to reset the current pulse
+    checkResetPulse<1>();
 
     // Increase counter
-    if (mode[1] & 0x1) { // Synchronize via bit 1 and 2
-        uint32_t synchronizationMode = (mode[1] >> 1) & 0x3;
+    increaseTimer0Or1<1>(increase);
 
-        if (synchronizationMode == 0) { // Pause during VBlanks
-            if (!verticalRetrace) {
-                current[1] += increase;
-            }
+    // Check if reset value reached
+    checkResetValue<1>();
+}
 
-        } else if (synchronizationMode == 1) { // Reset to 0 at VBlanks
-            current[1] += increase;
+void Timers::updateTimer2(uint32_t increase) {
+    // We already checked the clock source, no need to do that here
 
-        } else if (synchronizationMode == 2) { // Reset to 0 at VBlanks and pause outside of VBlanks
-            if (verticalRetrace) {
-                current[1] += increase;
-            }
+    // Check if we have to reset the current pulse
+    checkResetPulse<2>();
 
-        } else if (synchronizationMode == 3) { // Pause until first VBlank, then free run
-            if (timer1HadVBlank) {
-                current[1] += increase;
-            }
+    // Increase counter
+    if (Bit::getBit(mode[2], 0)) { // Synchronize via bit 1 and 2
+        uint8_t synchronizationMode = (mode[2] >> 1) & 0x3;
+
+        // Synchronization mode 0 and 3 are stop at current value
+        // Nothing to do for those
+
+        if (synchronizationMode == 1 || synchronizationMode == 2) { // Free run
+            current[2] += increase;
         }
 
     } else {
         // Free run
-        current[1] += increase;
+        current[2] += increase;
     }
 
     // Check if reset value reached
-    if (Bit::getBit(mode[1], 3) && (current[1] >= target[1])) { // Reset after counter reaches target
-        current[1] = 0;
-        Bit::setBit(mode[1], 11); // Bit 11 marks reached target value, reset after reading
-        handleInterruptTimer1();
+    checkResetValue<2>();
+}
 
-    } else if (!Bit::getBit(mode[1], 3) && (current[1] >= 0xFFFF)) { // Reset after counter reaches 0xFFFF
-        current[1] = 0;
-        Bit::setBit(mode[1], 12); // Bit 12 marks reached 0xFFFF, reset after reading
-        handleInterruptTimer1();
+template<uint32_t N>
+void Timers::checkResetPulse() {
+    if (resetPulse[N]) {
+        Bit::setBit(mode[N], 10);
+        resetPulse[N] = false;
     }
 }
 
-void Timers::handleInterruptTimer1() {
-    if ((mode[1] >> 4) & 0x1) { // IRQ when target reached
-        if ((mode[1] >> 7) & 0x1) { // Toggle
-            // Toggle bit 10, issue interrupt if it goes from 1 to 0
+template<uint32_t N>
+void Timers::increaseTimer0Or1(uint32_t increase) {
+    if (Bit::getBit(mode[N], 0)) { // Synchronize via bit 1 and 2
+        uint32_t synchronizationMode = (mode[N] >> 1) & 0x3;
 
-            if ((Bit::getBit(mode[1], 6) || !oneShotFired[1]) && Bit::getBit(mode[1], 10)) {
-                Bit::clearBit(mode[1], 10);
-                oneShotFired[1] = true;
-                isToggling[1] = true;
-                LOG_TMR(std::format("Timer 1 is issuing interrupt"));
-                bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_TMR1);
-
-            } else if (Bit::getBit(mode[1], 6) && isToggling[1]) {
-                Bit::setBit(mode[1], 10);
+        if (synchronizationMode == 0) { // Pause during H/VBlanks
+            if (!verticalRetrace) {
+                current[N] += increase;
             }
 
-        } else { // Pulse
+        } else if (synchronizationMode == 1) { // Reset to 0 at H/VBlanks
+            current[N] += increase;
+
+        } else if (synchronizationMode == 2) { // Reset to 0 at H/VBlanks and pause outside of H/VBlanks
+            if (verticalRetrace) {
+                current[N] += increase;
+            }
+
+        } else if (synchronizationMode == 3) { // Pause until first H/VBlank, then free run
+            if (startConditionMet[N]) {
+                current[N] += increase;
+            }
+        }
+
+    } else { // Free run
+        current[N] += increase;
+    }
+}
+
+template<uint32_t N>
+void Timers::checkResetValue() {
+    if (Bit::getBit(mode[N], 3) && (current[N] >= target[N])) { // Reset after counter reaches target
+        current[N] = 0;
+        Bit::setBit(mode[N], 11); // Bit 11 marks reached target value, reset after reading
+        handleInterrupt<N>();
+
+    } else if (!Bit::getBit(mode[N], 3) && (current[N] >= 0xFFFF)) { // Reset after counter reaches 0xFFFF
+        current[N] = 0;
+        Bit::setBit(mode[N], 12); // Bit 12 marks reached 0xFFFF, reset after reading
+        handleInterrupt<N>();
+    }
+}
+
+template<uint32_t N>
+void Timers::handleInterrupt() {
+    if (Bit::getBit(mode[N], 4)) { // IRQ when target reached
+        if (Bit::getBit(mode[N], 7)) { // Toggle from 1 to 0 and back
+            // Toggle bit 10, issue interrupt if it goes from 1 to 0
+
+            if ((Bit::getBit(mode[N], 6) || !oneShotFired[N]) && Bit::getBit(mode[N], 10)) {
+                Bit::clearBit(mode[N], 10);
+                oneShotFired[N] = true;
+                LOG_TMR(std::format("Timer {:d} is issuing interrupt", N));
+                bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_TMR0 + N);
+
+            } else if (Bit::getBit(mode[N], 6) && oneShotFired[N]) { // Toggle back from 0 to 1 (if we toggled to 0 before)
+                Bit::setBit(mode[N], 10);
+            }
+
+        } else { // Pulse from 1 to 0
             // Short pulse of bit 10 to 0, issue interrupt if it goes from 1 to 0
             // This is the "normal" mode
-            // How do we realize this? In the next update, we check if we have a pulse going and reset the bit if necessary
+            // How do we realize this?
+            // Use resetPulse to mark that we are currently pulsing
+            // In the next update, we check if we are pulsing and reset the bit if necessary
 
-            if (Bit::getBit(mode[1], 10)) {
-                Bit::clearBit(mode[1], 10);
-                resetPulse[1] = true;
-                bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_TMR1);
+            if (Bit::getBit(mode[N], 10)) {
+                Bit::clearBit(mode[N], 10);
+                resetPulse[N] = true;
+                bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_TMR0 + N);
             }
         }
     }
-}
-
-void Timers::updateTimer2(uint32_t increase) {
-    //remainingCycles[2] += cpuCycles;
-
-    //// Determine increase
-    //uint32_t increase = 0;
-    //if ((mode[2] >> 9) & 0x1) { // Clock source is system clock / 8
-    //    increase = remainingCycles[2] / 8;
-    //    remainingCycles[2] -= increase * 8;
-
-    //} else {
-    //    increase = remainingCycles[2];
-    //    remainingCycles[2] = 0;
-    //}
-
-    //// Increase counter
-    //if (mode[2] & 0x1) { // Synchronize via bit 1 and 2
-    //    uint8_t synchronizationMode = (mode[2] >> 1) & 0x3;
-    //    if (synchronizationMode == 1 || synchronizationMode == 2) { // Free run
-    //        current[2] += increase;
-    //    }
-    //    // Synchronization mode 0 and 3 are stop at current value
-
-    //} else {
-    //    // Free run
-    //    current[2] += increase;
-    //}
-
-    //// Check if reset value reached
-    //if ((mode[2] >> 3) & 0x1) { // Reset after counter reaches target
-    //    if (current[2] >= target[2]) {
-    //        current[2] = 0;
-
-    //        mode[2] = mode[2] | (1 << 11); // Bit 11 marks reached target value, reset after reading
-
-    //        if ((mode[3] >> 4) & 0x1) { // IRQ when target reached
-    //            // TODO: Handle bit 6 one-shot/repeat
-    //            // TODO: Handle bit 7 pulse/toggle
-    //            LOGV_TMR(std::format("Timer 2 is issuing interrupt"));
-    //            mode[2] = mode[2] & ~(1 << 10); // Bit 10 going from 1 to 0 signalizes interrupt
-    //            bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_TMR2);
-    //        }
-    //    }
-
-    //} else { // Reset after counter reaches 0xFFFF
-    //    if (current[2] >= 0xFFFF) {
-    //        current[2] = 0;
-
-    //        mode[2] = mode[2] | (1 << 12); // Bit 12 marks reached 0xFFFF, reset after reading
-
-    //        if ((mode[2] >> 5) & 0x1) { // IRQ when 0xFFFF reached
-    //            // TODO: Handle bit 6 one-shot/repeat
-    //            // TODO: Handle bit 7 pulse/toggle
-    //            LOGV_TMR(std::format("Timer 2 is issuing interrupt"));
-    //            mode[2] = mode[2] & ~(1 << 10); // Bit 10 going from 1 to 0 signalizes interrupt
-    //            bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_TMR2);
-    //        }
-    //    }
-    //}
 }
 
 template <>
@@ -259,7 +263,7 @@ void Timers::write(uint32_t address, uint16_t value) {
         }
         current[number] = 0; // reset counter
         oneShotFired[number] = false;
-        isToggling[number] = false;
+        startConditionMet[number] = false;
 
     } else if (noNumberAddress == 0x1F801108) { // Target value
         LOGT_TMR(std::format("Write to timer: 0x{:08X} -> @0x{:08X}: timer {:d} target value", value, address, number));
