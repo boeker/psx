@@ -232,13 +232,17 @@ void Timers::increaseTimer0Or1(uint32_t increase, bool retrace) {
 template<uint32_t N>
 void Timers::checkResetValue() {
     if (Bit::getBit(mode[N], TIMER_MODE_RESET_COUNTER_TO_0000) && (current[N] >= target[N])) { // Reset after counter reaches target
-        current[N] = 0;
+        if (target[N] > 0) {
+            current[N] = current[N] % target[N]; // Use mod to avoid loosing counts (if current is stricly larger than target)
+        } else {
+            current[N] = 0;
+        }
         Bit::setBit(mode[N], TIMER_MODE_REACHED_TARGET_VALUE); // Bit 11 marks reached target value, reset after reading
         //LOGT_TMR(std::format("Timer {:d} reached target value", N));
         handleInterrupt<N>();
 
     } else if (!Bit::getBit(mode[N], TIMER_MODE_RESET_COUNTER_TO_0000) && (current[N] >= 0xFFFF)) { // Reset after counter reaches 0xFFFF
-        current[N] = 0;
+        current[N] = current[N] % 0xFFFF; // Use mod to avoid loosing counts (if current is stricly larger than 0xFFFF)
         Bit::setBit(mode[N], TIMER_MODE_REACHED_FFFF_VALUE); // Bit 12 marks reached 0xFFFF, reset after reading
         //LOGT_TMR(std::format("Timer {:d} reached 0xFFFF", N));
         handleInterrupt<N>();
