@@ -5,6 +5,7 @@
 
 #include "bus.h"
 #include "exceptions/exceptions.h"
+#include "util/bit.h"
 #include "util/log.h"
 
 using namespace util;
@@ -23,6 +24,8 @@ void Timers::reset() {
         mode[i] = 0;
         target[i] = 0;
 
+        resetPulse[i] = false;
+        isToggling[i] = false;
         oneShotFired[i] = false;
         remainingCycles[i] = 0;
     }
@@ -98,6 +101,12 @@ void Timers::updateTimer0(uint32_t increase) {
 
 void Timers::updateTimer1(uint32_t increase) {
     // We already checked the clock source, no need to do that here
+    // Check if we have to reset the current pulse
+
+    if (resetPulse[1]) {
+        Bit::setBit(mode[1], 10);
+        resetPulse[1] = false;
+    }
 
     // Increase counter
     if (mode[1] & 0x1) { // Synchronize via bit 1 and 2
@@ -128,62 +137,42 @@ void Timers::updateTimer1(uint32_t increase) {
     }
 
     // Check if reset value reached
-    if ((mode[1] >> 3) & 0x1) { // Reset after counter reaches target
-        if (current[1] >= target[1]) {
-            current[1] = 0;
+    if (Bit::getBit(mode[1], 3) && (current[1] >= target[1])) { // Reset after counter reaches target
+        current[1] = 0;
+        Bit::setBit(mode[1], 11); // Bit 11 marks reached target value, reset after reading
+        handleInterruptTimer1();
 
-            mode[1] = mode[1] | (1 << 11); // Bit 11 marks reached target value, reset after reading
+    } else if (!Bit::getBit(mode[1], 3) && (current[1] >= 0xFFFF)) { // Reset after counter reaches 0xFFFF
+        current[1] = 0;
+        Bit::setBit(mode[1], 12); // Bit 12 marks reached 0xFFFF, reset after reading
+        handleInterruptTimer1();
+    }
+}
 
-            if ((mode[1] >> 4) & 0x1) { // IRQ when target reached
-                if ((mode[1] >> 6) & 0x1) { // Repeatedly
-                        if ((mode[1] >> 7) & 0x1) { // Toggle
-                            // Toggle bit 10, issue interrupt if it goes from 1 to 0
-                            // TODO
+void Timers::handleInterruptTimer1() {
+    if ((mode[1] >> 4) & 0x1) { // IRQ when target reached
+        if ((mode[1] >> 7) & 0x1) { // Toggle
+            // Toggle bit 10, issue interrupt if it goes from 1 to 0
 
-                        } else { // Pulse
-                            // Pulse bit 10 to 0, issue interrupt if it goes from 1 to 0
-                            // One the next update, we check if we are in pulse mode and reset the bit if necessary
-                            // TODO
-
-                        }
-
-                } else { // One-Shot
-                    if (!oneShotFired[1]) {
-                        oneShotFired[1] = true;
-
-                        if ((mode[1] >> 7) & 0x1) { // Toggle
-                            // If bit 10 is set, set it to 0 (and issue interrupt)
-                            // Toggle bit 10, issue interrupt if it goes from 1 to 0
-                            // TODO
-
-                        } else { // Pulse
-                            // Pulse bit 10 to 0, issue interrupt if it goes from 1 to 0
-                            // One the next update, we check if we are in pulse mode and reset the bit if necessary
-                            // TODO
-
-                        }
-                    }
-                }
-                // TODO Remove
+            if ((Bit::getBit(mode[1], 6) || !oneShotFired[1]) && Bit::getBit(mode[1], 10)) {
+                Bit::clearBit(mode[1], 10);
+                oneShotFired[1] = true;
+                isToggling[1] = true;
                 LOG_TMR(std::format("Timer 1 is issuing interrupt"));
-                mode[1] = mode[1] & ~(1 << 10);
-
-                // Bit 10 going from 1 to 0 causes the actual interrupt
                 bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_TMR1);
+
+            } else if (Bit::getBit(mode[1], 6) && isToggling[1]) {
+                Bit::setBit(mode[1], 10);
             }
-        }
 
-    } else { // Reset after counter reaches 0xFFFF
-        if (current[1] >= 0xFFFF) {
-            current[1] = 0;
+        } else { // Pulse
+            // Short pulse of bit 10 to 0, issue interrupt if it goes from 1 to 0
+            // This is the "normal" mode
+            // How do we realize this? In the next update, we check if we have a pulse going and reset the bit if necessary
 
-            mode[1] = mode[1] | (1 << 12); // Bit 12 marks reached 0xFFFF, reset after reading
-
-            if ((mode[1] >> 5) & 0x1) { // IRQ when 0xFFFF reached
-                // TODO: Handle bit 6 one-shot/repeat
-                // TODO: Handle bit 7 pulse/toggle
-                LOG_TMR(std::format("Timer 1 is issuing interrupt"));
-                mode[1] = mode[1] & ~(1 << 10); // Bit 10 going from 1 to 0 signalizes interrupt
+            if (Bit::getBit(mode[1], 10)) {
+                Bit::clearBit(mode[1], 10);
+                resetPulse[1] = true;
                 bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_TMR1);
             }
         }
@@ -270,6 +259,7 @@ void Timers::write(uint32_t address, uint16_t value) {
         }
         current[number] = 0; // reset counter
         oneShotFired[number] = false;
+        isToggling[number] = false;
 
     } else if (noNumberAddress == 0x1F801108) { // Target value
         LOGT_TMR(std::format("Write to timer: 0x{:08X} -> @0x{:08X}: timer {:d} target value", value, address, number));

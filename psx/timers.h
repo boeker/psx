@@ -27,6 +27,8 @@ private:
     uint16_t mode[3];
     uint16_t target[3];
 
+    bool resetPulse[3];
+    bool isToggling[3];
     bool oneShotFired[3];
     uint32_t remainingCycles[3];
 
@@ -47,6 +49,7 @@ public:
     void notifyAboutVBlankEnd();
 
     void updateTimer0(uint32_t increase);
+    void handleInterruptTimer1();
     void updateTimer1(uint32_t increase);
     void updateTimer2(uint32_t increase);
 
