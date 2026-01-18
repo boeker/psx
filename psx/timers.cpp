@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <format>
+#include <sstream>
 
 #include "bus.h"
 #include "exceptions/exceptions.h"
@@ -11,6 +12,38 @@
 using namespace util;
 
 namespace PSX {
+
+std::ostream& operator<<(std::ostream &os, const Timers &timers) {
+    os << "TIMER0_MODE: " << timers.getModeExplanation(timers.mode[0]) << std::endl;
+    os << std::format("TIMER0_TARGET: 0x{:04X}", timers.target[0]) << std::endl;
+
+    os << "TIMER1_MODE: " << timers.getModeExplanation(timers.mode[1]) << std::endl;
+    os << std::format("TIMER1_TARGET: 0x{:04X}", timers.target[1]) << std::endl;
+
+    os << "TIMER2_MODE: " << timers.getModeExplanation(timers.mode[2]) << std::endl;
+    os << std::format("TIMER2_TARGET: 0x{:04X}", timers.target[2]) << std::endl;
+
+    return os;
+}
+
+
+std::string Timers::getModeExplanation(uint32_t md) const {
+    std::stringstream ss;
+
+    ss << std::format("REACHED_FFFF[{:01b}], ", Bit::getBit(md, TIMER_MODE_REACHED_FFFF_VALUE));
+    ss << std::format("REACHED_TARGET[{:01b}], ", Bit::getBit(md, TIMER_MODE_REACHED_TARGET_VALUE));
+    ss << std::format("IRQ[{:01b}], ", Bit::getBit(md, TIMER_MODE_INTERRUPT_REQUEST));
+    ss << std::format("CLOCK_SOURCE[{:d}], ", Bit::getBits<2>(md, TIMER_MODE_CLOCK_SOURCE0));
+    ss << std::format("IRQ_TOGGLE[{:01b}], ", Bit::getBit(md, TIMER_MODE_IRQ_PULSE_TOGGLE_MODE));
+    ss << std::format("IRQ_REPEAT[{:01b}], ", Bit::getBit(md, TIMER_MODE_IRQ_ONCE_REPEAT_MODE));
+    ss << std::format("IRQ_WHEN_FFFF[{:01b}], ", Bit::getBit(md, TIMER_MODE_IRQ_WHEN_COUNTER_IS_FFFF));
+    ss << std::format("IRQ_WHEN_TARGET[{:01b}], ", Bit::getBit(md, TIMER_MODE_IRQ_WHEN_COUNTER_IS_TARGET));
+    ss << std::format("RESET[{:01b}], ", Bit::getBit(md, TIMER_MODE_RESET_COUNTER_TO_0000));
+    ss << std::format("SYNC_MODE[{:d}], ", Bit::getBits<2>(md, TIMER_MODE_SYNCHRONIZATION_MODE0));
+    ss << std::format("SYNC_ENABLE[{:01b}]", Bit::getBit(md, TIMER_MODE_SYNCHRONIZATION_ENABLE));
+
+    return ss.str();
+}
 
 Timers::Timers(Bus *bus) {
     this->bus = bus;
@@ -257,6 +290,7 @@ void Timers::write(uint32_t address, uint16_t value) {
 
     } else if (noNumberAddress == 0x1F801104) { // Mode
         LOGT_TMR(std::format("Write to timer: 0x{:08X} -> @0x{:08X}: timer {:d} mode", value, address, number));
+        uint32_t before = mode[number];
         mode[number] = value & 0x3FF;
         if (value & (1 << 11)) { // Interrupt Request? 1 -> No, i.e., writing 1 resets interrupt request. 0 cannot be written.
             mode[number] = mode[number] | (1 << 11);
@@ -264,6 +298,9 @@ void Timers::write(uint32_t address, uint16_t value) {
         current[number] = 0; // reset counter
         oneShotFired[number] = false;
         startConditionMet[number] = false;
+
+        LOG_TMR(std::format("Timer {:d} mode before read: {:s}", number, getModeExplanation(before)));
+        LOG_TMR(std::format("Timer {:d} mode after read: {:s}", number, getModeExplanation(mode[number])));
 
     } else if (noNumberAddress == 0x1F801108) { // Target value
         LOGT_TMR(std::format("Write to timer: 0x{:08X} -> @0x{:08X}: timer {:d} target value", value, address, number));
@@ -300,6 +337,8 @@ uint16_t Timers::read(uint32_t address) {
         value = mode[number];
         LOGT_TMR(std::format("Read from timer: @0x{:08X} -0x{:08X}->: timer {:d} mode", address, value, number));
         mode[number] = value & ~(0x3 << 11); // Reset bits 11 and 12 (reached target/0xFFFF)
+        LOG_TMR(std::format("Timer {:d} mode: {:s}", number, getModeExplanation(value)));
+        LOG_TMR(std::format("Timer {:d} mode after read: {:s}", number, getModeExplanation(mode[number])));
 
     } else if (noNumberAddress == 0x1F801108) { // Target value
         value = target[number];

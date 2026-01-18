@@ -15,6 +15,11 @@ namespace Bit {
         return target & (1 << bit);
     }
 
+    template<uint32_t N, typename T>
+    inline T getBits(T target, uint8_t bit) {
+        return (target >> bit) & ~(~0u << N);
+    }
+
     template<typename T>
     inline void setBit(T &target, uint8_t bit, bool value) {
         uint32_t selectedBit = 1 << bit;
