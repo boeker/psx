@@ -108,9 +108,10 @@ LogPack::LogPack()
     misc.setConsoleLogEnabled(true);
     tty.setConsoleLogEnabled(true);
     timers.setConsoleLogEnabled(true);
-    timersV.setConsoleLogEnabled(true);
-    timersT.setConsoleLogEnabled(true);
-    exceptions.setConsoleLogEnabled(true);
+    //timersV.setConsoleLogEnabled(true);
+    //timersT.setConsoleLogEnabled(true);
+    //exceptions.setConsoleLogEnabled(true);
+    //exceptionsV.setConsoleLogEnabled(true);
     //FileLog::logFile.open("trace.txt");
     //enableAllFileLogging();
 }
@@ -158,8 +159,10 @@ void LogPack::installAdditionalLog(const std::shared_ptr<Log> &log) {
     tty.installAdditionalLog(log);
     warning.installAdditionalLog(log);
 
-    timersV.installAdditionalLog(log);
-    timersT.installAdditionalLog(log);
+    //timersV.installAdditionalLog(log);
+    //timersT.installAdditionalLog(log);
+
+    //exceptionsV.installAdditionalLog(log);
 
     //gpuV.installAdditionalLog(log);
     //gpuT.installAdditionalLog(log);
