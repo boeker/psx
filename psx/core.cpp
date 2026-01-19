@@ -27,13 +27,6 @@ void Core::emulateStep() {
     cyclesTaken = bus.cpu.cycles - cyclesTaken;
 
     bus.gpu.catchUpToCPU(cyclesTaken);
-
-    if (bus.cpu.cycles >= CPU_VBLANK_FREQUENCY) {
-        bus.cpu.cycles -= CPU_VBLANK_FREQUENCY;
-
-        bus.interrupts.notifyAboutVBLANK();
-        bus.gpu.notifyAboutVBLANK();
-    }
 }
 
 void Core::emulateBlock() {
@@ -50,18 +43,9 @@ void Core::emulateBlock() {
 }
 
 void Core::emulateUntilVBLANK() {
-    while (true) {
+    do {
         emulateBlock();
-
-        if (bus.cpu.cycles >= CPU_VBLANK_FREQUENCY) {
-            bus.cpu.cycles -= CPU_VBLANK_FREQUENCY;
-
-            bus.interrupts.notifyAboutVBLANK();
-            bus.gpu.notifyAboutVBLANK();
-
-            break;
-        }
-    }
+    } while (!bus.gpu.vBlankOccurred());
 }
 
 void Core::run() {

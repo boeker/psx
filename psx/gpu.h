@@ -107,6 +107,8 @@ private:
     uint32_t remainingGPUCycles;
     uint32_t currentScanline;
     uint32_t currentScanlineCycles;
+    uint32_t frameCount;
+    bool verticalBlankOccurred;
 
     // 1F801810
     // Write GP0     Send GP0 Commands/Packets (Rendering and VRAM Access)
@@ -170,6 +172,8 @@ public:
     void reset();
     void setRenderer(Renderer *renderer);
 
+    bool vBlankOccurred();
+
     void catchUpToCPU(uint32_t cpuCycles);
     void updateTimers(uint32_t cpuCycles);
     void decodeAndExecuteGP1();
@@ -187,8 +191,6 @@ public:
     bool transferToGPURequested();
     void receiveGP0Data(uint32_t word);
     uint32_t sendGP0Data();
-
-    void notifyAboutVBLANK();
 
 private:
     std::string getGPUStatusRegisterExplanation() const;

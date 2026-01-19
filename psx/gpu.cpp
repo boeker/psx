@@ -95,6 +95,8 @@ void GPU::reset() {
     remainingGPUCycles = 0;
     currentScanline = 0;
     currentScanlineCycles = 0;
+    frameCount = 0;
+    verticalBlankOccurred = false;
 
     gp0 = 0;
     queue.clear();
@@ -114,6 +116,12 @@ void GPU::reset() {
 
 void GPU::setRenderer(Renderer *renderer) {
     this->renderer = renderer;
+}
+
+bool GPU::vBlankOccurred() {
+    bool occurred = verticalBlankOccurred;
+    verticalBlankOccurred = false;
+    return occurred;
 }
 
 void GPU::catchUpToCPU(uint32_t cpuCycles) {
@@ -209,8 +217,18 @@ void GPU::updateTimers(uint32_t cpuCycles) {
                     bus->timers.notifyAboutVBlankStart();
                     // Just continue with scanline handling during vertical retrace
 
+                    // Swap buffers
+                    LOGT_GPU(std::format("VBlank"));
+                    renderer->swapBuffers();
+
+                    // Issue VBlank interrupt
+                    bus->interrupts.notifyAboutVBLANK();
+
+                    verticalBlankOccurred = true;
+
                 } else if (currentScanline == 263) {
                     currentScanline = 0;
+                    //frameCount++;
 
                     bus->timers.notifyAboutVBlankEnd();
                 }
@@ -285,11 +303,6 @@ uint32_t GPU::sendGP0Data() {
         default:
             return gpuReadResponse;
     }
-}
-
-void GPU::notifyAboutVBLANK() {
-    LOGT_GPU(std::format("VBLANK"));
-    renderer->swapBuffers();
 }
 
 void GPU::decodeAndExecuteGP1() {
