@@ -209,6 +209,12 @@ void GPU::updateTimers(uint32_t cpuCycles) {
                 currentScanlineCycles = 0;
                 currentScanline++;
 
+                //if (currentScanline < 240) {
+                //    Bit::setBit(gpuStatusRegister, GPUSTAT_INTERLACE_EVEN_ODD, currentScanline % 2);
+                //} else {
+                //    Bit::clearBit(gpuStatusRegister, GPUSTAT_INTERLACE_EVEN_ODD);
+                //}
+
                 bus->timers.notifyAboutHBlankEnd();
 
                 // Check for VBlank start/end

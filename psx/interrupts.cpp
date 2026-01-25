@@ -108,6 +108,7 @@ void Interrupts::checkAndExecuteInterrupts() {
         bus->cpu.cp0regs.setBit(CP0_REGISTER_CAUSE, CAUSE_BIT_IP2);
 
         bus->cpu.checkAndExecuteInterrupts();
+        //bus->cpu.shouldCheckInterrupts = true;
 
     } else {
         // CAUSE_BIT_IP2 is not a latch, has to be set to 0 once I_STAT and I_MASK are zero

@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "bus.h"
+#include "util/bit.h"
 #include "util/log.h"
 #include "exceptions/exceptions.h"
 
@@ -46,13 +47,15 @@ void DMA::reset() {
 
     dmaControlRegister = 0x07654321;
     dmaInterruptRegister = 0;
+
+    pendingTransfer = -1;
 }
 
 template <>
 void DMA::write(uint32_t address, uint32_t value) {
     assert ((address >= 0x1F801080) && (address <= 0x1F8010FF));
 
-    LOGT_DMA(std::format("write 0x{:08X} -> @0x{:08X}", value, address));
+    LOGV_DMA(std::format("write 0x{:08X} -> @0x{:08X}", value, address));
 
     if ((address & 0xFFFFFFF0) == 0x1F8010F0) { // 0x1F8010Fx: DPCR or DICR
         if (address == 0x1F8010F0) {
@@ -217,6 +220,8 @@ void DMA::transfer(uint32_t channel) {
                                 channel,
                                 CHANNEL_NAMES[channel]));
     }
+
+    pendingTransfer = -1;
 
     LOG_DMA(std::format("Channel {:d} ({:s}) channel control: {:s}",
                         channel,
@@ -476,23 +481,20 @@ void DMA::updateInterruptRegister(uint32_t value) {
     // reset flags, keep IRQ signal
     dmaInterruptRegister = dmaInterruptRegister & ~(value & 0x7F000000);
 
-    if ((((value >> 15) & 1) // Force IRQ?
-         || (((dmaInterruptRegister >> 23) & 1) // Set bit 31 on IRQ flag?
-             && ((dmaInterruptRegister >> 24) & 0x7F))) // IRQ flag set?
-        && !((dmaInterruptRegister >> 31) & 1)) { // Not already set?
-        dmaInterruptRegister = dmaInterruptRegister | (1 << 31);
-        bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_DMA);
-    }
+    processDICRUpdate();
 
     LOGV_DMA(std::format("DICR updated: {:s}", getDICRExplanation()));
 }
 
 void DMA::processDICRUpdate() {
-    if (((dmaInterruptRegister >> DICR_ENABLE_IRQ_SIGNAL) & 1) // Set bit 31 on IRQ flag?
-        && ((dmaInterruptRegister >> DICR_IRQ_FLAG_DMA0) & 0x7F) // IRQ flag set?
+    if ((((dmaInterruptRegister >> DICR_FORCE_IRQ) & 1) // Force IRQ?
+         || (((dmaInterruptRegister >> DICR_ENABLE_IRQ_SIGNAL) & 1) // Set bit 31 on IRQ flag?
+             && ((dmaInterruptRegister >> DICR_IRQ_FLAG_DMA0) & 0x7F))) // IRQ flag set?
         && !((dmaInterruptRegister >> DICR_IRQ_SIGNAL) & 1)) { // Not already set?
         dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_SIGNAL);
         bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_DMA);
+    } else {
+        Bit::clearBit(dmaInterruptRegister, DICR_IRQ_SIGNAL);
     }
 }
 
@@ -552,11 +554,13 @@ void DMA::updateChannelControl(uint32_t channel, uint32_t value) {
             LOG_DMA(std::format("Channel {:d} ({:s}) immediate transfer requested",
                                 channel,
                                 CHANNEL_NAMES[channel]));
-            transfer(channel);
+            //transfer(channel);
+            pendingTransfer = channel;
 
         } else { // check for data request
             if (dataRequested(channel)) {
-                transfer(channel);
+                //transfer(channel);
+                pendingTransfer = channel;
             }
         }
     }

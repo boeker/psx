@@ -19,7 +19,7 @@
 #define CP0_REGISTER_PRID     15
 
 #define SR_BIT_BEV 22
-#define SR_BIT_IEC 22
+#define SR_BIT_IEC 0
 
 #define SR_BIT_IM7 15
 #define SR_BIT_IM6 14
@@ -42,7 +42,7 @@
 
 namespace PSX {
 class CP0Registers {
-private:
+public:
     uint32_t cp0Registers[32];
 
     std::string getSRExplanation() const;

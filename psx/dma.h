@@ -99,6 +99,8 @@ private:
     friend std::ostream& operator<<(std::ostream &os, const DMA &dma);
 
 public:
+    int pendingTransfer;
+
     static const char* CHANNEL_NAMES[];
 
     DMA(Bus *bus);

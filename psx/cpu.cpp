@@ -33,6 +33,8 @@ void CPU::reset() {
     delaySlotPC = 0;
     delaySlot = 0;
     delaySlotIsBranchDelaySlot = false;
+
+    shouldCheckInterrupts = false;
 }
 
 void CPU::step() {
@@ -54,6 +56,10 @@ void CPU::step() {
     // and increase program counter
     fetchDelaySlot();
 
+    if (bus->dma.pendingTransfer != -1) {
+        bus->dma.transfer(bus->dma.pendingTransfer);
+    }
+
     // check if TTY output is being made
     interceptTTYOutput();
 
@@ -68,6 +74,11 @@ void CPU::step() {
     opcode = instruction >> 26;
     assert (opcode <= 0b111111);
     (this->*opcodes[opcode])();
+
+    //if (shouldCheckInterrupts) {
+    //    shouldCheckInterrupts = false;
+    //    checkAndExecuteInterrupts();
+    //}
 
     cycles += 1;
 
@@ -1616,7 +1627,9 @@ void CPU::MTC0() {
     LOGT_CPU(std::format(" (0x{:08X} -> CP0 {:d})",data, rd));
 
     cp0regs.setCP0Register(rd, data);
+    // Interrupts might have been enabled by that write
     checkAndExecuteInterrupts();
+    //shouldCheckInterrupts = true;
 }
 
 void CPU::MFC0() {
