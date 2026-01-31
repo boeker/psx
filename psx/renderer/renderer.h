@@ -35,6 +35,10 @@ struct TextureCoordinate {
     uint8_t x;
     uint8_t y;
 
+    TextureCoordinate(uint8_t x, uint8_t y)
+        : x(x), y(y) {
+    }
+
     TextureCoordinate(uint32_t coordinate) {
         x = coordinate & 0xFF;
         y = (coordinate >> 8) & 0xFF;

@@ -214,10 +214,14 @@ private:
     void GP0MonochromeFourPointPolygonOpaque();
     // 0x2C
     void GP0TexturedFourPointPolygonOpaqueTextureBlending();
+    // 0x2D
+    void GP0TexturedFourPointPolygonOpaqueRawTexture();
     // 0x30
     void GP0ShadedThreePointPolygonOpaque();
     // 0x38
     void GP0ShadedFourPointPolygonOpaque();
+    // 0x65
+    void GP0TexturedRectangleVariableSizeOpaqueRawTexture();
     // 0x68
     void GP0MonochromeRectangleDotOpaque();
     // 0xA0
