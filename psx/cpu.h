@@ -42,7 +42,7 @@ public:
     void step();
     void fetchDelaySlot();
     void interceptTTYOutput();
-    void generateException(uint8_t exccode);
+    void generateException(uint8_t exccode, bool epcShouldBeNextInstruction = false);
     void checkAndExecuteInterrupts();
 
     uint32_t getDelaySlotPC() const;
@@ -69,6 +69,8 @@ public:
     uint32_t delaySlotPC;
     uint32_t delaySlot;
     bool delaySlotIsBranchDelaySlot;
+
+    //bool shouldCheckInterrupts;
 
     friend std::ostream& operator<<(std::ostream &os, const CPU &cpu);
 

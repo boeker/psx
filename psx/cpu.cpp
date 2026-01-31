@@ -34,7 +34,7 @@ void CPU::reset() {
     delaySlot = 0;
     delaySlotIsBranchDelaySlot = false;
 
-    shouldCheckInterrupts = false;
+    //shouldCheckInterrupts = false;
 }
 
 void CPU::step() {
@@ -56,10 +56,6 @@ void CPU::step() {
     // and increase program counter
     fetchDelaySlot();
 
-    if (bus->dma.pendingTransfer != -1) {
-        bus->dma.transfer(bus->dma.pendingTransfer);
-    }
-
     // check if TTY output is being made
     interceptTTYOutput();
 
@@ -74,6 +70,10 @@ void CPU::step() {
     opcode = instruction >> 26;
     assert (opcode <= 0b111111);
     (this->*opcodes[opcode])();
+
+    //if (bus->dma.pendingTransfer != -1) {
+    //    bus->dma.transfer(bus->dma.pendingTransfer);
+    //}
 
     //if (shouldCheckInterrupts) {
     //    shouldCheckInterrupts = false;
@@ -111,7 +111,7 @@ void CPU::interceptTTYOutput() {
     }
 }
 
-void CPU::generateException(uint8_t exccode) {
+void CPU::generateException(uint8_t exccode, bool epcShouldBeNextInstruction) {
     LOG_EXC(std::format("Exception @0x{:08X} with code {:d}", instructionPC, exccode));
 
     // make EPC point to restart location
@@ -119,14 +119,17 @@ void CPU::generateException(uint8_t exccode) {
     // if the instruction is in a branch delay slot, then
     // it has to point to the preceding branch instruction
     // and signal this via the BD bit
-    if (isBranchDelaySlot) {
-        cp0regs.setCP0Register(CP0_REGISTER_EPC, instructionPC - 4);
+    bool bd = epcShouldBeNextInstruction ? delaySlotIsBranchDelaySlot : isBranchDelaySlot;
+    uint32_t pc = epcShouldBeNextInstruction ? delaySlotPC : instructionPC;
+
+    if (bd) {
+        cp0regs.setCP0Register(CP0_REGISTER_EPC, pc - 4);
         // set BD bit
         uint32_t cause = cp0regs.getCP0Register(CP0_REGISTER_CAUSE);
         cp0regs.setCP0Register(CP0_REGISTER_CAUSE, cause | (0x1 << CAUSE_BIT_BD));
 
     } else {
-        cp0regs.setCP0Register(CP0_REGISTER_EPC, instructionPC);
+        cp0regs.setCP0Register(CP0_REGISTER_EPC, pc);
 
         // Make sure that BD bit is not set
         uint32_t cause = cp0regs.getCP0Register(CP0_REGISTER_CAUSE);
@@ -168,7 +171,7 @@ void CPU::checkAndExecuteInterrupts() {
         uint32_t im = (cp0regs.getCP0Register(CP0_REGISTER_SR) >> SR_BIT_IM0) & 0xFF;
 
         if (ip & im) {
-            generateException(EXCCODE_INT);
+            generateException(EXCCODE_INT, true);
 
         } else {
             LOGV_EXC(std::format("IEc set but no interrupt enabled and issued"));
@@ -576,7 +579,6 @@ void CPU::LW() {
                         regs.getRegisterName(rt),
                         offset,
                         regs.getRegisterName(base)));
-
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset) + regs.getRegister(base);
 
     if (vAddr & 0x3) {

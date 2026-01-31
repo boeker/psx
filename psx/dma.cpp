@@ -48,7 +48,7 @@ void DMA::reset() {
     dmaControlRegister = 0x07654321;
     dmaInterruptRegister = 0;
 
-    pendingTransfer = -1;
+    //pendingTransfer = -1;
 }
 
 template <>
@@ -114,6 +114,7 @@ uint32_t DMA::read(uint32_t address) {
             return dmaControlRegister;
 
         } else if (address == 0x1F8010F4) {
+            LOGV_DMA(std::format("Read from DICR: {:s}", getDICRExplanation()));
             return dmaInterruptRegister;
 
         } else {
@@ -221,7 +222,7 @@ void DMA::transfer(uint32_t channel) {
                                 CHANNEL_NAMES[channel]));
     }
 
-    pendingTransfer = -1;
+    //pendingTransfer = -1;
 
     LOG_DMA(std::format("Channel {:d} ({:s}) channel control: {:s}",
                         channel,
@@ -285,7 +286,6 @@ void DMA::transferToGPU() {
 
         // Clear start/trigger on beginning of transfer
         dmaChannelControl[2] = dmaChannelControl[2] & ~(1 << DCHR_START_TRIGGER);
-
 
         do {
             // read linked list until one encounters the end code (0x00FFFFFF)
@@ -554,13 +554,13 @@ void DMA::updateChannelControl(uint32_t channel, uint32_t value) {
             LOG_DMA(std::format("Channel {:d} ({:s}) immediate transfer requested",
                                 channel,
                                 CHANNEL_NAMES[channel]));
-            //transfer(channel);
-            pendingTransfer = channel;
+            transfer(channel);
+            //pendingTransfer = channel;
 
         } else { // check for data request
             if (dataRequested(channel)) {
-                //transfer(channel);
-                pendingTransfer = channel;
+                transfer(channel);
+                //pendingTransfer = channel;
             }
         }
     }

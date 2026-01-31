@@ -104,14 +104,37 @@ LogPack::LogPack()
       INIT_TWL(timers, "TMR"),
       INIT_TWL(tty, "TTY"),
       INIT_TWL(warning, "WRN") {
-    executable.setConsoleLogEnabled(true);
-    misc.setConsoleLogEnabled(true);
-    tty.setConsoleLogEnabled(true);
-    timers.setConsoleLogEnabled(true);
+    //executable.setConsoleLogEnabled(true);
+    //misc.setConsoleLogEnabled(true);
+    //tty.setConsoleLogEnabled(true);
+    //timers.setConsoleLogEnabled(true);
     //timersV.setConsoleLogEnabled(true);
     //timersT.setConsoleLogEnabled(true);
     //exceptions.setConsoleLogEnabled(true);
-    //exceptionsV.setConsoleLogEnabled(true);
+    exceptionsV.setConsoleLogEnabled(true);
+
+    bus.setConsoleLogEnabled(true);
+    cdrom.setConsoleLogEnabled(true);
+    cpu.setConsoleLogEnabled(true);
+    dma.setConsoleLogEnabled(true);
+    exceptions.setConsoleLogEnabled(true);
+    executable.setConsoleLogEnabled(true);
+    gpu.setConsoleLogEnabled(true);
+    gte.setConsoleLogEnabled(true);
+    interrupts.setConsoleLogEnabled(true);
+    mdec.setConsoleLogEnabled(true);
+    memory.setConsoleLogEnabled(true);
+    misc.setConsoleLogEnabled(true);
+    peripheral.setConsoleLogEnabled(true);
+    renderer.setConsoleLogEnabled(true);
+    spu.setConsoleLogEnabled(true);
+    timers.setConsoleLogEnabled(true);
+    tty.setConsoleLogEnabled(true);
+    warning.setConsoleLogEnabled(true);
+
+    interruptsV.setConsoleLogEnabled(true);
+    dmaV.setConsoleLogEnabled(true);
+
     //FileLog::logFile.open("trace.txt");
     //enableAllFileLogging();
 }
@@ -159,10 +182,12 @@ void LogPack::installAdditionalLog(const std::shared_ptr<Log> &log) {
     tty.installAdditionalLog(log);
     warning.installAdditionalLog(log);
 
-    //timersV.installAdditionalLog(log);
+    dmaV.installAdditionalLog(log);
+
+    timersV.installAdditionalLog(log);
     //timersT.installAdditionalLog(log);
 
-    //exceptionsV.installAdditionalLog(log);
+    exceptionsV.installAdditionalLog(log);
 
     //gpuV.installAdditionalLog(log);
     //gpuT.installAdditionalLog(log);

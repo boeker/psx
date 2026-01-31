@@ -99,7 +99,7 @@ private:
     friend std::ostream& operator<<(std::ostream &os, const DMA &dma);
 
 public:
-    int pendingTransfer;
+    //int pendingTransfer;
 
     static const char* CHANNEL_NAMES[];
 
