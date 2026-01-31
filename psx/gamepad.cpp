@@ -81,7 +81,16 @@ template <> void Gamepad::write(uint32_t address, uint16_t value) {
 }
 
 template <> void Gamepad::write(uint32_t address, uint8_t value) {
-    throw exceptions::UnimplementedAddressingError(std::format("Gamepad: byte write @0x{:08X}", address));
+    assert ((address >= 0x1F801040) && (address <= 0x1F80104F));
+
+    LOGT_PER(std::format("write 0x{:02X} -> @0x{:08X}", value, address));
+
+    if (address == 0x1F801040) {
+        LOGV_PER(std::format("Unimplemented write to JOY_TX_DATA of 0x{:02X}", value));
+
+    } else {
+        throw exceptions::UnimplementedAddressingError(std::format("Gamepad: byte write @0x{:08X}", address));
+    }
 }
 
 template <>
@@ -110,7 +119,9 @@ template <> uint16_t Gamepad::read(uint32_t address) {
 
     if (address == 0x1F801044) {
         LOGV_PER(std::format("Unimplemented half-word read from JOY_STAT"));
-        return 0;
+        //return 0;
+        LOGV_PER(std::format("Returning 7"));
+        return 7;
 
     } else if (address == 0x1F801048) {
         LOGV_PER(std::format("Unimplemented half-word read from JOY_MODE"));
