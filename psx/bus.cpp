@@ -27,7 +27,7 @@ std::ostream& operator<<(std::ostream &os, const Bus &bus) {
 }
 
 Bus::Bus()
-    : cdrom(this), cpu(this), dma(this), executable(this), interrupts(this), gpu(this), timers(this) {
+    : cdrom(this), cpu(this), dma(this), executable(this), interrupts(this), gpu(this), timers(this), gamepad(this) {
     reset();
 }
 
@@ -42,6 +42,7 @@ void Bus::reset() {
     interrupts.reset();
     spu.reset();
     gpu.reset();
+    gamepad.reset();
 }
 
 Bus::~Bus() {
@@ -157,7 +158,10 @@ T Bus::read(uint32_t address) {
         if (address <= 0x1F801023) {
             value = memory.readExpansionAndDelayRegisters<T>(address);
 
-        } else if ((address >= 0x1F801040) && (address <= 0x1F80105F)) {
+        } else if ((address >= 0x1F801040) && (address <= 0x1F80104F)) {
+            value = gamepad.read<T>(address);
+
+        } else if ((address >= 0x1F801050) && (address <= 0x1F80105F)) {
             LOG_WRN(std::format("Unimplemented peripheral read @0x{:08X}", address));
 
         } else if ((address >= 0x1F801060) && (address <= 0x1F801063)) {
@@ -245,7 +249,10 @@ void Bus::write(uint32_t address, T value) {
         if (address <= 0x1F801023) {
             memory.writeExpansionAndDelayRegisters<T>(address, value);
 
-        } else if ((address >= 0x1F801040) && (address <= 0x1F80105F)) {
+        } else if ((address >= 0x1F801040) && (address <= 0x1F80104F)) {
+            gamepad.write<T>(address, value);
+
+        } else if ((address >= 0x1F801050) && (address <= 0x1F80105F)) {
             LOG_WRN(std::format("Unimplemented peripheral write @0x{:08X}", address));
 
         } else if ((address >= 0x1F801060) && (address <= 0x1F801063)) {

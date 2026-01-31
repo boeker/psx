@@ -111,7 +111,7 @@ LogPack::LogPack()
     //timersV.setConsoleLogEnabled(true);
     //timersT.setConsoleLogEnabled(true);
     //exceptions.setConsoleLogEnabled(true);
-    exceptionsV.setConsoleLogEnabled(true);
+    //exceptionsV.setConsoleLogEnabled(true);
 
     bus.setConsoleLogEnabled(true);
     cdrom.setConsoleLogEnabled(true);
@@ -134,6 +134,9 @@ LogPack::LogPack()
 
     interruptsV.setConsoleLogEnabled(true);
     dmaV.setConsoleLogEnabled(true);
+
+    peripheralV.setConsoleLogEnabled(true);
+    peripheralT.setConsoleLogEnabled(true);
 
     //FileLog::logFile.open("trace.txt");
     //enableAllFileLogging();
@@ -187,7 +190,10 @@ void LogPack::installAdditionalLog(const std::shared_ptr<Log> &log) {
     timersV.installAdditionalLog(log);
     //timersT.installAdditionalLog(log);
 
-    exceptionsV.installAdditionalLog(log);
+    //exceptionsV.installAdditionalLog(log);
+
+    peripheralV.installAdditionalLog(log);
+    peripheralT.installAdditionalLog(log);
 
     //gpuV.installAdditionalLog(log);
     //gpuT.installAdditionalLog(log);

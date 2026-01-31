@@ -15,6 +15,7 @@
 #include "dma.h"
 #include "spu.h"
 #include "gpu.h"
+#include "gamepad.h"
 
 /*
 KUSEG     KSEG0     KSEG1
@@ -84,6 +85,7 @@ public:
     Interrupts interrupts;
     SPU spu;
     GPU gpu;
+    Gamepad gamepad;
 
     friend std::ostream& operator<<(std::ostream &os, const Bus &bus);
 
