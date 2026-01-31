@@ -357,8 +357,7 @@ uint16_t Timers::read(uint32_t address) {
         LOG_TMR(std::format("Invalid read to Timer: write 0x{:08X} -> @0x{:08X}", value, address));
     }
 
-    //return value;
-    return 0;
+    return value;
 }
 
 template <> uint32_t Timers::read(uint32_t address) {
