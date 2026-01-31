@@ -6,7 +6,7 @@
 
 #define MAIN_RAM_SIZE (2048 * 1024)
 #define DCACHE_SIZE 1024
-#define MEMORY_CONTROL_SIZE 100
+#define EXPANSION_AND_DELAY_SIZE 36 // 0x24
 
 namespace PSX {
 
@@ -14,7 +14,8 @@ class Memory {
 private:
     uint8_t *mainRAM;
     uint8_t *dCache;
-    uint8_t *memoryControlRegisters;
+    uint8_t *expansionAndDelayRegisters; // 0x1F801000 to 0x1F801023
+    uint8_t ramSizeRegister[4]; // 0x1F801060
     uint8_t cacheControlRegister[4]; // 0xFFFE0000
 
 public:
@@ -33,9 +34,14 @@ public:
     void writeDCache(uint32_t address, T value);
 
     template <typename T>
-    T readMemoryControlRegisters(uint32_t address);
+    T readExpansionAndDelayRegisters(uint32_t address);
     template <typename T>
-    void writeMemoryControlRegisters(uint32_t address, T value);
+    void writeExpansionAndDelayRegisters(uint32_t address, T value);
+
+    template <typename T>
+    T readRAMSizeRegister(uint32_t address);
+    template <typename T>
+    void writeRAMSizeRegister(uint32_t address, T value);
 
     template <typename T>
     T readCacheControlRegister(uint32_t address);

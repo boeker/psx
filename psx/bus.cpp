@@ -67,11 +67,14 @@ T Bus::debugRead(uint32_t address) {
         value = memory.readDCache<T>(address);
 
     } else if (((address & 0x1FFFF000) == 0x1F801000)) { // Hardware Registers (I/0 Ports)
-        if (address <= 0x1F801060) {
-            value = memory.readMemoryControlRegisters<T>(address);
+        if (address <= 0x1F801023) {
+            value = memory.readExpansionAndDelayRegisters<T>(address);
 
         } else if ((address >= 0x1F801040) && (address <= 0x1F80105F)) {
             value = 0;
+
+        } else if ((address >= 0x1F801060) && (address <= 0x1F801063)) {
+            value = memory.readRAMSizeRegister<T>(address);
 
         } else if ((address >= 0x1F801070) && (address <= 0x1F801077)) {
             //value = interrupts.read<T>(address);
@@ -151,11 +154,14 @@ T Bus::read(uint32_t address) {
         value = memory.readDCache<T>(address);
 
     } else if (((address & 0x1FFFF000) == 0x1F801000)) { // Hardware Registers (I/0 Ports)
-        if (address <= 0x1F801060) {
-            value = memory.readMemoryControlRegisters<T>(address);
+        if (address <= 0x1F801023) {
+            value = memory.readExpansionAndDelayRegisters<T>(address);
 
         } else if ((address >= 0x1F801040) && (address <= 0x1F80105F)) {
             LOG_WRN(std::format("Unimplemented peripheral read @0x{:08X}", address));
+
+        } else if ((address >= 0x1F801060) && (address <= 0x1F801063)) {
+            value = memory.readRAMSizeRegister<T>(address);
 
         } else if ((address >= 0x1F801070) && (address <= 0x1F801077)) {
             value = interrupts.read<T>(address);
@@ -213,7 +219,7 @@ template uint16_t Bus::read<uint16_t>(uint32_t address);
 template uint8_t Bus::read<uint8_t>(uint32_t address);
 
 template <typename T>
-void Bus::write (uint32_t address, T value) {
+void Bus::write(uint32_t address, T value) {
     LOGT_BUS(std::format(" [0x{:0{}X} -> @0x{:08X}]", value, 2*sizeof(T), address));
 
     if ((address & 0x1FE00000) == 0x00000000) { // Main RAM
@@ -236,11 +242,14 @@ void Bus::write (uint32_t address, T value) {
         return memory.writeDCache<T>(address, value);
 
     } if (((address & 0x1FFFF000) == 0x1F801000)) { // Hardware Registers (I/0 Ports)
-        if (address <= 0x1F801060) {
-            memory.writeMemoryControlRegisters<T>(address, value);
+        if (address <= 0x1F801023) {
+            memory.writeExpansionAndDelayRegisters<T>(address, value);
 
         } else if ((address >= 0x1F801040) && (address <= 0x1F80105F)) {
             LOG_WRN(std::format("Unimplemented peripheral write @0x{:08X}", address));
+
+        } else if ((address >= 0x1F801060) && (address <= 0x1F801063)) {
+            memory.writeRAMSizeRegister<T>(address, value);
 
         } else if ((address >= 0x1F801070) && (address <= 0x1F801077)) {
             interrupts.write<T>(address, value);

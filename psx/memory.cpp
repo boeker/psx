@@ -15,7 +15,7 @@ namespace PSX {
 Memory::Memory() {
     mainRAM = new uint8_t[MAIN_RAM_SIZE];
     dCache = new uint8_t[DCACHE_SIZE];
-    memoryControlRegisters = new uint8_t[MEMORY_CONTROL_SIZE];
+    expansionAndDelayRegisters = new uint8_t[EXPANSION_AND_DELAY_SIZE];
 
     reset();
 }
@@ -23,13 +23,13 @@ Memory::Memory() {
 Memory::~Memory() {
     delete[] mainRAM;
     delete[] dCache;
-    delete[] memoryControlRegisters;
+    delete[] expansionAndDelayRegisters;
 }
 
 void Memory::reset() {
     std::memset(mainRAM, 0, MAIN_RAM_SIZE);
     std::memset(dCache, 0, DCACHE_SIZE);
-    std::memset(memoryControlRegisters, 0, MEMORY_CONTROL_SIZE);
+    std::memset(expansionAndDelayRegisters, 0, EXPANSION_AND_DELAY_SIZE);
     std::memset(cacheControlRegister, 0, 4);
 }
 
@@ -83,28 +83,50 @@ template void Memory::writeDCache(uint32_t address, uint16_t value);
 template void Memory::writeDCache(uint32_t address, uint8_t value);
 
 template <typename T>
-T Memory::readMemoryControlRegisters(uint32_t address) {
-    uint32_t offset = address & 0x0000001F;
-    assert(offset < MEMORY_CONTROL_SIZE);
+T Memory::readExpansionAndDelayRegisters(uint32_t address) {
+    uint32_t offset = address & 0x0000003F;
+    assert(offset + sizeof(T) < MEMORY_CONTROL_SIZE);
 
-    return *((T*)(memoryControlRegisters + offset));
+    return *((T*)(expansionAndDelayRegisters + offset));
 }
 
-template uint32_t Memory::readMemoryControlRegisters<uint32_t>(uint32_t address);
-template uint16_t Memory::readMemoryControlRegisters<uint16_t>(uint32_t address);
-template uint8_t Memory::readMemoryControlRegisters<uint8_t>(uint32_t address);
+template uint32_t Memory::readExpansionAndDelayRegisters<uint32_t>(uint32_t address);
+template uint16_t Memory::readExpansionAndDelayRegisters<uint16_t>(uint32_t address);
+template uint8_t Memory::readExpansionAndDelayRegisters<uint8_t>(uint32_t address);
 
 template <typename T>
-void Memory::writeMemoryControlRegisters(uint32_t address, T value) {
-    uint32_t offset = address & 0x0000001F;
-    assert(offset < MEMORY_CONTROL_SIZE);
+void Memory::writeExpansionAndDelayRegisters(uint32_t address, T value) {
+    uint32_t offset = address & 0x0000003F;
+    assert(offset + sizeof(T) < MEMORY_CONTROL_SIZE);
 
-    *((T*)(memoryControlRegisters + offset)) = value;
+    *((T*)(expansionAndDelayRegisters + offset)) = value;
 }
 
-template void Memory::writeMemoryControlRegisters(uint32_t address, uint32_t value);
-template void Memory::writeMemoryControlRegisters(uint32_t address, uint16_t value);
-template void Memory::writeMemoryControlRegisters(uint32_t address, uint8_t value);
+template void Memory::writeExpansionAndDelayRegisters(uint32_t address, uint32_t value);
+template void Memory::writeExpansionAndDelayRegisters(uint32_t address, uint16_t value);
+template void Memory::writeExpansionAndDelayRegisters(uint32_t address, uint8_t value);
+
+template <typename T>
+T Memory::readRAMSizeRegister(uint32_t address) {
+    assert(address == 0x1F801060);
+
+    return *((T*)ramSizeRegister);
+}
+
+template uint32_t Memory::readRAMSizeRegister<uint32_t>(uint32_t address);
+template uint16_t Memory::readRAMSizeRegister<uint16_t>(uint32_t address);
+template uint8_t Memory::readRAMSizeRegister<uint8_t>(uint32_t address);
+
+template <typename T>
+void Memory::writeRAMSizeRegister(uint32_t address, T value) {
+    assert(address == 0x1F801060);
+
+    *((T*)(ramSizeRegister)) = value;
+}
+
+template void Memory::writeRAMSizeRegister(uint32_t address, uint32_t value);
+template void Memory::writeRAMSizeRegister(uint32_t address, uint16_t value);
+template void Memory::writeRAMSizeRegister(uint32_t address, uint8_t value);
 
 template <typename T>
 T Memory::readCacheControlRegister(uint32_t address) {
