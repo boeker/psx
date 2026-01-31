@@ -162,7 +162,11 @@ void SoftwareRenderer::writeToVRAM(uint32_t x, uint32_t y, uint16_t value) {
     //LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
     //                          value, line, pos));
 
-    ((uint16_t*)vram)[y * 1024 + x] = value;
+    if (2 * y * 1024 + x >= VRAM_SIZE) {
+        LOG_WRN(std::format("writeToVRAM({:d}, {:d}, 0x{:04X}): out of bound", x, y, value));
+    } else {
+        ((uint16_t*)vram)[y * 1024 + x] = value;
+    }
 }
 
 uint16_t SoftwareRenderer::readFromVRAM(uint32_t x, uint32_t y) {
