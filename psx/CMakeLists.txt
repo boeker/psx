@@ -11,6 +11,7 @@ target_sources(psx PRIVATE
     cpu.cpp
     dma.cpp
     executable.cpp
+    gio.cpp
     gamepad.cpp
     gpu.cpp
     gte.cpp

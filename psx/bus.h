@@ -15,6 +15,7 @@
 #include "dma.h"
 #include "spu.h"
 #include "gpu.h"
+#include "gio.h"
 #include "gamepad.h"
 
 /*
@@ -86,6 +87,7 @@ public:
     SPU spu;
     GPU gpu;
     Gamepad gamepad;
+    GamepadMemcardIO gio;
 
     friend std::ostream& operator<<(std::ostream &os, const Bus &bus);
 

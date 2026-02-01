@@ -15,6 +15,7 @@
 #include "vramviewerwindow.h"
 
 #include "psx/core.h"
+#include "psx/gamepad.h"
 #include "psx/renderer/software/softwarerenderer.h"
 #include "psx/util/log.h"
 
@@ -115,6 +116,8 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
 
     // Connections
     makeConnections();
+
+    grabKeyboard(); // Grab keyboard to make input from arrow keys work
 
     LOG_MISC("Application startup");
 }
@@ -265,5 +268,44 @@ void MainWindow::triggerDebuggerWindow() {
 void MainWindow::closeEvent(QCloseEvent *event) {
     stopEmulation();
     vramViewerWindow->close();
+}
+
+bool MainWindow::handleKeyEvent(QKeyEvent *event, bool pressed) {
+    if (running) {
+        PSX::Gamepad &pad = core->bus.gamepad;
+
+        switch (event->key()) {
+        case Qt::Key_Up:
+            pad.setUp(pressed);
+            break;
+        case Qt::Key_Down:
+            pad.setDown(pressed);
+            break;
+        case Qt::Key_Left:
+            pad.setLeft(pressed);
+            break;
+        case Qt::Key_Right:
+            pad.setRight(pressed);
+            break;
+        default:
+            return false;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event) {
+    if (!handleKeyEvent(event, true)) {
+        QMainWindow::keyPressEvent(event);
+    }
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent *event) {
+    if (!handleKeyEvent(event, false)) {
+        QMainWindow::keyReleaseEvent(event);
+    }
 }
 

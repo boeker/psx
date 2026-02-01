@@ -74,13 +74,14 @@ struct LogPack {
     DECLARE_TWL(dma);
     DECLARE_TWL(exceptions);
     DECLARE_TWL(executable);
+    DECLARE_TWL(gio);
     DECLARE_TWL(gpu);
     DECLARE_TWL(gte);
     DECLARE_TWL(interrupts);
     DECLARE_TWL(mdec);
     DECLARE_TWL(memory);
     DECLARE_TWL(misc);
-    DECLARE_TWL(peripheral);
+    DECLARE_TWL(pad);
     DECLARE_TWL(renderer);
     DECLARE_TWL(spu);
     DECLARE_TWL(timers);
@@ -119,6 +120,10 @@ extern LogPack logPack;
 #define LOGV_EXE            MACRO_LOG(executableV)
 #define LOGT_EXE            MACRO_LOG(executableT)
 
+#define LOG_GIO             MACRO_LOG(gio)
+#define LOGV_GIO            MACRO_LOG(gioV)
+#define LOGT_GIO            MACRO_LOG(gioT)
+
 #define LOG_GPU             MACRO_LOG(gpu)
 #define LOGV_GPU            MACRO_LOG(gpuV)
 #define LOGT_GPU            MACRO_LOG(gpuT)
@@ -143,9 +148,9 @@ extern LogPack logPack;
 #define LOGV_MISC           MACRO_LOG(miscV)
 #define LOGT_MISC           MACRO_LOG(miscT)
 
-#define LOG_PER             MACRO_LOG(peripheral)
-#define LOGV_PER            MACRO_LOG(peripheralV)
-#define LOGT_PER            MACRO_LOG(peripheralT)
+#define LOG_PAD             MACRO_LOG(pad)
+#define LOGV_PAD            MACRO_LOG(padV)
+#define LOGT_PAD            MACRO_LOG(padT)
 
 #define LOG_REND            MACRO_LOG(renderer)
 #define LOGV_REND           MACRO_LOG(rendererV)

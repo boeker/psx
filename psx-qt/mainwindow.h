@@ -16,6 +16,8 @@ namespace Ui {
 class MainWindow;
 }
 class QFileSystemModel;
+class QCloseEvent;
+class QKeyEvent;
 QT_END_NAMESPACE
 
 class DebuggerWindow;
@@ -69,8 +71,12 @@ public slots:
     void triggerVRAMViewerWindow();
     void triggerDebuggerWindow();
 
+    bool handleKeyEvent(QKeyEvent *event, bool pressed);
+
 protected:
     void closeEvent(QCloseEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
 
 private:
     void makeConnections();
