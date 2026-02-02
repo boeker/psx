@@ -6,6 +6,26 @@
 namespace PSX {
 
 class Gamepad {
+private:
+    std::atomic<bool> up;
+    std::atomic<bool> down;
+    std::atomic<bool> left;
+    std::atomic<bool> right;
+
+    enum State {
+        IDLE,
+        ACTIVE,
+        ID_LO_SENT,
+        ID_HI_SENT,
+        SW_LO_SENT
+        //SW_HI_SENT,
+        //ADC0_SENT,
+        //ADC1_SENT,
+        //ADC2_SENT,
+        //ADC3_SENT
+    };
+
+    State state;
 public:
     Gamepad();
 
@@ -21,12 +41,7 @@ public:
     bool getLeft() const;
     bool getRight() const;
 
-private:
-    std::atomic<bool> up;
-    std::atomic<bool> down;
-    std::atomic<bool> left;
-    std::atomic<bool> right;
-
+    uint8_t send(uint8_t message);
 };
 }
 

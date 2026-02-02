@@ -15,6 +15,65 @@ using namespace util;
 
 namespace PSX {
 
+std::ostream& operator<<(std::ostream &os, const ReceiveQueue &queue) {
+    ReceiveQueue copy = queue;
+
+    if (!copy.isEmpty()) {
+        os << std::format("0x{:08X}", copy.pop());
+    }
+
+    while (!copy.isEmpty()) {
+        os << std::format(", 0x{:08X}", copy.pop());
+    }
+
+    return os;
+}
+
+ReceiveQueue::ReceiveQueue() {
+    clear();
+}
+
+void ReceiveQueue::clear() {
+    for (int i = 0; i < 8; ++i) {
+        queue[i] = 0;
+    }
+
+    in = 0;
+    out = 0;
+    elements = 0;
+}
+
+void ReceiveQueue::push(uint8_t byte) {
+    if (elements < 8) {
+        queue[in] = byte;
+
+        in = (in + 1) % 8;
+        ++elements;
+    }
+}
+
+uint8_t ReceiveQueue::pop() {
+    if (elements > 0) {
+        uint8_t value = queue[out];
+
+        out = (out + 1) % 8;
+        --elements;
+        return value;
+    }
+
+    throw std::runtime_error("Queue is empty");
+
+    return 0;
+}
+
+bool ReceiveQueue::isEmpty() {
+    return elements == 0;
+}
+
+bool ReceiveQueue::isFull() {
+    return elements == 8;
+}
+
 std::ostream& operator<<(std::ostream &os, const GamepadMemcardIO &gmIO) {
     os << "JOY_STAT: ";
     os << gmIO.getJoyStatExplanation();
@@ -30,7 +89,7 @@ std::ostream& operator<<(std::ostream &os, const GamepadMemcardIO &gmIO) {
     return os;
 }
 
-GamepadMemcardIO::GamepadMemcardIO(Bus *bus, const Gamepad &gamepad)
+GamepadMemcardIO::GamepadMemcardIO(Bus *bus, Gamepad &gamepad)
     : bus(bus), gamepad(gamepad) {
 
     reset();
@@ -41,6 +100,8 @@ void GamepadMemcardIO::reset() {
     joyMode = 0;
     joyCtrl = 0;
     joyBaud = 0;
+
+    receiveQueue.clear();
 }
 
 template <>
@@ -90,7 +151,11 @@ template <> void GamepadMemcardIO::write(uint32_t address, uint8_t value) {
     LOGT_GIO(std::format("Write 0x{:02X} -> @0x{:08X}", value, address));
 
     if (address == 0x1F801040) {
-        LOGV_GIO(std::format("Unimplemented write to JOY_TX_DATA of 0x{:02X}", value));
+        LOGT_GIO(std::format("Write to JOY_TX_DATA of 0x{:02X}", value));
+        uint8_t answer = gamepad.send(value);
+        if (!receiveQueue.isFull()) {
+            receiveQueue.push(answer);
+        }
 
     } else {
         throw exceptions::UnimplementedAddressingError(std::format("GamepadMemcardIO: byte write @0x{:08X}", address));
@@ -154,8 +219,15 @@ template <> uint8_t GamepadMemcardIO::read(uint32_t address) {
     LOGT_GIO(std::format("byte read @0x{:08X}", address));
 
     if (address == 0x1F801040) {
-        LOGV_GIO(std::format("Unimplemented byte read from JOY_RX_DATA"));
-        return 0;
+        if (!receiveQueue.isEmpty()) {
+            uint8_t answer = receiveQueue.pop();
+            LOGT_GIO(std::format("Byte read from JOY_RX_DATA, return 0x{:02X} from queue", answer));
+            return answer;
+
+        } else {
+            LOGT_GIO(std::format("Byte read from JOY_RX_DATA, return 0x00 since queue is empty"));
+            return 0x00;
+        }
 
     } else {
         throw exceptions::UnimplementedAddressingError(std::format("GamepadMemcardIO: byte read @0x{:08X}", address));
@@ -188,6 +260,10 @@ void GamepadMemcardIO::writeToJoyCtrl(uint16_t value) {
         Bit::clearBit(joyStat, JOY_STAT_RX_PARITY_ERROR);
     }
 
+}
+
+void GamepadMemcardIO::transferByte(uint8_t value) {
+    //TODO
 }
 
 std::string GamepadMemcardIO::getJoyStatExplanation() const {

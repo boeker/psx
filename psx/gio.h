@@ -36,13 +36,31 @@ namespace PSX {
 #define JOY_CTRL_JOYN_OUTPUT 1
 #define JOY_CTRL_TXEN 0
 
+class ReceiveQueue {
+private:
+    uint8_t queue[8];
+    uint8_t in;
+    uint8_t out;
+    uint8_t elements;
+
+    friend std::ostream& operator<<(std::ostream &os, const ReceiveQueue &queue);
+
+public:
+    ReceiveQueue();
+    void clear();
+    void push(uint8_t byte);
+    uint8_t pop();
+    bool isEmpty();
+    bool isFull();
+};
+
 class Bus;
 class Gamepad;
 
 class GamepadMemcardIO {
 private:
     Bus *bus;
-    const Gamepad &gamepad;
+    Gamepad &gamepad;
 
     // 0x1F801040
     // JOY_RX_DATA/JOY_TX_DATA
@@ -63,10 +81,12 @@ private:
     // 0x1F80104E
     uint16_t joyBaud;
 
+    ReceiveQueue receiveQueue;
+
     friend std::ostream& operator<<(std::ostream &os, const GamepadMemcardIO &gmIO);
 
 public:
-    GamepadMemcardIO(Bus *bus, const Gamepad &gamepad);
+    GamepadMemcardIO(Bus *bus, Gamepad &gamepad);
     void reset();
 
     template <typename T>
@@ -76,6 +96,8 @@ public:
     T read(uint32_t address);
 
     void writeToJoyCtrl(uint16_t value);
+
+    void transferByte(uint8_t value);
 
 private:
 
