@@ -7,6 +7,7 @@
 
 #include "bus.h"
 #include "gamepad.h"
+#include "interrupts.h"
 #include "util/bit.h"
 #include "util/log.h"
 #include "exceptions/exceptions.h"
@@ -105,6 +106,7 @@ void GamepadMemcardIO::reset() {
     selectedSlot = 1;
     pendingTransferByte = 0;
     pendingTransfer = false;
+    cyclesUntilInterrupt = 0;
 }
 
 template <>
@@ -305,11 +307,32 @@ void GamepadMemcardIO::checkAndTransferPendingByte() {
                 LOGT_GIO("Placing answer in queue");
                 receiveQueue.push(answer);
 
-                // TODO ACK Signal in JOY_STAT
-                // TODO Issue interrupt for ACK
-                // TODO Issue interrupt for RX
-                // TODO Issue interrupt for TX
+                if ((selectedSlot == 1
+                     && gamepad.ackForLastByte()
+                     && Bit::getBit(joyCtrl, JOY_CTRL_ACK_INT_ENABLE))
+                    || Bit::getBit(joyCtrl, JOY_CTRL_TX_INT_ENABLE)
+                    || Bit::getBit(joyCtrl, JOY_CTRL_RX_INT_ENABLE)) {
+
+                    LOGT_GIO("Setting ACK signal to 0 and lining up an interrupt");
+                    Bit::setBit(joyStat, JOY_STAT_IRQ);
+                    Bit::setBit(joyStat, JOY_STAT_ACK_INPUT_LEVEL);
+                    if (cyclesUntilInterrupt == 0) {
+                        cyclesUntilInterrupt = 100;
+                    }
+                }
             }
+        }
+    }
+}
+
+void GamepadMemcardIO::catchUpToCPU(uint32_t cyclesTaken) {
+    if (cyclesUntilInterrupt > 0) {
+        cyclesUntilInterrupt -= std::min(cyclesUntilInterrupt, cyclesTaken);
+
+        if (cyclesUntilInterrupt == 0) {
+            LOGT_GIO("Setting ACK signal to 1 and issuing interrupt");
+            Bit::clearBit(joyStat, JOY_STAT_ACK_INPUT_LEVEL); // Set ACK signal to 0
+            bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CTRL_MEM);
         }
     }
 }

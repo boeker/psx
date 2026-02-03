@@ -87,6 +87,8 @@ private:
     uint8_t pendingTransferByte;
     bool pendingTransfer;
 
+    uint32_t cyclesUntilInterrupt;
+
     friend std::ostream& operator<<(std::ostream &os, const GamepadMemcardIO &gmIO);
 
 public:
@@ -102,6 +104,7 @@ public:
     void writeToJoyCtrl(uint16_t value);
 
     void checkAndTransferPendingByte();
+    void catchUpToCPU(uint32_t cyclesTaken);
 
 private:
 

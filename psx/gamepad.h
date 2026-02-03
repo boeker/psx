@@ -42,6 +42,7 @@ public:
     bool getRight() const;
 
     uint8_t send(uint8_t message);
+    bool ackForLastByte();
 };
 }
 

@@ -119,5 +119,9 @@ uint8_t Gamepad::send(uint8_t message) {
     return answer;
 }
 
+bool Gamepad::ackForLastByte() {
+    return state != IDLE;
+}
+
 }
 
