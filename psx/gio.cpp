@@ -102,6 +102,9 @@ void GamepadMemcardIO::reset() {
     joyBaud = 0;
 
     receiveQueue.clear();
+    selectedSlot = 1;
+    pendingTransferByte = 0;
+    pendingTransfer = false;
 }
 
 template <>
@@ -152,10 +155,11 @@ template <> void GamepadMemcardIO::write(uint32_t address, uint8_t value) {
 
     if (address == 0x1F801040) {
         LOGT_GIO(std::format("Write to JOY_TX_DATA of 0x{:02X}", value));
-        uint8_t answer = gamepad.send(value);
-        if (!receiveQueue.isFull()) {
-            receiveQueue.push(answer);
-        }
+
+        pendingTransferByte = value;
+        pendingTransfer = true;
+
+        checkAndTransferPendingByte();
 
     } else {
         throw exceptions::UnimplementedAddressingError(std::format("GamepadMemcardIO: byte write @0x{:08X}", address));
@@ -189,10 +193,19 @@ template <> uint16_t GamepadMemcardIO::read(uint32_t address) {
 
     if (address == 0x1F801044) {
         LOGT_GIO(std::format("Half-word read from JOY_STAT"));
+        // Update values in JOY_STAT
+        // JOY_STAT_IRQ
+        // JOY_STAT_ACK_INPUT_LEVEL
+        // JOY_STAT_RX_PARITY_ERROR is left at 0
+        // JOY_STAT_TX_READY_FINISHED
+        Bit::setBit(joyStat, JOY_STAT_TX_READY_FINISHED); // Just force this to 1?
+        // JOY_STAT_RX_QUEUE_NOT_EMPTY
+        Bit::setBit(joyStat, JOY_STAT_RX_QUEUE_NOT_EMPTY, !receiveQueue.isEmpty());
+        // JOY_STAT_TX_READY_STARTED
+        Bit::setBit(joyStat, JOY_STAT_TX_READY_STARTED); // Just force this to 1?
+
         LOGT_GIO(std::format("JOY_STAT: {:s}", getJoyStatExplanation()));
-        // return joyStat & 0x0000FFFF;
-        LOGT_GIO(std::format("Returning 7 instead"));
-        return 7;
+        return joyStat & 0x0000FFFF;
 
     } else if (address == 0x1F801048) {
         LOGT_GIO(std::format("Half-word read from JOY_MODE"));
@@ -260,10 +273,45 @@ void GamepadMemcardIO::writeToJoyCtrl(uint16_t value) {
         Bit::clearBit(joyStat, JOY_STAT_RX_PARITY_ERROR);
     }
 
+    if (Bit::getBit(joyCtrl, JOY_CTRL_JOYN_OUTPUT)) {
+        selectedSlot = Bit::getBit(joyCtrl, JOY_CTRL_SLOT_NUMBER) ? 2 : 1;
+        LOGT_GIO(std::format("JOY_CTRL: JOYN_OUTPUT bit set, selecting slot {:d}", selectedSlot));
+    }
+
+    checkAndTransferPendingByte();
 }
 
-void GamepadMemcardIO::transferByte(uint8_t value) {
-    //TODO
+void GamepadMemcardIO::checkAndTransferPendingByte() {
+    LOGT_GIO("Checking if a pending byte should be transferred");
+    LOGT_GIO(std::format("pendingTransfer: {:s}, pendingTransferByte: 0x{:02X}", pendingTransfer, pendingTransferByte));
+
+    if (pendingTransfer
+        && Bit::getBit(joyCtrl, JOY_CTRL_TXEN) // TODO Also check latched value of TXEN
+        && Bit::getBit(joyStat, JOY_STAT_TX_READY_FINISHED)) {
+
+        LOGT_GIO(std::format("Transfering byte to slot {:d}", selectedSlot));
+
+        uint8_t answer = 0;
+        if (selectedSlot == 1) {
+            answer = gamepad.send(pendingTransferByte);
+        }
+
+        LOGT_GIO(std::format("Answer is 0x{:02X}", answer));
+
+        if (Bit::getBit(joyCtrl, JOY_CTRL_RXEN) || Bit::getBit(joyCtrl, JOY_CTRL_JOYN_OUTPUT)) {
+            Bit::clearBit(joyCtrl, JOY_CTRL_RXEN); // Force enable bit gets cleared
+            LOGT_GIO("About to place answer in queue");
+            if (!receiveQueue.isFull()) {
+                LOGT_GIO("Placing answer in queue");
+                receiveQueue.push(answer);
+
+                // TODO ACK Signal in JOY_STAT
+                // TODO Issue interrupt for ACK
+                // TODO Issue interrupt for RX
+                // TODO Issue interrupt for TX
+            }
+        }
+    }
 }
 
 std::string GamepadMemcardIO::getJoyStatExplanation() const {
@@ -276,7 +324,7 @@ std::string GamepadMemcardIO::getJoyStatExplanation() const {
     ss << std::format("RX_PARITY_ERROR[{:01b}], ", Bit::getBit(stat, JOY_STAT_RX_PARITY_ERROR));
     ss << std::format("TX_READY_FINISHED[{:01b}], ", Bit::getBit(stat, JOY_STAT_TX_READY_FINISHED));
     ss << std::format("RX_QUEUE_NOT_EMPTY[{:01b}], ", Bit::getBit(stat, JOY_STAT_RX_QUEUE_NOT_EMPTY));
-    ss << std::format("TX_READY_STARTED[{:01b}], ", Bit::getBit(stat, JOY_STAT_TX_READY_STARTED));
+    ss << std::format("TX_READY_STARTED[{:01b}]", Bit::getBit(stat, JOY_STAT_TX_READY_STARTED));
 
     return ss.str();
 }

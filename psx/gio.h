@@ -83,6 +83,10 @@ private:
 
     ReceiveQueue receiveQueue;
 
+    uint8_t selectedSlot;
+    uint8_t pendingTransferByte;
+    bool pendingTransfer;
+
     friend std::ostream& operator<<(std::ostream &os, const GamepadMemcardIO &gmIO);
 
 public:
@@ -97,7 +101,7 @@ public:
 
     void writeToJoyCtrl(uint16_t value);
 
-    void transferByte(uint8_t value);
+    void checkAndTransferPendingByte();
 
 private:
 

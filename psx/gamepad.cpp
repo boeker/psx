@@ -97,7 +97,7 @@ uint8_t Gamepad::send(uint8_t message) {
             LOGT_PAD("[ID_HI_SENT] -> [SW_LO_SENT]");
 
             // TODO implement other buttons
-            answer = 0x41;
+            answer = 0x00;
             Bit::setBit(answer, 4, up);
             Bit::setBit(answer, 5, right);
             Bit::setBit(answer, 6, down);
