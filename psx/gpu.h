@@ -216,6 +216,8 @@ private:
     void GP0TexturedFourPointPolygonOpaqueTextureBlending();
     // 0x2D
     void GP0TexturedFourPointPolygonOpaqueRawTexture();
+    // 0x2F
+    void GP0TexturedFourPointPolygonSemiTransparentRawTexture();
     // 0x30
     void GP0ShadedThreePointPolygonOpaque();
     // 0x38

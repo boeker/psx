@@ -102,17 +102,17 @@ uint8_t Gamepad::send(uint8_t message) {
                 // message is MOT
 
                 // TODO implement other buttons
-                answer = 0x00;
-                Bit::setBit(answer, 4, up);
-                Bit::setBit(answer, 5, right);
-                Bit::setBit(answer, 6, down);
-                Bit::setBit(answer, 7, left);
+                answer = 0xFF;
+                Bit::setBit(answer, 4, !up);
+                Bit::setBit(answer, 5, !right);
+                Bit::setBit(answer, 6, !down);
+                Bit::setBit(answer, 7, !left);
 
                 state = SW_LO_SENT;
                 break;
             case SW_LO_SENT:
                 // message is MOT
-                answer = 0x00; // TODO implement other buttons
+                answer = 0xFF; // TODO implement other buttons
                 state = IDLE;
                 break;
             default:
