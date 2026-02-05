@@ -30,6 +30,8 @@ Gamepad::Gamepad() {
 }
 
 void Gamepad::reset() {
+    state = IDLE;
+
     up = false;
     down = false;
     left= false;
