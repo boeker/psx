@@ -107,6 +107,9 @@ void GamepadMemcardIO::reset() {
     pendingTransferByte = 0;
     pendingTransfer = false;
     cyclesUntilInterrupt = 0;
+
+    Bit::setBit(joyStat, JOY_STAT_TX_READY_FINISHED);
+    Bit::setBit(joyStat, JOY_STAT_TX_READY_STARTED);
 }
 
 template <>
