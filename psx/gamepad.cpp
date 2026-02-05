@@ -30,10 +30,25 @@ Gamepad::Gamepad() {
 }
 
 void Gamepad::reset() {
-    this->up = false;
-    this->down = false;
-    this->left= false;
-    this->right = false;
+    up = false;
+    down = false;
+    left= false;
+    right = false;
+
+    triangle = false;
+    cross = false;
+    square = false;
+    circle = false;
+
+    l1 = false;
+    l2 = false;
+    l3 = false;
+    r1 = false;
+    r2 = false;
+    r3 = false;
+
+    select = false;
+    start = false;
 }
 
 void Gamepad::setUp(bool pressed) {
@@ -56,20 +71,64 @@ void Gamepad::setRight(bool pressed) {
     right = pressed;
 }
 
-bool Gamepad::getUp() const {
-    return up;
+void Gamepad::setTriangle(bool pressed) {
+    LOGT_PAD(std::format("Triangle {:s}", pressed ? "pressed" : "released"));
+    triangle = pressed;
 }
 
-bool Gamepad::getDown() const {
-    return down;
+void Gamepad::setCross(bool pressed) {
+    LOGT_PAD(std::format("Cross {:s}", pressed ? "pressed" : "released"));
+    cross = pressed;
 }
 
-bool Gamepad::getLeft() const {
-    return left;
+void Gamepad::setSquare(bool pressed) {
+    LOGT_PAD(std::format("Square {:s}", pressed ? "pressed" : "released"));
+    square = pressed;
 }
 
-bool Gamepad::getRight() const {
-    return right;
+void Gamepad::setCircle(bool pressed) {
+    LOGT_PAD(std::format("Circle {:s}", pressed ? "pressed" : "released"));
+    circle = pressed;
+}
+
+void Gamepad::setL1(bool pressed) {
+    LOGT_PAD(std::format("L1 {:s}", pressed ? "pressed" : "released"));
+    l1 = pressed;
+}
+
+void Gamepad::setL2(bool pressed) {
+    LOGT_PAD(std::format("L2 {:s}", pressed ? "pressed" : "released"));
+    l2 = pressed;
+}
+
+void Gamepad::setL3(bool pressed) {
+    LOGT_PAD(std::format("L3 {:s}", pressed ? "pressed" : "released"));
+    l3 = pressed;
+}
+
+void Gamepad::setR1(bool pressed) {
+    LOGT_PAD(std::format("R1 {:s}", pressed ? "pressed" : "released"));
+    r1 = pressed;
+}
+
+void Gamepad::setR2(bool pressed) {
+    LOGT_PAD(std::format("R2 {:s}", pressed ? "pressed" : "released"));
+    r2 = pressed;
+}
+
+void Gamepad::setR3(bool pressed) {
+    LOGT_PAD(std::format("R3 {:s}", pressed ? "pressed" : "released"));
+    r3 = pressed;
+}
+
+void Gamepad::setSelect(bool pressed) {
+    LOGT_PAD(std::format("Select {:s}", pressed ? "pressed" : "released"));
+    select = pressed;
+}
+
+void Gamepad::setStart(bool pressed) {
+    LOGT_PAD(std::format("Start {:s}", pressed ? "pressed" : "released"));
+    start = pressed;
 }
 
 uint8_t Gamepad::send(uint8_t message) {
@@ -101,8 +160,11 @@ uint8_t Gamepad::send(uint8_t message) {
             case ID_HI_SENT:
                 // message is MOT
 
-                // TODO implement other buttons
                 answer = 0xFF;
+                Bit::setBit(answer, 0, !select);
+                Bit::setBit(answer, 1, !l3);
+                Bit::setBit(answer, 2, !r3);
+                Bit::setBit(answer, 3, !start);
                 Bit::setBit(answer, 4, !up);
                 Bit::setBit(answer, 5, !right);
                 Bit::setBit(answer, 6, !down);
@@ -112,7 +174,17 @@ uint8_t Gamepad::send(uint8_t message) {
                 break;
             case SW_LO_SENT:
                 // message is MOT
-                answer = 0xFF; // TODO implement other buttons
+
+                answer = 0xFF;
+                Bit::setBit(answer, 0, !l2);
+                Bit::setBit(answer, 1, !r2);
+                Bit::setBit(answer, 2, !l1);
+                Bit::setBit(answer, 3, !r1);
+                Bit::setBit(answer, 4, !triangle);
+                Bit::setBit(answer, 5, !circle);
+                Bit::setBit(answer, 6, !cross);
+                Bit::setBit(answer, 7, !square);
+
                 state = IDLE;
                 break;
             default:

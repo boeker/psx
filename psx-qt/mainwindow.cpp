@@ -287,6 +287,42 @@ bool MainWindow::handleKeyEvent(QKeyEvent *event, bool pressed) {
         case Qt::Key_Right:
             pad.setRight(pressed);
             break;
+        case Qt::Key_E:
+            pad.setTriangle(pressed);
+            break;
+        case Qt::Key_X:
+            pad.setCross(pressed);
+            break;
+        case Qt::Key_S:
+            pad.setSquare(pressed);
+            break;
+        case Qt::Key_D:
+            pad.setCircle(pressed);
+            break;
+        case Qt::Key_W:
+            pad.setL1(pressed);
+            break;
+        case Qt::Key_Q:
+            pad.setL2(pressed);
+            break;
+        case Qt::Key_A:
+            pad.setL3(pressed);
+            break;
+        case Qt::Key_R:
+            pad.setR1(pressed);
+            break;
+        case Qt::Key_T:
+            pad.setR2(pressed);
+            break;
+        case Qt::Key_F:
+            pad.setR3(pressed);
+            break;
+        case Qt::Key_C:
+            pad.setSelect(pressed);
+            break;
+        case Qt::Key_V:
+            pad.setStart(pressed);
+            break;
         default:
             return false;
         }
