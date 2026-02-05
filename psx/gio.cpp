@@ -290,21 +290,21 @@ void GamepadMemcardIO::checkAndTransferPendingByte() {
     if (pendingTransfer
         && Bit::getBit(joyCtrl, JOY_CTRL_TXEN) // TODO Also check latched value of TXEN
         && Bit::getBit(joyStat, JOY_STAT_TX_READY_FINISHED)) {
+        pendingTransfer = false;
 
-        LOGT_GIO(std::format("Transfering byte to slot {:d}", selectedSlot));
+        LOGT_GIO(std::format("0x{:02X} -> slot {:d}", pendingTransferByte, selectedSlot));
 
         uint8_t answer = 0;
         if (selectedSlot == 1) {
             answer = gamepad.send(pendingTransferByte);
         }
 
-        LOGT_GIO(std::format("Answer is 0x{:02X}", answer));
+        //LOGT_GIO(std::format("Answer is 0x{:02X}", answer));
 
         if (Bit::getBit(joyCtrl, JOY_CTRL_RXEN) || Bit::getBit(joyCtrl, JOY_CTRL_JOYN_OUTPUT)) {
             Bit::clearBit(joyCtrl, JOY_CTRL_RXEN); // Force enable bit gets cleared
-            LOGT_GIO("About to place answer in queue");
             if (!receiveQueue.isFull()) {
-                LOGT_GIO("Placing answer in queue");
+                LOGT_GIO(std::format("0x{:02X} -> receive queue", answer));
                 receiveQueue.push(answer);
 
                 if ((selectedSlot == 1
@@ -313,11 +313,11 @@ void GamepadMemcardIO::checkAndTransferPendingByte() {
                     || Bit::getBit(joyCtrl, JOY_CTRL_TX_INT_ENABLE)
                     || Bit::getBit(joyCtrl, JOY_CTRL_RX_INT_ENABLE)) {
 
-                    LOGT_GIO("Setting ACK signal to 0 and lining up an interrupt");
+                    LOGT_GIO("Setting ACK signal to 1 and lining up an interrupt");
                     Bit::setBit(joyStat, JOY_STAT_IRQ);
                     Bit::setBit(joyStat, JOY_STAT_ACK_INPUT_LEVEL);
                     if (cyclesUntilInterrupt == 0) {
-                        cyclesUntilInterrupt = 100;
+                        cyclesUntilInterrupt = 200;
                     }
                 }
             }
@@ -330,7 +330,7 @@ void GamepadMemcardIO::catchUpToCPU(uint32_t cyclesTaken) {
         cyclesUntilInterrupt -= std::min(cyclesUntilInterrupt, cyclesTaken);
 
         if (cyclesUntilInterrupt == 0) {
-            LOGT_GIO("Setting ACK signal to 1 and issuing interrupt");
+            LOGT_GIO("Setting ACK signal to 0 and issuing interrupt");
             Bit::clearBit(joyStat, JOY_STAT_ACK_INPUT_LEVEL); // Set ACK signal to 0
             bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CTRL_MEM);
         }

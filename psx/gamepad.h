@@ -2,6 +2,7 @@
 #define PSX_GAMEPAD_H
 
 #include <atomic>
+#include <string>
 
 namespace PSX {
 
@@ -24,6 +25,7 @@ private:
         //ADC2_SENT,
         //ADC3_SENT
     };
+    std::string stateToString(State state);
 
     State state;
 public:
