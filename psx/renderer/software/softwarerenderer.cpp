@@ -236,7 +236,7 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
     // Bottom half
     if (ay != by) {
         int segment_height = by - ay;
-        for (int y = ay; y < by; y++) { // Exclude by
+        for (int y = std::max(0, ay); y < std::min(512, by); y++) { // Exclude by
             int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
             int x2 = ax + ((bx - ax) * (y - ay)) / segment_height;
 
@@ -286,7 +286,7 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
     // Top half
     if (by != cy) {
         int segment_height = cy - by;
-        for (int y = by; y < cy; y++) { // Exclude last point
+        for (int y = std::max(0, by); y < std::min(512, cy); y++) { // Exclude last point
             int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
             int x2 = bx + ((cx - bx) * (y - by)) / segment_height;
 
@@ -396,7 +396,7 @@ void SoftwareRenderer::drawTexturedTriangle(int ax, int ay, int bx, int by, int 
     // Bottom half
     if (ay != by) {
         int segment_height = by - ay;
-        for (int y = ay; y < by; y++) {
+        for (int y = std::max(0, ay); y < std::min(512, by); y++) {
             int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
             int x2 = ax + ((bx - ax) * (y - ay)) / segment_height;
 
@@ -444,7 +444,7 @@ void SoftwareRenderer::drawTexturedTriangle(int ax, int ay, int bx, int by, int 
     // Top half
     if (by != cy) {
         int segment_height = cy - by;
-        for (int y = by; y < cy; y++) {
+        for (int y = std::max(0, by); y < std::min(512, cy); y++) {
             int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
             int x2 = bx + ((cx - bx) * (y - by)) / segment_height;
 
