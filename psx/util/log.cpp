@@ -132,18 +132,33 @@ LogPack::LogPack()
     //spu.setConsoleLogEnabled(true);
     //timers.setConsoleLogEnabled(true);
     //tty.setConsoleLogEnabled(true);
-    //warning.setConsoleLogEnabled(true);
+    warning.setConsoleLogEnabled(true);
 
+    //interrupts.setConsoleLogEnabled(true);
     //interruptsV.setConsoleLogEnabled(true);
-    //dmaV.setConsoleLogEnabled(true);
+
+    gpu.setConsoleLogEnabled(true);
+    renderer.setConsoleLogEnabled(true);
+    rendererV.setConsoleLogEnabled(true);
+    rendererT.setConsoleLogEnabled(true);
+
+    dma.setConsoleLogEnabled(true);
+    dmaV.setConsoleLogEnabled(true);
+
+    cdrom.setConsoleLogEnabled(true);
+    cdromV.setConsoleLogEnabled(true);
+    cdromT.setConsoleLogEnabled(true);
+
+    //exceptions.setConsoleLogEnabled(true);
+    //exceptionsV.setConsoleLogEnabled(true);
 
     //gio.setConsoleLogEnabled(true);
     //gioV.setConsoleLogEnabled(true);
     //gioT.setConsoleLogEnabled(true);
 
-    pad.setConsoleLogEnabled(true);
-    padV.setConsoleLogEnabled(true);
-    padT.setConsoleLogEnabled(true);
+    //pad.setConsoleLogEnabled(true);
+    //padV.setConsoleLogEnabled(true);
+    //padT.setConsoleLogEnabled(true);
 
     //timersV.setConsoleLogEnabled(true);
     //timersT.setConsoleLogEnabled(true);
@@ -202,15 +217,16 @@ void LogPack::installAdditionalLog(const std::shared_ptr<Log> &log) {
     //timersV.installAdditionalLog(log);
     ////timersT.installAdditionalLog(log);
 
-    ////exceptionsV.installAdditionalLog(log);
+    //exceptions.installAdditionalLog(log);
+    //exceptionsV.installAdditionalLog(log);
 
     //gio.installAdditionalLog(log);
     //gioV.installAdditionalLog(log);
     //gioT.installAdditionalLog(log);
 
-    pad.installAdditionalLog(log);
-    padV.installAdditionalLog(log);
-    padT.installAdditionalLog(log);
+    //pad.installAdditionalLog(log);
+    //padV.installAdditionalLog(log);
+    //padT.installAdditionalLog(log);
 
     //gpuV.installAdditionalLog(log);
     //gpuT.installAdditionalLog(log);

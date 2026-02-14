@@ -50,8 +50,12 @@ private:
 
     // Status Register
     // 0x1F801800
-    // index is part of the status register
-    uint8_t index;
+    uint8_t statusRegister;
+
+    uint8_t audioVolumeLeftCDOutToLeftSPUInput;
+    uint8_t audioVolumeLeftCDOutToRightSPUInput;
+    uint8_t audioVolumeRightCDOutToLeftSPUInput;
+    uint8_t audioVolumeRightCDOutToRightSPUInput;
 
     // Interrupt Enable Register
     // 0x1F801802, index 1 write
@@ -73,6 +77,8 @@ private:
 public:
     CDROM(Bus *bus);
     void reset();
+
+    uint8_t getIndex() const;
 
     void executeCommand(uint8_t command);
     void checkAndNotifyINT3();

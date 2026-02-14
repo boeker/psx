@@ -78,12 +78,22 @@ CDROM::CDROM(Bus *bus)
 }
 
 void CDROM::reset() {
-    index = 0;
+    statusRegister = 0x18; // All queues are empty
+
+    audioVolumeLeftCDOutToLeftSPUInput = 0x80;
+    audioVolumeLeftCDOutToRightSPUInput = 0x80;
+    audioVolumeRightCDOutToLeftSPUInput = 0x80;
+    audioVolumeRightCDOutToRightSPUInput = 0x80;
+
     interruptEnableRegister = 0;
     interruptFlagRegister = 0;
 
     parameterQueue.clear();
     responseQueue.clear();
+}
+
+uint8_t CDROM::getIndex() const {
+    return statusRegister & 0x3;
 }
 
 void CDROM::executeCommand(uint8_t command) {
@@ -169,7 +179,7 @@ uint8_t CDROM::getStatusRegister() {
            | (!parameterQueue.isFull() << CDROMSTAT_PRMWRDY)
            | (parameterQueue.isEmpty() << CDROMSTAT_PRMEMPT)
            | (0 << CDROMSTAT_ADPBUSY)
-           | ((index & 3) << CDROMSTAT_INDEX0);
+           | ((statusRegister & 3) << CDROMSTAT_INDEX0);
 }
 
 template <>
@@ -186,57 +196,99 @@ template <>
 void CDROM::write(uint32_t address, uint8_t value) {
     assert ((address >= 0x1F801800) && (address < 0x1F801804));
 
+    LOGT_CDROM(std::format("Write of 0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex()));
+
     if (address == 0x1F801800) { // status register
-        LOG_CDROM(std::format("Write to status register: 0x{:0{}X}", value, 2*sizeof(value)));
-        index = value & 3; // only the index can be written to
+        LOG_CDROM(std::format("Write to status register: 0x{:02X}", value));
+        statusRegister = value & 0x3; // Only the index can be written to
 
     } else if (address == 0x1F801801) {
-        if (index == 0) { // command register
-            LOG_CDROM(std::format("Write to command register: 0x{:0{}X}", value, 2*sizeof(value)));
-            executeCommand(value);
-
-        } else {
-            LOG_CDROM(std::format("Unimplemented write 0x{:0{}X} -> @0x{:08X}, index {:d}", value, 2*sizeof(value), address, index));
+        switch (getIndex()) {
+            case 0: // Command Register
+                LOGV_CDROM(std::format("Write to command register: 0x{:02X}", value));
+                executeCommand(value);
+                break;
+            case 1: // Sound Map Data Out
+                LOG_CDROM(std::format("Unimplemented write to Sound Map Data Out: 0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex()));
+                // TODO Implement
+                break;
+            case 2: // Sound Map Coding Info
+                LOG_CDROM(std::format("Unimplemented write to Sound Map Coding Info: 0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex()));
+                // TODO Implement
+                break;
+            case 3: // Audio Volume for Right-CD-Out to Right-SPU-Input
+                LOGV_CDROM(std::format("Write to Audio Volume for Right-CD-Out to Right-SPU-Input: 0x{:02X}", value));
+                audioVolumeRightCDOutToRightSPUInput = value;
+                break;
+            default:
+                assert(false);
+                break;
         }
     } else if (address == 0x1F801802) {
-        if (index == 0) { // parameter queue
-            LOG_CDROM(std::format("Write to parameter queue: 0x{:0{}X}", value, 2*sizeof(value)));
-            parameterQueue.push(value);
-
-        } else if (index == 1) { // interrupt enable register
-            LOG_CDROM(std::format("Write to interrupt enable register: 0x{:0{}X}", value, 2*sizeof(value)));
-            interruptEnableRegister = value & 0x1F; // bits 5--7 are unused
-
-        } else {
-            LOG_CDROM(std::format("Unimplemented write 0x{:0{}X} -> @0x{:08X}, index {:d}", value, 2*sizeof(value), address, index));
+        switch (getIndex()) {
+            case 0: // Parameter Queue
+                LOG_CDROM(std::format("Unimplemented write to parameter queue: 0x{:02X}", value));
+                // TODO Implement propertly
+                parameterQueue.push(value);
+                break;
+            case 1: // Interrupt Enable Register
+                LOG_CDROM(std::format("Unimplemented write to Interrupt Enable Register: 0x{:02X}", value));
+                // TODO Implement properly
+                interruptEnableRegister = value & 0x1F; // bits 5--7 are unused
+                break;
+            case 2: // Audio Volume for Left-CD-Out to Left-SPU-Input
+                LOGV_CDROM(std::format("Write to Audio Volume for Left-CD-Out to Left-SPU-Input: 0x{:02X}", value));
+                audioVolumeLeftCDOutToLeftSPUInput = value;
+                break;
+            case 3: // Audio Volume for Right-CD-Out to Left-SPU-Input
+                LOGV_CDROM(std::format("Write to Audio Volume for Right-CD-Out to Left-SPU-Input: 0x{:02X}", value));
+                audioVolumeRightCDOutToLeftSPUInput = value;
+                break;
+            default:
+                assert(false);
+                break;
         }
-
     } else if (address == 0x1F801803) {
-        if (index == 1) { // interrupt flag register
-            LOG_CDROM(std::format("Write to interrupt flag register: 0x{:0{}X}", value, 2*sizeof(value)));
-            // Writing 1 to bits 0--4 resets them
-            interruptFlagRegister = interruptFlagRegister & ~(value & 0x1F);
+        switch (getIndex()) {
+            case 0: // Request Register
+                LOG_CDROM(std::format("Unimplemented write to request register: 0x{:02X}", value));
+                // TODO Implement
+                break;
+            case 1: // Interrupt Flag Register
+                LOG_CDROM(std::format("Unimplemented write to Interrupt Flag Register: 0x{:02X}", value));
+                // TODO Implement properly
+                // Writing 1 to bits 0--4 resets them
+                interruptFlagRegister = interruptFlagRegister & ~(value & 0x1F);
 
-            // Writing 1 to bit 6 resets parameter queue
-            if ((value >> 6) & 1) {
-                parameterQueue.clear();
-            }
+                // Writing 1 to bit 6 resets parameter queue
+                if ((value >> 6) & 1) {
+                    parameterQueue.clear();
+                }
 
-            // Clear response queue
-            responseQueue.clear();
+                // Clear response queue
+                responseQueue.clear();
 
-            if (!queuedResponses.empty()) {
-                QueuedResponse response = queuedResponses.front();
-                queuedResponses.pop_front();
-                (this->*response)();
-            }
-
-        } else {
-            LOG_CDROM(std::format("Unimplemented write 0x{:0{}X} -> @0x{:08X}, index {:d}", value, 2*sizeof(value), address, index));
+                if (!queuedResponses.empty()) {
+                    QueuedResponse response = queuedResponses.front();
+                    queuedResponses.pop_front();
+                    (this->*response)();
+                }
+                break;
+            case 2: // Audio Volume for Left-CD-Out to Right-SPU-Input
+                LOGV_CDROM(std::format("Write to Audio Volume for Left-CD-Out to Right-SPU-Input: 0x{:02X}", value));
+                audioVolumeLeftCDOutToRightSPUInput = value;
+                break;
+            case 3: // Audio Volume Apply Changes
+                LOG_CDROM(std::format("Unimplemented write to Audio Volume Apply Changes: 0x{:02X}", value));
+                // TODO Implement
+                break;
+            default:
+                assert(false);
+                break;
         }
 
     } else {
-        LOG_CDROM(std::format("Unimplemented write 0x{:0{}X} -> @0x{:08X}, index {:d}", value, 2*sizeof(value), address, index));
+        LOG_CDROM(std::format("Unimplemented write 0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex()));
     }
 }
 
@@ -259,36 +311,68 @@ uint8_t CDROM::read(uint32_t address) {
     if (address == 0x1F801800) { // status register
         //Log::loggingEnabled = true;
         value = getStatusRegister();
-
-        LOG_CDROM(std::format("Read from status register: 0x{:0{}X}", value, 2*sizeof(value)));
+        LOGV_CDROM(std::format("Read from status register: 0x{:02X}", value));
 
     } else if (address == 0x1F801801) {
-        if (index == 1) { // response
-            if (responseQueue.isEmpty()) {
-                LOG_CDROM(std::format("Response queue is empty!"));
-                value = 0;
+        switch (getIndex()) {
+            case 0: // Mirror of response queue
+            case 1: // Response queue
+            case 2: // Mirror of response queue
+            case 3: // Mirror of response queue
+                if (responseQueue.isEmpty()) {
+                    LOG_CDROM(std::format("Response queue is empty!"));
+                    value = 0;
 
-            } else {
-                value = responseQueue.pop();
-            }
+                } else {
+                    value = responseQueue.pop();
+                }
+                // TODO Implement wrap-around of response queue
 
-            LOG_CDROM(std::format("Reading response: 0x{:02X}", value));
+                LOGV_CDROM(std::format("Reading response from response queue: 0x{:02X}", value));
+                break;
+            default:
+                assert(false);
+                break;
+        }
 
-        }  else {
-            LOG_CDROM(std::format("Unimplemented read @0x{:08X}, index {:d}", address, index));
+    } else if (address == 0x1F801802) {
+        switch (getIndex()) {
+            case 0: // Data Queue
+            case 1: // Mirror of data queue
+            case 2: // Mirror of data queue
+            case 3: // Mirror of data queue
+                LOG_CDROM("Unimplemented read from data queue");
+                // TODO Implement
+                //LOG_CDROM(std::format("Reading byte from data queue: 0x{:02X}", value));
+                break;
+            default:
+                assert(false);
+                break;
         }
 
     } else if (address == 0x1F801803) {
-        if (index == 1) { // interrupt flag register
-            return interruptFlagRegister | (0xE0); // upper three bits are always 1
-
-        }  else {
-            LOG_CDROM(std::format("Unimplemented read @0x{:08X}, index {:d}", address, index));
+        switch (getIndex()) {
+            case 0: // Interrupt Enabled Register
+            case 2: // Mirror of Interrupt Enable Register
+                LOG_CDROM("Unimplemented read from interrupt enable register");
+                // TODO implement
+                break;
+            case 1: // Interrupt Flag Register
+            case 3: // Mirror of Interrupt Flag Register
+                LOG_CDROM("Unimplemented read from interrupt flag register");
+                // TODO implement
+                value = interruptFlagRegister | (0xE0); // upper three bits are always 1
+                break;
+            default:
+                assert(false);
+                break;
         }
 
     } else {
-        LOG_CDROM(std::format("Unimplemented read @0x{:08X}, index {:d}", address, index));
+        LOG_CDROM(std::format("Unimplemented read @0x{:08X} with index {:d}", address, getIndex()));
     }
+
+    LOGT_CDROM(std::format("Read @0x{:08X} -> 0x{:02X}", address, value));
 
     return value;
 }
