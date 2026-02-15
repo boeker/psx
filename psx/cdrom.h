@@ -7,22 +7,44 @@
 
 namespace PSX {
 
-// 1F801800h - Index/Status Register (Bit0-1 R/W) (Bit2-7 Read Only)
-// 7 BUSYSTS Command/parameter transmission busy  (1=Busy)
-#define CDROMSTAT_BUSYSTS 7
-// 6 DRQSTS  Data fifo empty      (0=Empty) ;triggered after reading LAST byte
-#define CDROMSTAT_DRQSTS  6
-// 5 RSLRRDY Response fifo empty  (0=Empty) ;triggered after reading LAST byte
-#define CDROMSTAT_RSLRRDY 5
-// 4 PRMWRDY Parameter fifo full  (0=Full)  ;triggered after writing 16 bytes
-#define CDROMSTAT_PRMWRDY 4
-// 3 PRMEMPT Parameter fifo empty (1=Empty) ;triggered before writing 1st byte
-#define CDROMSTAT_PRMEMPT 3
-// 2 ADPBUSY XA-ADPCM fifo empty  (0=Empty) ;set when playing XA-ADPCM sound
-#define CDROMSTAT_ADPBUSY 2
-// 0-1 Index   Port 1F801801h-1F801803h index (0..3 = Index0..Index3)   (R/W)
-#define CDROMSTAT_INDEX1  1
-#define CDROMSTAT_INDEX0  0
+// 0x1F801800 - Status Register (read only with the exception of bits 1 and 0)
+#define CDROM_STATUS_BUSYSTS 7 // Command/parameter transmission busy (1 = busy)
+#define CDROM_STATUS_DRQSTS 6 // Data queue non-empty (1 = non-empty)
+#define CDROM_STATUS_RSLRRDY 5 // Response queue non-empty (1 = non-empty)
+#define CDROM_STATUS_PRMWRDY 4 // Parameter queue non-full (1 = non-full)
+#define CDROM_STATUS_PRMEMPT 3 // Parameter queue empty (1 = empty)
+#define CDROM_STATUS_ADPBUSY 2 // XA=ADPCM queue empty (0 = empty), i.e., not playing XA-ADPCM sound
+#define CDROM_STATUS_INDEX1 1 // Bit 1 of index (0...3 = index 0...3) (writable)
+#define CDROM_STATUS_INDEX0 0 // Bit 0 of index (writable)
+
+// 0x1F801802 and 0x1F801803 - Interrupt Enable Register
+// 0x1F801802, index 1 write
+// 0x1F801803, index 0 read
+// 0x1F801803, index 2 read
+#define CDROM_INTERRUPT_ENABLE_BFWRDY 4 // INT10
+#define CDROM_INTERRUPT_ENABLE_BFEMPT 3 // INT8
+#define CDROM_INTERRUPT_ENABLE_EN2 2 // INT1...7 (encoded in binary)
+#define CDROM_INTERRUPT_ENABLE_EN1 1 // This is
+#define CDROM_INTERRUPT_ENABLE_EN0 0 // really weird
+
+// 0x1F801803 - Interrupt Flag Register
+// 0x1F801803, index 1 write
+// 0x1F801803, index 1 read
+// 0x1F801803, index 3 read
+#define CDROM_INTERRUPT_FLAG_CHPRST 7 // Write 1: unknown, read: always 1
+#define CDROM_INTERRUPT_FLAG_CLRPRM 6 // Write 1: reset parameter queue, read: always 1
+#define CDROM_INTERRUPT_FLAG_SMADPCLR 5 // Write 1: unknown (clear sound map out?), read: always 1
+#define CDROM_INTERRUPT_FLAG_CLRBFWRDY 4 // Write 1: acknowledge INT10, read: command start (INT10)
+#define CDROM_INTERRUPT_FLAG_CLRBFEMPT 3 // Write 1: acknowledge INT8 read: unknown (usually 0)
+#define CDROM_INTERRUPT_FLAG_ACK2 2 // Write: acknowledge INT1...7 (encoded in binary)
+#define CDROM_INTERRUPT_FLAG_ACK1 1 // Read: Response receivied (INT1...7)
+#define CDROM_INTERRUPT_FLAG_ACK0 0
+
+// 0x1F801803 - Request Register
+// 0x1F801803, index 0 write
+#define CDROM_REQUEST_BFRD 7 // Want data (0 = no, reset data queue, 1 = yes, load data queue)
+#define CDROM_REQUEST_BFWR 6 // Unknown
+#define CDROM_REQUEST_SMEN 5 // Start interrupt (INT10) on next command
 
 class Queue {
 private:
@@ -48,43 +70,31 @@ class CDROM {
 private:
     Bus *bus;
 
-    // Status Register
-    // 0x1F801800
     uint8_t statusRegister;
-
-    uint8_t audioVolumeLeftCDOutToLeftSPUInput;
-    uint8_t audioVolumeLeftCDOutToRightSPUInput;
-    uint8_t audioVolumeRightCDOutToLeftSPUInput;
-    uint8_t audioVolumeRightCDOutToRightSPUInput;
-
-    // Interrupt Enable Register
-    // 0x1F801802, index 1 write
-    // 0x1F801803, index 0 read
-    // 0x1F801803, index 2 read
+    uint8_t audioVolumeCDOutToSPUIn[4]; // Left -> Left, Left -> Right, Right -> Left, Right -> Right
     uint8_t interruptEnableRegister;
-
-    // Interrupt Flag Register
-    // 0x1F801803, index 1 read and write
-    // 0x1F801803, index 3 read
     uint8_t interruptFlagRegister;
+    uint8_t requestRegister;
 
+    uint8_t command;
+    uint8_t function;
     Queue parameterQueue;
+    uint8_t responseInterrupt;
     Queue responseQueue;
-
-    typedef void (CDROM::*QueuedResponse) ();
-    std::deque<QueuedResponse> queuedResponses;
+    uint8_t secondResponseInterrupt;
+    Queue secondResponseQueue;
 
 public:
     CDROM(Bus *bus);
     void reset();
 
+    void updateStatusRegister();
     uint8_t getIndex() const;
 
-    void executeCommand(uint8_t command);
-    void checkAndNotifyINT3();
-    void checkAndNotifyINT5();
-
-    uint8_t getStatusRegister();
+    void executeCommand();
+    void notifyAboutINT1to7(uint8_t interruptNumber);
+    void notifyAboutINT10();
+    void updateInterruptFlagRegister(uint8_t value);
 
     template <typename T>
     void write(uint32_t address, T value);
@@ -92,7 +102,22 @@ public:
     template <typename T>
     T read(uint32_t address);
 
-    void getIDSecondResponse();
+private:
+    // Command table and implementations
+    typedef void (CDROM::*Command) ();
+
+    static const Command commands[];
+    void Unknown();
+    // 0x01
+    void Getstat();
+    // 0x19
+    void Test();
+    // 0x1A
+    void GetID();
+
+    static const Command subFunctions[];
+    void UnknownSF();
+    void Function0x20();
 };
 
 }

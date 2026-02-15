@@ -61,6 +61,22 @@ public:
         : std::runtime_error(what) {}
 };
 
+class UnknownCDROMCommandError : public std::runtime_error {
+public:
+    explicit UnknownCDROMCommandError(const std::string &what)
+        : std::runtime_error(what) {}
+    explicit UnknownCDROMCommandError(const char *what)
+        : std::runtime_error(what) {}
+};
+
+class UnknownCDROMFunctionError : public std::runtime_error {
+public:
+    explicit UnknownCDROMFunctionError(const std::string &what)
+        : std::runtime_error(what) {}
+    explicit UnknownCDROMFunctionError(const char *what)
+        : std::runtime_error(what) {}
+};
+
 class UnknownDMACommandError : public std::runtime_error {
 public:
     explicit UnknownDMACommandError(const std::string &what)
