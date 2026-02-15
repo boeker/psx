@@ -97,6 +97,8 @@ void CDROM::reset() {
     responseQueue.clear();
     secondResponseInterrupt = 0;
     secondResponseQueue.clear();
+
+    empty = false;
 }
 
 void CDROM::updateStatusRegister() {
@@ -565,9 +567,13 @@ void CDROM::Getstat() {
     //0  Error         Invalid Command/parameters (followed by Error Byte)
 
     responseInterrupt = 3;
-    responseQueue.push(0); // Empty drive (?)
-    //responseQueue.push(1 << 3); // GetID denied for now
-    //responseQueue.push(1 << 4); // ShellOpen for now
+    if (empty) {
+        responseQueue.push(0x08); // Empty drive (?)
+        //responseQueue.push(1 << 3); // GetID denied for now
+        //responseQueue.push(1 << 4); // ShellOpen for now
+    } else {
+        responseQueue.push(0x02); // Motor on
+    }
 }
 
 void CDROM::Test() {
@@ -581,21 +587,35 @@ void CDROM::Test() {
 void CDROM::GetID() {
     LOG_CDROM(std::format("Command: GetID"));
     // INT3 with status first, then INT5
-    responseInterrupt = 3;
-    responseQueue.push(0); // Status code, i.e., drive closed with no disc
-    //responseQueue.push(0x11);
-    //responseQueue.push(0x80);
 
-    // hard-coded second answer
-    secondResponseInterrupt = 5;
-    secondResponseQueue.push(0x08);
-    secondResponseQueue.push(0x40);
-    secondResponseQueue.push(0x00);
-    secondResponseQueue.push(0x00);
-    //secondResponseQueue.push(0x00);
-    //secondResponseQueue.push(0x00);
-    //secondResponseQueue.push(0x00);
-    //secondResponseQueue.push(0x00);
+    if (empty) {
+        responseInterrupt = 3;
+        responseQueue.push(0x08); // Stat again, i.e., drive closed with no disc
+
+        secondResponseInterrupt = 5;
+        secondResponseQueue.push(0x08);
+        secondResponseQueue.push(0x40);
+        secondResponseQueue.push(0x00);
+        secondResponseQueue.push(0x00);
+        secondResponseQueue.push(0x00);
+        secondResponseQueue.push(0x00);
+        secondResponseQueue.push(0x00);
+        secondResponseQueue.push(0x00);
+    } else {
+        // Licensed Mode 2
+        responseInterrupt = 3;
+        responseQueue.push(0x02); // Stat again, i.e., Motor on
+
+        secondResponseInterrupt = 2;
+        secondResponseQueue.push(0x02); // stat
+        secondResponseQueue.push(0x00); // flags
+        secondResponseQueue.push(0x20); // type
+        secondResponseQueue.push(0x00); // atip
+        secondResponseQueue.push(0x53); // S
+        secondResponseQueue.push(0x43); // C
+        secondResponseQueue.push(0x45); // E
+        secondResponseQueue.push(0x41); // A
+    }
 }
 
 void CDROM::UnknownSF() {

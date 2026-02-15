@@ -84,6 +84,8 @@ private:
     uint8_t secondResponseInterrupt;
     Queue secondResponseQueue;
 
+    bool empty;
+
 public:
     CDROM(Bus *bus);
     void reset();
