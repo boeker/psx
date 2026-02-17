@@ -15,6 +15,7 @@
 #include "vramviewerwindow.h"
 
 #include "psx/core.h"
+#include "psx/cd.h"
 #include "psx/gamepad.h"
 #include "psx/renderer/software/softwarerenderer.h"
 #include "psx/util/log.h"
@@ -136,6 +137,8 @@ MainWindow::~MainWindow() {
 void MainWindow::makeConnections() {
     connect(ui->actionLoadExecutable, &QAction::triggered,
             this, qOverload<>(&MainWindow::loadExecutable));
+    connect(ui->actionLoadCDImage, &QAction::triggered,
+            this, qOverload<>(&MainWindow::loadCDImage));
     connect(ui->actionExit, &QAction::triggered,
             QCoreApplication::instance(), &QCoreApplication::quit);
 
@@ -179,6 +182,14 @@ void MainWindow::setExecutableFileName(const QString &fileName) {
     executableFileName = fileName;
 }
 
+void MainWindow::loadCDImage() {
+    setCDImageFileName(QFileDialog::getOpenFileName(this, tr("Load CD Image")));
+}
+
+void MainWindow::setCDImageFileName(const QString &fileName) {
+    cdImageFileName = fileName;
+}
+
 void MainWindow::startPauseEmulation() {
     if (!running) {
         core->reset();
@@ -187,6 +198,10 @@ void MainWindow::startPauseEmulation() {
         core->bus.bios.readFromFile(selectedBios.toStdString());
         if (!executableFileName.isEmpty()) {
             core->bus.executable.readFromFile(executableFileName.toStdString());
+        }
+
+        if (!cdImageFileName.isEmpty()) {
+            core->bus.cdrom.setCD(std::make_unique<PSX::CD>(cdImageFileName.toStdString()));
         }
 
         ui->treeView->setHidden(true);

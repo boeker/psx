@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 
+#include "cd.h"
 #include "cdrom.h"
 #include "cpu.h"
 #include "executable.h"

@@ -8,6 +8,7 @@
 #include "util/log.h"
 
 #include "bus.h"
+#include "cd.h"
 
 using namespace util;
 
@@ -97,8 +98,10 @@ void CDROM::reset() {
     responseQueue.clear();
     secondResponseInterrupt = 0;
     secondResponseQueue.clear();
+}
 
-    empty = false;
+void CDROM::setCD(std::unique_ptr<CD> cd) {
+    this->cd = std::move(cd);
 }
 
 void CDROM::updateStatusRegister() {
@@ -154,6 +157,7 @@ void CDROM::notifyAboutINT10() {
 }
 
 void CDROM::updateInterruptFlagRegister(uint8_t value) {
+    LOG_CDROM("Updating flag register");
     // 7 - CHPRST: Unknown
 
     // 6 - CLRPRM: Reset Parameter Queue
@@ -177,6 +181,7 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
     bool wasInterrupt = interruptFlagRegister & 0x3;
     interruptFlagRegister = interruptFlagRegister & ~(value & 0x3);
     bool isInterrupt = interruptFlagRegister & 0x3;
+    LOG_CDROM(std::format("Was interrupt active before: {:s}, is interrupt active now: {:s}", wasInterrupt, isInterrupt));
 
     // Acknowledge empties response queue, sends pending command (if there is one)
     // But what counts as an "acknowledge"?
@@ -184,11 +189,13 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
     // And what about INT10 and INT8?
     // Let's assume that we only consider INT1...7 and that it has to be cleared completely
     if (wasInterrupt && !isInterrupt) {
+        LOG_CDROM("Clearing response queue");
         // Clear response queue
         responseQueue.clear();
 
         // Check if there is a second response waiting
         if (secondResponseInterrupt != 0) {
+            LOG_CDROM(std::format("Fetching second response {:d}", secondResponseInterrupt));
             // swap first and second response queue
             std::swap(responseQueue, secondResponseQueue);
             notifyAboutINT1to7(secondResponseInterrupt);
@@ -556,7 +563,7 @@ void CDROM::Unknown() {
 }
 
 void CDROM::Getstat() {
-    LOG_CDROM(std::format("Command: Getstat"));
+    LOG_CDROM(std::format("Getstat()"));
     //7  Play          Playing CD-DA         ;\only ONE of these bits can be set
     //6  Seek          Seeking               ; at a time (ie. Read/Play won't get
     //5  Read          Reading data sectors  ;/set until after Seek completion)
@@ -567,17 +574,17 @@ void CDROM::Getstat() {
     //0  Error         Invalid Command/parameters (followed by Error Byte)
 
     responseInterrupt = 3;
-    if (empty) {
+    if (cd) {
         responseQueue.push(0x08); // Empty drive (?)
         //responseQueue.push(1 << 3); // GetID denied for now
         //responseQueue.push(1 << 4); // ShellOpen for now
     } else {
-        responseQueue.push(0x02); // Motor on
+        responseQueue.push(0x00); // Motor off
     }
 }
 
 void CDROM::Test() {
-    LOG_CDROM(std::format("Command: Test"));
+    LOG_CDROM(std::format("Test()"));
     function = parameterQueue.pop();
 
     // Execute sub-function
@@ -585,10 +592,10 @@ void CDROM::Test() {
 }
 
 void CDROM::GetID() {
-    LOG_CDROM(std::format("Command: GetID"));
+    LOG_CDROM(std::format("GetID()"));
     // INT3 with status first, then INT5
 
-    if (empty) {
+    if (cd) {
         responseInterrupt = 3;
         responseQueue.push(0x08); // Stat again, i.e., drive closed with no disc
 
@@ -623,6 +630,8 @@ void CDROM::UnknownSF() {
 }
 
 void CDROM::Function0x20() {
+    LOG_CDROM(std::format("Function: 0x20"));
+
     // hard-coded answer
     responseInterrupt = 3;
     responseQueue.push(90); // Year

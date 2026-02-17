@@ -61,6 +61,8 @@ public:
 public slots:
     void loadExecutable();
     void setExecutableFileName(const QString &fileName);
+    void loadCDImage();
+    void setCDImageFileName(const QString &fileName);
 
     void startPauseEmulation();
     void continueEmulation();
@@ -86,6 +88,7 @@ private:
     Ui::MainWindow *ui;
     QFileSystemModel *biosFSModel;
     QString executableFileName;
+    QString cdImageFileName;
 
     // Debugger window
     DebuggerWindow *debuggerWindow;

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <deque>
+#include <memory>
 #include <ostream>
 
 namespace PSX {
@@ -65,6 +66,7 @@ public:
 };
 
 class Bus;
+class CD;
 
 class CDROM {
 private:
@@ -84,11 +86,13 @@ private:
     uint8_t secondResponseInterrupt;
     Queue secondResponseQueue;
 
-    bool empty;
+    std::unique_ptr<CD> cd;
 
 public:
     CDROM(Bus *bus);
     void reset();
+
+    void setCD(std::unique_ptr<CD> cd);
 
     void updateStatusRegister();
     uint8_t getIndex() const;

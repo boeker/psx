@@ -5,6 +5,7 @@ target_compile_features(psx PUBLIC cxx_std_20)
 target_sources(psx PRIVATE
     bios.cpp
     bus.cpp
+    cd.cpp
     cdrom.cpp
     core.cpp
     cp0registers.cpp

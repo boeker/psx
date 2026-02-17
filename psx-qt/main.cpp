@@ -18,6 +18,11 @@ int main(int argc, char *argv[]) {
                                   "bios");
     parser.addOption(biosOption);
 
+    QCommandLineOption cdOption(QStringList() << "C" << "cd",
+                                "Load cd image <cd>.",
+                                "cd");
+    parser.addOption(cdOption);
+
     QCommandLineOption exeOption(QStringList() << "E" << "exe",
                                   "Load executable file <exe>.",
                                   "exe");
@@ -48,6 +53,10 @@ int main(int argc, char *argv[]) {
 
     if (parser.isSet(exeOption)) {
         mainWindow.setExecutableFileName(parser.value(exeOption));
+    }
+
+    if (parser.isSet(cdOption)) {
+        mainWindow.setCDImageFileName(parser.value(cdOption));
     }
 
     mainWindow.show();

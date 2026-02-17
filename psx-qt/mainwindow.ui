@@ -63,6 +63,7 @@
      <string>File</string>
     </property>
     <addaction name="actionLoadExecutable"/>
+    <addaction name="actionLoadCDImage"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
@@ -181,6 +182,11 @@
   <action name="actionLoadExecutable">
    <property name="text">
     <string>Load Executable</string>
+   </property>
+  </action>
+  <action name="actionLoadCDImage">
+   <property name="text">
+    <string>Load CD Image</string>
    </property>
   </action>
  </widget>

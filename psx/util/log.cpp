@@ -137,13 +137,13 @@ LogPack::LogPack()
     //interrupts.setConsoleLogEnabled(true);
     //interruptsV.setConsoleLogEnabled(true);
 
-    gpu.setConsoleLogEnabled(true);
-    renderer.setConsoleLogEnabled(true);
-    rendererV.setConsoleLogEnabled(true);
-    rendererT.setConsoleLogEnabled(true);
+    //gpu.setConsoleLogEnabled(true);
+    //renderer.setConsoleLogEnabled(true);
+    //rendererV.setConsoleLogEnabled(true);
+    //rendererT.setConsoleLogEnabled(true);
 
-    dma.setConsoleLogEnabled(true);
-    dmaV.setConsoleLogEnabled(true);
+    //dma.setConsoleLogEnabled(true);
+    //dmaV.setConsoleLogEnabled(true);
 
     cdrom.setConsoleLogEnabled(true);
     cdromV.setConsoleLogEnabled(true);
