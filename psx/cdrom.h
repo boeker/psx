@@ -100,7 +100,7 @@ private:
     static uint8_t driveStateToStatByte(DriveState driveState);
     DriveState driveState;
 
-    std::string stateAsString() const;
+    std::string prependState(const std::string &str) const;
 
     uint32_t cyclesLeft;
 

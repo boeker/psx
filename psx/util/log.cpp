@@ -134,8 +134,8 @@ LogPack::LogPack()
     //tty.setConsoleLogEnabled(true);
     warning.setConsoleLogEnabled(true);
 
-    //interrupts.setConsoleLogEnabled(true);
-    //interruptsV.setConsoleLogEnabled(true);
+    interrupts.setConsoleLogEnabled(true);
+    interruptsV.setConsoleLogEnabled(true);
 
     //gpu.setConsoleLogEnabled(true);
     //renderer.setConsoleLogEnabled(true);
@@ -147,7 +147,7 @@ LogPack::LogPack()
 
     cdrom.setConsoleLogEnabled(true);
     cdromV.setConsoleLogEnabled(true);
-    cdromT.setConsoleLogEnabled(true);
+    //cdromT.setConsoleLogEnabled(true);
 
     //exceptions.setConsoleLogEnabled(true);
     //exceptionsV.setConsoleLogEnabled(true);
