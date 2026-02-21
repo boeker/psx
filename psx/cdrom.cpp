@@ -138,6 +138,10 @@ void CDROM::reset() {
         driveState = NO_DISC;
     }
     cyclesLeft= 0;
+
+    amm = 0;
+    ass = 0;
+    asect = 0;
 }
 
 void CDROM::catchUpToCPU(uint32_t cycles) {
@@ -674,9 +678,9 @@ void CDROM::Getstat() {
 }
 
 void CDROM::Setloc() {
-    uint8_t amm = parameterQueue.pop();
-    uint8_t ass = parameterQueue.pop();
-    uint8_t asect = parameterQueue.pop();
+    amm = parameterQueue.pop();
+    ass = parameterQueue.pop();
+    asect = parameterQueue.pop();
     // TODO Implement properly
 
     LOG_CDROM(std::format("{:s} Setloc(0x{:02}, 0x{:02}, 0x{:02})", stateAsString(), amm, ass, asect));
@@ -731,7 +735,8 @@ void CDROM::Setmode() {
 
 void CDROM::SeekL() {
     LOG_CDROM(std::format("{:s} SeekL()", stateAsString()));
-    // TODO Implement properly
+
+    cd->seekTo(amm, ass, asect);
 
     responseInterrupt = 3;
     responseQueue.push(0x42);

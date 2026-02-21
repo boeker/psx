@@ -110,6 +110,10 @@ private:
 
     uint32_t cyclesLeft;
 
+    uint8_t amm;
+    uint8_t ass;
+    uint8_t asect;
+
 public:
     CDROM(Bus *bus);
     void reset();
