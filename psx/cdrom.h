@@ -88,6 +88,17 @@ private:
 
     std::unique_ptr<CD> cd;
 
+    enum State {
+        OPEN,
+        NO_DISC,
+        MOTOR_OFF,
+        SPINNING,
+        SEEKING
+    };
+    State state;
+
+    static std::string stateToString(State state);
+
 public:
     CDROM(Bus *bus);
     void reset();

@@ -73,6 +73,23 @@ bool Queue::isFull() {
     return elements == 16;
 }
 
+std::string CDROM::stateToString(State state) {
+    switch (state) {
+        case OPEN:
+            return "OPEN";
+        case NO_DISC:
+            return "NO_DISC";
+        case MOTOR_OFF:
+            return "MOTOR_OFF";
+        case SPINNING:
+            return "SPINNING";
+        case SEEKING:
+            return "SEEKING";
+        default:
+            return "INVALID";
+    }
+}
+
 CDROM::CDROM(Bus *bus)
     : bus(bus) {
 
@@ -98,10 +115,17 @@ void CDROM::reset() {
     responseQueue.clear();
     secondResponseInterrupt = 0;
     secondResponseQueue.clear();
+
+    if (cd) {
+        state = MOTOR_OFF;
+    } else {
+        state = NO_DISC;
+    }
 }
 
 void CDROM::setCD(std::unique_ptr<CD> cd) {
     this->cd = std::move(cd);
+    state = MOTOR_OFF;
 }
 
 void CDROM::updateStatusRegister() {
@@ -563,7 +587,7 @@ void CDROM::Unknown() {
 }
 
 void CDROM::Getstat() {
-    LOG_CDROM(std::format("Getstat()"));
+    LOG_CDROM(std::format("->{:s}<- Getstat()", stateToString(state)));
     //7  Play          Playing CD-DA         ;\only ONE of these bits can be set
     //6  Seek          Seeking               ; at a time (ie. Read/Play won't get
     //5  Read          Reading data sectors  ;/set until after Seek completion)
@@ -573,18 +597,19 @@ void CDROM::Getstat() {
     //1  Spindle Motor (0=Motor off, or in spin-up phase, 1=Motor on)
     //0  Error         Invalid Command/parameters (followed by Error Byte)
 
-    responseInterrupt = 3;
-    if (cd) {
+    if (state == NO_DISC) {
+        responseInterrupt = 3;
         responseQueue.push(0x08); // Empty drive (?)
         //responseQueue.push(1 << 3); // GetID denied for now
         //responseQueue.push(1 << 4); // ShellOpen for now
     } else {
-        responseQueue.push(0x00); // Motor off
+        responseInterrupt = 3;
+        responseQueue.push(0x02);
     }
 }
 
 void CDROM::Test() {
-    LOG_CDROM(std::format("Test()"));
+    LOG_CDROM(std::format("->{:s}<- Test()", stateToString(state)));
     function = parameterQueue.pop();
 
     // Execute sub-function
@@ -592,10 +617,10 @@ void CDROM::Test() {
 }
 
 void CDROM::GetID() {
-    LOG_CDROM(std::format("GetID()"));
+    LOG_CDROM(std::format("->{:s}<- GetID()", stateToString(state)));
     // INT3 with status first, then INT5
 
-    if (cd) {
+    if (state == NO_DISC) {
         responseInterrupt = 3;
         responseQueue.push(0x08); // Stat again, i.e., drive closed with no disc
 
@@ -611,7 +636,7 @@ void CDROM::GetID() {
     } else {
         // Licensed Mode 2
         responseInterrupt = 3;
-        responseQueue.push(0x02); // Stat again, i.e., Motor on
+        responseQueue.push(0x00); // Stat again, i.e., Motor off
 
         secondResponseInterrupt = 2;
         secondResponseQueue.push(0x02); // stat
@@ -634,10 +659,10 @@ void CDROM::Function0x20() {
 
     // hard-coded answer
     responseInterrupt = 3;
-    responseQueue.push(90); // Year
-    responseQueue.push(1); // Month
-    responseQueue.push(1); // Day
-    responseQueue.push(1); // Version
+    responseQueue.push(0x95); // Year
+    responseQueue.push(0x05); // Month
+    responseQueue.push(0x16); // Day
+    responseQueue.push(0xC1); // Version
 }
 
 }
