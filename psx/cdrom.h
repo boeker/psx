@@ -140,8 +140,18 @@ private:
     void Unknown();
     // 0x01
     void Getstat();
+    // 0x02
+    void Setloc();
+    // 0x06
+    void ReadN();
     // 0x08
     void Stop();
+    // 0x09
+    void Pause();
+    // 0x0E
+    void Setmode();
+    // 0x15
+    void SeekL();
     // 0x19
     void Test();
     // 0x1A

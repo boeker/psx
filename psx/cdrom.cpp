@@ -469,14 +469,22 @@ const CDROM::Command CDROM::commands[] = {
     // 0x00
     &CDROM::Unknown,
     &CDROM::Getstat, // 0x01
+    &CDROM::Setloc, // 0x02
+    &CDROM::Unknown,
     &CDROM::Unknown, &CDROM::Unknown,
-    &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
+    &CDROM::ReadN,
+    &CDROM::Unknown,
     &CDROM::Stop, // 0x08
-    &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
-    &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
+    &CDROM::Pause, // 0x09
+    &CDROM::Unknown, &CDROM::Unknown,
+    &CDROM::Unknown, &CDROM::Unknown,
+    &CDROM::Setmode, //0x0E
+    &CDROM::Unknown,
     // 0x10
     &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
-    &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
+    &CDROM::Unknown,
+    &CDROM::SeekL, // 0x15
+    &CDROM::Unknown, &CDROM::Unknown,
     &CDROM::Unknown,
     &CDROM::Test, // 0x19
     &CDROM::GetID, // 0x1A
@@ -665,14 +673,71 @@ void CDROM::Getstat() {
     }
 }
 
+void CDROM::Setloc() {
+    uint8_t amm = parameterQueue.pop();
+    uint8_t ass = parameterQueue.pop();
+    uint8_t asect = parameterQueue.pop();
+    // TODO Implement properly
+
+    LOG_CDROM(std::format("{:s} Setloc(0x{:02}, 0x{:02}, 0x{:02})", stateAsString(), amm, ass, asect));
+
+    responseInterrupt = 3;
+    responseQueue.push(0x02);
+}
+
+void CDROM::ReadN() {
+    LOG_CDROM(std::format("{:s} ReadN()", stateAsString()));
+    // TODO Implement properly
+
+    responseInterrupt = 3;
+    responseQueue.push(0x22);
+
+    responseInterrupt = 1;
+    responseQueue.push(0x02);
+
+    // TODO Return data
+}
+
 void CDROM::Stop() {
     LOG_CDROM(std::format("{:s} Stop()", stateAsString()));
+    // TODO Implement properly
 
     responseInterrupt = 3;
     responseQueue.push(0x00); // Nothing going on
 
     secondResponseInterrupt = 2;
     secondResponseQueue.push(0x00); // Still nothing going on
+}
+
+void CDROM::Pause() {
+    LOG_CDROM(std::format("{:s} Pause()", stateAsString()));
+    // TODO Implement properly
+
+    responseInterrupt = 3;
+    responseQueue.push(0x22); // Still reading (if reading before)
+
+    secondResponseInterrupt = 2;
+    secondResponseQueue.push(0x02); // Not reading anymore
+}
+
+void CDROM::Setmode() {
+    uint8_t mode = parameterQueue.pop();
+    LOG_CDROM(std::format("{:s} Setmode(0x{:02X})", stateAsString(), mode));
+    // TODO Implement properly
+
+    responseInterrupt = 3;
+    responseQueue.push(0x00); // Nothing going on
+}
+
+void CDROM::SeekL() {
+    LOG_CDROM(std::format("{:s} SeekL()", stateAsString()));
+    // TODO Implement properly
+
+    responseInterrupt = 3;
+    responseQueue.push(0x42);
+
+    responseInterrupt = 2;
+    responseQueue.push(0x02);
 }
 
 void CDROM::Test() {
