@@ -78,16 +78,6 @@ private:
     uint8_t interruptFlagRegister;
     uint8_t requestRegister;
 
-    uint8_t command;
-    uint8_t function;
-    Queue parameterQueue;
-    uint8_t responseInterrupt;
-    Queue responseQueue;
-    uint8_t secondResponseInterrupt;
-    Queue secondResponseQueue;
-
-    std::unique_ptr<CD> cd;
-
     enum InternalState {
         IDLE,
         TRANSFER_COMMAND,
@@ -97,22 +87,43 @@ private:
     InternalState internalState;
 
     enum DriveState {
+        INVALID,
         OPEN,
         NO_DISC,
         MOTOR_OFF,
         MOTOR_ON,
-        SEEKING
+        PLAYING,
+        SEEKING,
+        READING
     };
     static std::string driveStateToString(DriveState driveState);
+    static uint8_t driveStateToStatByte(DriveState driveState);
     DriveState driveState;
 
     std::string stateAsString() const;
 
     uint32_t cyclesLeft;
 
+    uint8_t command;
+    uint8_t function;
+    Queue parameterQueue;
+
+    uint8_t responseInterrupt;
+    Queue responseQueue;
+    DriveState responseDriveState;
+
+    uint8_t secondResponseInterrupt;
+    Queue secondResponseQueue;
+    DriveState secondResponseDriveState;
+
+    std::unique_ptr<CD> cd;
+
+
     uint8_t amm;
     uint8_t ass;
     uint8_t asect;
+
+    uint8_t dataQueueBytesRemaining;
 
 public:
     CDROM(Bus *bus);

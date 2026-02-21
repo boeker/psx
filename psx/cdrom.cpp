@@ -98,10 +98,44 @@ std::string CDROM::driveStateToString(DriveState driveState) {
             return "MOTOR_OFF";
         case MOTOR_ON:
             return "MOTOR_ON";
+        case PLAYING:
+            return "PLAYING";
         case SEEKING:
             return "SEEKING";
+        case READING:
+            return "READING";
         default:
             return "INVALID";
+    }
+}
+
+uint8_t CDROM::driveStateToStatByte(DriveState driveState) {
+    //7  Play          Playing CD-DA         ;\only ONE of these bits can be set
+    //6  Seek          Seeking               ; at a time (ie. Read/Play won't get
+    //5  Read          Reading data sectors  ;/set until after Seek completion)
+    //4  ShellOpen     Once shell open (0=Closed, 1=Is/was Open)
+    //3  IdError       (0=Okay, 1=GetID denied) (also set when Setmode.Bit4=1)
+    //2  SeekError     (0=Okay, 1=Seek error)     (followed by Error Byte)
+    //1  Spindle Motor (0=Motor off, or in spin-up phase, 1=Motor on)
+    //0  Error         Invalid Command/parameters (followed by Error Byte)
+
+    switch (driveState) {
+        case OPEN:
+            return 0x10;
+        case NO_DISC:
+            return 0x08; // Is that correct?
+        case MOTOR_OFF:
+            return 0x00;
+        case MOTOR_ON:
+            return 0x02;
+        case PLAYING:
+            return 0x82;
+        case SEEKING:
+            return 0x42;
+        case READING:
+            return 0x22;
+        default:
+            return 0x00;
     }
 }
 
@@ -128,8 +162,10 @@ void CDROM::reset() {
     parameterQueue.clear();
     responseInterrupt = 0;
     responseQueue.clear();
+    responseDriveState = INVALID;
     secondResponseInterrupt = 0;
     secondResponseQueue.clear();
+    secondResponseDriveState = INVALID;
 
     internalState = IDLE;
     if (cd) {
@@ -142,6 +178,8 @@ void CDROM::reset() {
     amm = 0;
     ass = 0;
     asect = 0;
+
+    dataQueueBytesRemaining = 0;
 }
 
 void CDROM::catchUpToCPU(uint32_t cycles) {
@@ -153,11 +191,17 @@ void CDROM::catchUpToCPU(uint32_t cycles) {
 
             if (cyclesLeft== 0) {
                 // Execute command
+                responseDriveState = INVALID;
+                secondResponseDriveState = INVALID;
                 (this->*commands[command])();
 
                 // Check if there is a response (commands never return INT8 or INT10)
                 if (responseInterrupt != 0) {
                     notifyAboutINT1to7(responseInterrupt);
+
+                    if (responseDriveState != INVALID) {
+                        driveState = responseDriveState;
+                    }
                 }
 
                 Bit::clearBit(statusRegister, CDROM_STATUS_BUSYSTS);
@@ -177,6 +221,13 @@ void CDROM::catchUpToCPU(uint32_t cycles) {
                 notifyAboutINT1to7(secondResponseInterrupt);
                 secondResponseInterrupt = 0;
 
+                if (secondResponseDriveState != INVALID) {
+                    if (driveState == READING) {
+                        dataQueueBytesRemaining = cd->getSectorSize();
+                    }
+                    driveState = secondResponseDriveState;
+                }
+
                 Bit::clearBit(statusRegister, CDROM_STATUS_BUSYSTS);
                 internalState = IDLE;
             }
@@ -191,7 +242,7 @@ void CDROM::setCD(std::unique_ptr<CD> cd) {
 
 void CDROM::updateStatusRegister() {
     Bit::clearBit(statusRegister, CDROM_STATUS_BUSYSTS);
-    Bit::setBit(statusRegister, CDROM_STATUS_DRQSTS, 0); // TODO Data queue
+    Bit::setBit(statusRegister, CDROM_STATUS_DRQSTS, dataQueueBytesRemaining > 0);
     Bit::setBit(statusRegister, CDROM_STATUS_RSLRRDY, !responseQueue.isEmpty());
     Bit::setBit(statusRegister, CDROM_STATUS_PRMWRDY, !parameterQueue.isFull());
     Bit::setBit(statusRegister, CDROM_STATUS_PRMEMPT, parameterQueue.isEmpty());
@@ -434,9 +485,13 @@ uint8_t CDROM::read(uint32_t address) {
             case 1: // Mirror of data queue
             case 2: // Mirror of data queue
             case 3: // Mirror of data queue
-                LOG_CDROM("Unimplemented read from data queue");
-                // TODO Implement data queue
-                //LOG_CDROM(std::format("Reading byte from data queue: 0x{:02X}", value));
+                if (dataQueueBytesRemaining > 0) {
+                    value = cd->readByte();
+                } else {
+                    LOG_CDROM("Read from empty data queue");
+                }
+                --dataQueueBytesRemaining;
+                LOGT_CDROM(std::format("Read from data queue: 0x{:02X}", value));
                 break;
             default:
                 assert(false);
@@ -681,7 +736,6 @@ void CDROM::Setloc() {
     amm = parameterQueue.pop();
     ass = parameterQueue.pop();
     asect = parameterQueue.pop();
-    // TODO Implement properly
 
     LOG_CDROM(std::format("{:s} Setloc(0x{:02}, 0x{:02}, 0x{:02})", stateAsString(), amm, ass, asect));
 
@@ -691,37 +745,38 @@ void CDROM::Setloc() {
 
 void CDROM::ReadN() {
     LOG_CDROM(std::format("{:s} ReadN()", stateAsString()));
-    // TODO Implement properly
 
     responseInterrupt = 3;
-    responseQueue.push(0x22);
+    responseDriveState = READING;
+    responseQueue.push(driveStateToStatByte(responseDriveState));
 
     responseInterrupt = 1;
-    responseQueue.push(0x02);
-
-    // TODO Return data
+    secondResponseDriveState = MOTOR_ON;
+    secondResponseQueue.push(driveStateToStatByte(secondResponseDriveState));
 }
 
 void CDROM::Stop() {
     LOG_CDROM(std::format("{:s} Stop()", stateAsString()));
-    // TODO Implement properly
 
     responseInterrupt = 3;
-    responseQueue.push(0x00); // Nothing going on
+    //responseDriveState = driveState; // Do not update state
+    responseQueue.push(driveStateToStatByte(driveState));
 
     secondResponseInterrupt = 2;
-    secondResponseQueue.push(0x00); // Still nothing going on
+    secondResponseDriveState = MOTOR_OFF;
+    secondResponseQueue.push(driveStateToStatByte(secondResponseDriveState));
 }
 
 void CDROM::Pause() {
     LOG_CDROM(std::format("{:s} Pause()", stateAsString()));
-    // TODO Implement properly
 
     responseInterrupt = 3;
-    responseQueue.push(0x22); // Still reading (if reading before)
+    //responseDriveState = driveState; // Still reading (if reading before), do not update state
+    responseQueue.push(driveStateToStatByte(driveState));
 
     secondResponseInterrupt = 2;
-    secondResponseQueue.push(0x02); // Not reading anymore
+    secondResponseDriveState = MOTOR_ON;
+    secondResponseQueue.push(driveStateToStatByte(secondResponseDriveState));
 }
 
 void CDROM::Setmode() {
@@ -739,10 +794,12 @@ void CDROM::SeekL() {
     cd->seekTo(amm, ass, asect);
 
     responseInterrupt = 3;
-    responseQueue.push(0x42);
+    responseDriveState = SEEKING;
+    responseQueue.push(driveStateToStatByte(responseDriveState));
 
-    responseInterrupt = 2;
-    responseQueue.push(0x02);
+    secondResponseInterrupt = 2;
+    secondResponseDriveState = MOTOR_ON;
+    secondResponseQueue.push(driveStateToStatByte(secondResponseDriveState));
 }
 
 void CDROM::Test() {

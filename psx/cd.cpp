@@ -35,5 +35,9 @@ uint8_t CD::readByte() {
     return val;
 }
 
+uint32_t CD::getSectorSize() const {
+    return SECTOR_SIZE - 12;
+}
+
 }
 
