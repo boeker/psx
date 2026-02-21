@@ -29,6 +29,7 @@ void Core::emulateStep() {
     bus.gpu.catchUpToCPU(cyclesTaken);
     bus.timers.catchUpToCPU(cyclesTaken);
     bus.gio.catchUpToCPU(cyclesTaken);
+    bus.cdrom.catchUpToCPU(cyclesTaken);
 }
 
 void Core::emulateBlock() {
@@ -42,7 +43,7 @@ void Core::emulateBlock() {
 
     bus.gpu.catchUpToCPU(cyclesTaken);
     bus.timers.catchUpToCPU(cyclesTaken);
-    bus.gio.catchUpToCPU(cyclesTaken);
+    bus.cdrom.catchUpToCPU(cyclesTaken);
 }
 
 void Core::emulateUntilVBLANK() {

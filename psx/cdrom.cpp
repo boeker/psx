@@ -73,16 +73,31 @@ bool Queue::isFull() {
     return elements == 16;
 }
 
-std::string CDROM::stateToString(State state) {
-    switch (state) {
+std::string CDROM::stateAsString() const {
+    return std::format("[{:s}-{:s}]", internalStateToString(internalState), driveStateToString(driveState));
+}
+
+std::string CDROM::internalStateToString(InternalState internalState) {
+    switch (internalState) {
+        case IDLE:
+            return "IDLE";
+        case TRANSFER_COMMAND:
+            return "TRANSFER_COMMAND";
+        default:
+            return "INVALID";
+    }
+}
+
+std::string CDROM::driveStateToString(DriveState driveState) {
+    switch (driveState) {
         case OPEN:
             return "OPEN";
         case NO_DISC:
             return "NO_DISC";
         case MOTOR_OFF:
             return "MOTOR_OFF";
-        case SPINNING:
-            return "SPINNING";
+        case MOTOR_ON:
+            return "MOTOR_ON";
         case SEEKING:
             return "SEEKING";
         default:
@@ -116,20 +131,62 @@ void CDROM::reset() {
     secondResponseInterrupt = 0;
     secondResponseQueue.clear();
 
+    internalState = IDLE;
     if (cd) {
-        state = MOTOR_OFF;
+        driveState = MOTOR_ON;
     } else {
-        state = NO_DISC;
+        driveState = NO_DISC;
+    }
+    cyclesLeft= 0;
+}
+
+void CDROM::catchUpToCPU(uint32_t cycles) {
+    switch (internalState) {
+        case IDLE:
+            break;
+        case TRANSFER_COMMAND:
+            cyclesLeft -= std::min(cyclesLeft, cycles);
+
+            if (cyclesLeft== 0) {
+                // Execute command
+                (this->*commands[command])();
+
+                // Check if there is a response (commands never return INT8 or INT10)
+                if (responseInterrupt != 0) {
+                    notifyAboutINT1to7(responseInterrupt);
+                }
+
+                Bit::clearBit(statusRegister, CDROM_STATUS_BUSYSTS);
+                internalState = IDLE;
+            }
+
+            break;
+        case PRODUCE_SECOND_RESPONSE:
+            cyclesLeft -= std::min(cyclesLeft, cycles);
+
+            if (cyclesLeft == 0) {
+                LOG_CDROM(std::format("Producing second response {:d}", secondResponseInterrupt));
+                assert(secondResponseInterrupt != 0);
+
+                // swap first and second response queue
+                std::swap(responseQueue, secondResponseQueue);
+                notifyAboutINT1to7(secondResponseInterrupt);
+                secondResponseInterrupt = 0;
+
+                Bit::clearBit(statusRegister, CDROM_STATUS_BUSYSTS);
+                internalState = IDLE;
+            }
+            break;
     }
 }
 
 void CDROM::setCD(std::unique_ptr<CD> cd) {
     this->cd = std::move(cd);
-    state = MOTOR_OFF;
+    driveState = MOTOR_ON;
 }
 
 void CDROM::updateStatusRegister() {
-    Bit::setBit(statusRegister, CDROM_STATUS_BUSYSTS, 0); // TODO Busy during command/parameter transmission
+    Bit::clearBit(statusRegister, CDROM_STATUS_BUSYSTS);
     Bit::setBit(statusRegister, CDROM_STATUS_DRQSTS, 0); // TODO Data queue
     Bit::setBit(statusRegister, CDROM_STATUS_RSLRRDY, !responseQueue.isEmpty());
     Bit::setBit(statusRegister, CDROM_STATUS_PRMWRDY, !parameterQueue.isFull());
@@ -141,18 +198,15 @@ uint8_t CDROM::getIndex() const {
     return statusRegister & 0x3;
 }
 
-void CDROM::executeCommand() {
+void CDROM::sendCommand() {
+    LOG_CDROM(std::format("{:s} Sending command 0x{:02X}",stateAsString(), command));
     if (Bit::getBit(requestRegister, CDROM_REQUEST_SMEN)) {
         notifyAboutINT10();
     }
 
-    // Execute command
-    (this->*commands[command])();
-
-    // Check if there is a response (commands never return INT8 or INT10)
-    if (responseInterrupt != 0) {
-        notifyAboutINT1to7(responseInterrupt);
-    }
+    internalState = TRANSFER_COMMAND;
+    Bit::setBit(statusRegister, CDROM_STATUS_BUSYSTS);
+    cyclesLeft = 0xC4E1;
 }
 
 void CDROM::notifyAboutINT1to7(uint8_t interruptNumber) {
@@ -213,16 +267,16 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
     // And what about INT10 and INT8?
     // Let's assume that we only consider INT1...7 and that it has to be cleared completely
     if (wasInterrupt && !isInterrupt) {
-        LOG_CDROM("Clearing response queue");
+        LOG_CDROM("Acknowledge: Clearing response queue and checking for second response");
         // Clear response queue
         responseQueue.clear();
 
         // Check if there is a second response waiting
         if (secondResponseInterrupt != 0) {
-            LOG_CDROM(std::format("Fetching second response {:d}", secondResponseInterrupt));
-            // swap first and second response queue
-            std::swap(responseQueue, secondResponseQueue);
-            notifyAboutINT1to7(secondResponseInterrupt);
+            LOG_CDROM(std::format("Lining up second response {:d}", secondResponseInterrupt));
+            internalState = PRODUCE_SECOND_RESPONSE;
+            Bit::setBit(statusRegister, CDROM_STATUS_BUSYSTS);
+            cyclesLeft = 0x4A00;
         }
     }
 }
@@ -253,7 +307,7 @@ void CDROM::write(uint32_t address, uint8_t value) {
             case 0: // Command Register
                 LOGV_CDROM(std::format("Write to command register: 0x{:02X}", value));
                 command = value;
-                executeCommand();
+                sendCommand();
                 break;
             case 1: // Sound Map Data Out
                 LOG_CDROM(std::format("Unimplemented write to Sound Map Data Out: 0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex()));
@@ -417,14 +471,16 @@ const CDROM::Command CDROM::commands[] = {
     &CDROM::Getstat, // 0x01
     &CDROM::Unknown, &CDROM::Unknown,
     &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
-    &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
+    &CDROM::Stop, // 0x08
+    &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
     &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
     // 0x10
     &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
     &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
     &CDROM::Unknown,
     &CDROM::Test, // 0x19
-    &CDROM::Unknown, &CDROM::Unknown,
+    &CDROM::GetID, // 0x1A
+    &CDROM::Unknown,
     &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
     // 0x20
     &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
@@ -587,7 +643,7 @@ void CDROM::Unknown() {
 }
 
 void CDROM::Getstat() {
-    LOG_CDROM(std::format("->{:s}<- Getstat()", stateToString(state)));
+    LOG_CDROM(std::format("{:s} Getstat()", stateAsString()));
     //7  Play          Playing CD-DA         ;\only ONE of these bits can be set
     //6  Seek          Seeking               ; at a time (ie. Read/Play won't get
     //5  Read          Reading data sectors  ;/set until after Seek completion)
@@ -597,9 +653,10 @@ void CDROM::Getstat() {
     //1  Spindle Motor (0=Motor off, or in spin-up phase, 1=Motor on)
     //0  Error         Invalid Command/parameters (followed by Error Byte)
 
-    if (state == NO_DISC) {
+    if (driveState == NO_DISC) {
         responseInterrupt = 3;
         responseQueue.push(0x08); // Empty drive (?)
+        //responseQueue.push(0x80); // Empty drive (?)
         //responseQueue.push(1 << 3); // GetID denied for now
         //responseQueue.push(1 << 4); // ShellOpen for now
     } else {
@@ -608,8 +665,18 @@ void CDROM::Getstat() {
     }
 }
 
+void CDROM::Stop() {
+    LOG_CDROM(std::format("{:s} Stop()", stateAsString()));
+
+    responseInterrupt = 3;
+    responseQueue.push(0x00); // Nothing going on
+
+    secondResponseInterrupt = 2;
+    secondResponseQueue.push(0x00); // Still nothing going on
+}
+
 void CDROM::Test() {
-    LOG_CDROM(std::format("->{:s}<- Test()", stateToString(state)));
+    LOG_CDROM(std::format("{:s} Test()", stateAsString()));
     function = parameterQueue.pop();
 
     // Execute sub-function
@@ -617,10 +684,10 @@ void CDROM::Test() {
 }
 
 void CDROM::GetID() {
-    LOG_CDROM(std::format("->{:s}<- GetID()", stateToString(state)));
+    LOG_CDROM(std::format("{:s} GetID()", stateAsString()));
     // INT3 with status first, then INT5
 
-    if (state == NO_DISC) {
+    if (driveState == NO_DISC) {
         responseInterrupt = 3;
         responseQueue.push(0x08); // Stat again, i.e., drive closed with no disc
 

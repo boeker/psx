@@ -88,27 +88,40 @@ private:
 
     std::unique_ptr<CD> cd;
 
-    enum State {
+    enum InternalState {
+        IDLE,
+        TRANSFER_COMMAND,
+        PRODUCE_SECOND_RESPONSE
+    };
+    static std::string internalStateToString(InternalState internalState);
+    InternalState internalState;
+
+    enum DriveState {
         OPEN,
         NO_DISC,
         MOTOR_OFF,
-        SPINNING,
+        MOTOR_ON,
         SEEKING
     };
-    State state;
+    static std::string driveStateToString(DriveState driveState);
+    DriveState driveState;
 
-    static std::string stateToString(State state);
+    std::string stateAsString() const;
+
+    uint32_t cyclesLeft;
 
 public:
     CDROM(Bus *bus);
     void reset();
+
+    void catchUpToCPU(uint32_t cycles);
 
     void setCD(std::unique_ptr<CD> cd);
 
     void updateStatusRegister();
     uint8_t getIndex() const;
 
-    void executeCommand();
+    void sendCommand();
     void notifyAboutINT1to7(uint8_t interruptNumber);
     void notifyAboutINT10();
     void updateInterruptFlagRegister(uint8_t value);
@@ -127,6 +140,8 @@ private:
     void Unknown();
     // 0x01
     void Getstat();
+    // 0x08
+    void Stop();
     // 0x19
     void Test();
     // 0x1A
