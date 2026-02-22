@@ -134,8 +134,8 @@ LogPack::LogPack()
     //tty.setConsoleLogEnabled(true);
     warning.setConsoleLogEnabled(true);
 
-    interrupts.setConsoleLogEnabled(true);
-    interruptsV.setConsoleLogEnabled(true);
+    //interrupts.setConsoleLogEnabled(true);
+    //interruptsV.setConsoleLogEnabled(true);
 
     //gpu.setConsoleLogEnabled(true);
     //renderer.setConsoleLogEnabled(true);
