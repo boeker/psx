@@ -104,6 +104,7 @@ private:
 
     uint32_t cyclesLeft;
 
+    bool pending;
     uint8_t command;
     uint8_t function;
     Queue parameterQueue;
@@ -114,6 +115,7 @@ private:
         DriveState driveState;
         uint32_t cycles;
         bool spam;
+        bool delivered;
 
         Response() {
             reset();
@@ -124,6 +126,7 @@ private:
             driveState = STAY;
             cycles = 0xC4E1;
             spam = false;
+            delivered = false;
         }
         void setAndPush(DriveState driveState) {
             this->driveState = driveState;
@@ -156,7 +159,7 @@ public:
     void sendCommand();
     void scheduleFirstResponse();
     void scheduleSecondResponse();
-    void produceResponse(const Response &response);
+    void deliverResponse(Response &response);
     void notifyAboutINT1to7(uint8_t interruptNumber);
     void notifyAboutINT10();
 

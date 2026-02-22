@@ -95,11 +95,11 @@ std::string CDROM::driveStateToString(DriveState driveState) {
         case OPEN:
             return "OPEN";
         case NO_DISC:
-            return "NDSC";
+            return "NODI";
         case MOTOR_OFF:
             return "MOFF";
         case MOTOR_ON:
-            return "MOON";
+            return "SPIN";
         case PLAYING:
             return "PLAY";
         case SEEKING:
@@ -162,6 +162,7 @@ void CDROM::reset() {
     interruptFlagRegister = 0;
     requestRegister = 0;
 
+    pending = false;
     command = 0;
     function = 0;
     parameterQueue.clear();
@@ -199,31 +200,34 @@ void CDROM::catchUpToCPU(uint32_t cycles) {
         case IDLE:
             break;
         case FIRST_RESPONSE:
-            LOG_CDROM(prependState(std::format("========> Producing first response {:d}", secondResponse.interrupt)));
-            produceResponse(firstResponse);
+            LOG_CDROM(prependState(std::format("========> Producing first response {:d}", firstResponse.interrupt)));
+            deliverResponse(firstResponse);
             break;
         case SECOND_RESPONSE:
             LOG_CDROM(prependState(std::format("========> Producing second response {:d}", secondResponse.interrupt)));
-            produceResponse(secondResponse);
+            deliverResponse(secondResponse);
             break;
     }
 }
 
 
 void CDROM::sendCommand() {
-    LOG_CDROM(prependState(std::format("Sending command 0x{:02X}", command)));
-    if (Bit::getBit(requestRegister, CDROM_REQUEST_SMEN)) {
-        notifyAboutINT10();
+    if (controllerState == IDLE || (controllerState == SECOND_RESPONSE && secondResponse.delivered)) {
+        pending = false;
+        LOG_CDROM(prependState(std::format("Sending command 0x{:02X}", command)));
+        if (Bit::getBit(requestRegister, CDROM_REQUEST_SMEN)) {
+            notifyAboutINT10();
+        }
+
+        // Reset existing responses
+        firstResponse.reset();
+        secondResponse.reset();
+
+        // Execute command
+        (this->*commands[command])();
+
+        scheduleFirstResponse();
     }
-
-    // Reset existing responses
-    firstResponse.reset();
-    secondResponse.reset();
-
-    // Execute command
-    (this->*commands[command])();
-
-    scheduleFirstResponse();
 }
 
 void CDROM::scheduleFirstResponse() {
@@ -242,13 +246,15 @@ void CDROM::scheduleSecondResponse() {
     cyclesLeft = secondResponse.cycles;
 }
 
-void CDROM::produceResponse(const Response &response) {
+void CDROM::deliverResponse(Response &response) {
     // Copy queue from response
     responseQueue = response.queue;
     Bit::clearBit(statusRegister, CDROM_STATUS_BUSYSTS);
 
     // Check if there is a response (commands never return INT8 or INT10)
     if (response.interrupt != 0) {
+        response.delivered = true;
+
         notifyAboutINT1to7(response.interrupt);
 
         if (response.spam) {
@@ -319,6 +325,7 @@ void CDROM::write(uint32_t address, uint8_t value) {
             case 0: // Command Register
                 LOGV_CDROM(prependState(std::format("0x{:02X} -> command register", value)));
                 command = value;
+                pending = true;
                 sendCommand();
                 break;
             case 1: // Sound Map Data Out
@@ -519,9 +526,9 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
     }
 
     // 2 to 0: Acknowledge INT1...7
-    bool wasInterrupt = interruptFlagRegister & 0x3;
-    interruptFlagRegister = interruptFlagRegister & ~(value & 0x3);
-    bool isInterrupt = interruptFlagRegister & 0x3;
+    bool wasInterrupt = interruptFlagRegister & 0x7;
+    interruptFlagRegister = interruptFlagRegister & ~(value & 0x7);
+    bool isInterrupt = interruptFlagRegister & 0x7;
     //LOG_CDROM(std::format("Was interrupt active before: {:s}, is interrupt active now: {:s}", wasInterrupt, isInterrupt));
 
     // Acknowledge empties response queue, sends pending command (if there is one)
@@ -534,9 +541,13 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
         // Clear response queue
         responseQueue.clear();
 
-        // Check if there is a second response waiting
-        if (secondResponse.interrupt != 0) {
-            scheduleSecondResponse();
+        if (pending && secondResponse.interrupt == 0 || secondResponse.delivered) {
+            sendCommand();
+        } else {
+            // Check if there is a second response waiting
+            if (secondResponse.interrupt != 0 && !secondResponse.delivered) {
+                scheduleSecondResponse();
+            }
         }
     }
 }
