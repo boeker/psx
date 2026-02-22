@@ -78,16 +78,16 @@ private:
     uint8_t interruptFlagRegister;
     uint8_t requestRegister;
 
-    enum InternalState {
+    enum ControllerState {
         IDLE,
-        TRANSFER_COMMAND,
-        PRODUCE_SECOND_RESPONSE
+        FIRST_RESPONSE,
+        SECOND_RESPONSE
     };
-    static std::string internalStateToString(InternalState internalState);
-    InternalState internalState;
+    static std::string controllerStateToString(ControllerState controllerState);
+    ControllerState controllerState;
 
     enum DriveState {
-        INVALID,
+        STAY,
         OPEN,
         NO_DISC,
         MOTOR_OFF,
@@ -108,13 +108,35 @@ private:
     uint8_t function;
     Queue parameterQueue;
 
-    uint8_t responseInterrupt;
-    Queue responseQueue;
-    DriveState responseDriveState;
+    struct Response {
+        uint8_t interrupt;
+        Queue queue;
+        DriveState driveState;
+        uint32_t cycles;
+        bool spam;
 
-    uint8_t secondResponseInterrupt;
-    Queue secondResponseQueue;
-    DriveState secondResponseDriveState;
+        Response() {
+            reset();
+        }
+        void reset() {
+            interrupt = 0;
+            queue.clear();
+            driveState = STAY;
+            cycles = 0xC4E1;
+            spam = false;
+        }
+        void setAndPush(DriveState driveState) {
+            this->driveState = driveState;
+            pushStatByte();
+        }
+        void pushStatByte() {
+            queue.push(driveStateToStatByte(driveState));
+        }
+    };
+
+    Queue responseQueue;
+    Response firstResponse;
+    Response secondResponse;
 
     std::unique_ptr<CD> cd;
 
@@ -128,24 +150,24 @@ private:
 public:
     CDROM(Bus *bus);
     void reset();
-
+    void setCD(std::unique_ptr<CD> cd);
     void catchUpToCPU(uint32_t cycles);
 
-    void setCD(std::unique_ptr<CD> cd);
-
-    void updateStatusRegister();
-    uint8_t getIndex() const;
-
     void sendCommand();
+    void scheduleFirstResponse();
+    void scheduleSecondResponse();
+    void produceResponse(const Response &response);
     void notifyAboutINT1to7(uint8_t interruptNumber);
     void notifyAboutINT10();
-    void updateInterruptFlagRegister(uint8_t value);
 
     template <typename T>
     void write(uint32_t address, T value);
-
     template <typename T>
     T read(uint32_t address);
+
+    uint8_t getIndex() const;
+    void updateStatusRegister();
+    void updateInterruptFlagRegister(uint8_t value);
 
 private:
     // Command table and implementations
