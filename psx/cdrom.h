@@ -89,7 +89,6 @@ private:
     enum DriveState {
         STAY,
         OPEN,
-        NO_DISC,
         MOTOR_OFF,
         MOTOR_ON,
         PLAYING,
@@ -134,6 +133,11 @@ private:
         }
         void pushStatByte() {
             queue.push(driveStateToStatByte(driveState));
+        }
+        void setNoDisc() {
+            interrupt = 5;
+            queue.push(0x01);
+            queue.push(0x80);
         }
     };
 
@@ -188,6 +192,8 @@ private:
     void Stop();
     // 0x09
     void Pause();
+    // 0x0A
+    void Init();
     // 0x0E
     void Setmode();
     // 0x15

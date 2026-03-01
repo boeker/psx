@@ -94,8 +94,6 @@ std::string CDROM::driveStateToString(DriveState driveState) {
     switch (driveState) {
         case OPEN:
             return "OPEN";
-        case NO_DISC:
-            return "NODI";
         case MOTOR_OFF:
             return "MOFF";
         case MOTOR_ON:
@@ -126,9 +124,7 @@ uint8_t CDROM::driveStateToStatByte(DriveState driveState) {
 
     switch (driveState) {
         case OPEN:
-            return 0x10;
-        case NO_DISC:
-            return 0x08; // Is that correct?
+            return 0x11;
         case MOTOR_OFF:
             return 0x00;
         case MOTOR_ON:
@@ -171,11 +167,7 @@ void CDROM::reset() {
     secondResponse.reset();
 
     controllerState = IDLE;
-    if (cd) {
-        driveState = MOTOR_ON;
-    } else {
-        driveState = NO_DISC;
-    }
+    driveState = MOTOR_OFF;
     cyclesLeft= 0;
 
     amm = 0;
@@ -323,7 +315,7 @@ void CDROM::write(uint32_t address, uint8_t value) {
     } else if (address == 0x1F801801) {
         switch (getIndex()) {
             case 0: // Command Register
-                LOGV_CDROM(prependState(std::format("0x{:02X} -> command register", value)));
+                LOGV_CDROM(prependState(std::format("@0x{:08X}: 0x{:02X} -> command register", bus->cpu.instructionPC, value)));
                 command = value;
                 pending = true;
                 sendCommand();
@@ -438,7 +430,7 @@ uint8_t CDROM::read(uint32_t address) {
                 }
                 // TODO Implement wrap-around of response queue
 
-                LOGV_CDROM(prependState(std::format("response queue -> 0x{:02X}", value)));
+                LOGV_CDROM(prependState(std::format("@0x{:08X}: response queue -> 0x{:02X}", bus->cpu.instructionPC, value)));
                 break;
             default:
                 assert(false);
@@ -541,7 +533,7 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
         // Clear response queue
         responseQueue.clear();
 
-        if (pending && secondResponse.interrupt == 0 || secondResponse.delivered) {
+        if (pending && (secondResponse.interrupt == 0 || secondResponse.delivered)) {
             sendCommand();
         } else {
             // Check if there is a second response waiting
@@ -563,7 +555,8 @@ const CDROM::Command CDROM::commands[] = {
     &CDROM::Unknown,
     &CDROM::Stop, // 0x08
     &CDROM::Pause, // 0x09
-    &CDROM::Unknown, &CDROM::Unknown,
+    &CDROM::Init, // 0x0A
+    &CDROM::Unknown,
     &CDROM::Unknown, &CDROM::Unknown,
     &CDROM::Setmode, //0x0E
     &CDROM::Unknown,
@@ -748,9 +741,22 @@ void CDROM::Getstat() {
     //1  Spindle Motor (0=Motor off, or in spin-up phase, 1=Motor on)
     //0  Error         Invalid Command/parameters (followed by Error Byte)
 
-    if (driveState == NO_DISC) {
+    if (driveState == OPEN) {
+        firstResponse.interrupt = 5;
+        firstResponse.queue.push(0x11);
+        firstResponse.queue.push(0x80);
+    }
+
+    if (!cd) {
+        //firstResponse.setNoDisc();
         firstResponse.interrupt = 3;
-        firstResponse.queue.push(0x08); // Empty drive (?)
+        firstResponse.queue.push(0x00);
+        return;
+    }
+
+    if (driveState == MOTOR_OFF) {
+        firstResponse.interrupt = 3;
+        firstResponse.queue.push(0x00);
     } else {
         firstResponse.interrupt = 3;
         firstResponse.queue.push(0x02);
@@ -764,12 +770,22 @@ void CDROM::Setloc() {
 
     LOG_CDROM(prependState(std::format("========> Setloc(0x{:02}, 0x{:02}, 0x{:02}) <========", amm, ass, asect)));
 
+    if (!cd) {
+        firstResponse.setNoDisc();
+        return;
+    }
+
     firstResponse.interrupt = 3;
     firstResponse.queue.push(0x02);
 }
 
 void CDROM::ReadN() {
     LOG_CDROM(prependState(std::format("========> ReadN() <========")));
+
+    if (!cd) {
+        firstResponse.setNoDisc();
+        return;
+    }
 
     firstResponse.interrupt = 3;
     firstResponse.setAndPush(READING);
@@ -782,6 +798,11 @@ void CDROM::ReadN() {
 void CDROM::Stop() {
     LOG_CDROM(prependState(std::format("========> Stop() <========")));
 
+    if (!cd) {
+        firstResponse.setNoDisc();
+        return;
+    }
+
     firstResponse.interrupt = 3;
     firstResponse.setAndPush(driveState); // Current state
 
@@ -791,6 +812,23 @@ void CDROM::Stop() {
 
 void CDROM::Pause() {
     LOG_CDROM(prependState(std::format("========> Pause() <========")));
+
+    if (!cd) {
+        firstResponse.setNoDisc();
+        return;
+    }
+
+    firstResponse.interrupt = 3;
+    firstResponse.setAndPush(driveState); // Old state
+
+    secondResponse.interrupt = 2;
+    secondResponse.setAndPush(MOTOR_ON); // Not reading anymore
+}
+
+void CDROM::Init() {
+    LOG_CDROM(prependState(std::format("========> Init() <========")));
+
+    // TODO set mode to 0x20
 
     firstResponse.interrupt = 3;
     firstResponse.setAndPush(driveState); // Old state
@@ -810,6 +848,11 @@ void CDROM::Setmode() {
 
 void CDROM::SeekL() {
     LOG_CDROM(prependState(std::format("========> SeekL() <========")));
+
+    if (!cd) {
+        firstResponse.setNoDisc();
+        return;
+    }
 
     cd->seekTo(amm, ass, asect);
 
@@ -832,9 +875,33 @@ void CDROM::GetID() {
     LOG_CDROM(prependState(std::format("========> GetID() <========")));
     // INT3 with status first, then INT5
 
-    if (driveState == NO_DISC) {
+    if (driveState == OPEN) {
+        firstResponse.interrupt = 5;
+        firstResponse.queue.push(0x11);
+        firstResponse.queue.push(0x80);
+        return;
+    }
+
+    if (!cd) {
         firstResponse.interrupt = 3;
-        firstResponse.queue.push(0x08); // Stat again, i.e., drive closed with no disc
+        firstResponse.queue.push(0x00);
+
+        secondResponse.interrupt = 5;
+        secondResponse.queue.push(0x08); // Really?
+        secondResponse.queue.push(0x40);
+        secondResponse.queue.push(0x00);
+        secondResponse.queue.push(0x00);
+        secondResponse.queue.push(0x00);
+        secondResponse.queue.push(0x00);
+        secondResponse.queue.push(0x00);
+        secondResponse.queue.push(0x00);
+
+        return;
+    }
+
+    if (driveState == MOTOR_OFF) {
+        firstResponse.interrupt = 3;
+        firstResponse.queue.push(0x00);
 
         secondResponse.interrupt = 5;
         secondResponse.queue.push(0x08);
@@ -845,10 +912,11 @@ void CDROM::GetID() {
         secondResponse.queue.push(0x00);
         secondResponse.queue.push(0x00);
         secondResponse.queue.push(0x00);
+
     } else {
         // Licensed Mode 2
         firstResponse.interrupt = 3;
-        firstResponse.queue.push(0x00); // Stat again, i.e., Motor off
+        firstResponse.queue.push(0x02);
 
         secondResponse.interrupt = 2;
         secondResponse.queue.push(0x02); // stat
@@ -871,10 +939,10 @@ void CDROM::Function0x20() {
 
     // hard-coded answer
     firstResponse.interrupt = 3;
-    firstResponse.queue.push(0x95); // Year
-    firstResponse.queue.push(0x05); // Month
-    firstResponse.queue.push(0x16); // Day
-    firstResponse.queue.push(0xC1); // Version
+    firstResponse.queue.push(0x99); // Year
+    firstResponse.queue.push(0x02); // Month
+    firstResponse.queue.push(0x01); // Day
+    firstResponse.queue.push(0xC3); // Version
 }
 
 }
