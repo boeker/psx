@@ -445,7 +445,7 @@ void CPU::LUI() {
 
 void CPU::ORI() {
     // Or Immediate
-    // T: GPR[rt] <- GPR[rs]_{31...36} || (immedate or GPR[rs]_{15...0})
+    // T: GPR[rt] <- GPR[rs]_{31...16} || (immedate or GPR[rs]_{15...0})
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
