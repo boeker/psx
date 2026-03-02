@@ -569,7 +569,9 @@ const CDROM::Command CDROM::commands[] = {
     &CDROM::Test, // 0x19
     &CDROM::GetID, // 0x1A
     &CDROM::Unknown,
-    &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
+    &CDROM::Unknown, &CDROM::Unknown,
+    &CDROM::ReadTOC,
+    &CDROM::Unknown,
     // 0x20
     &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
     &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
@@ -928,6 +930,18 @@ void CDROM::GetID() {
         secondResponse.queue.push(0x45); // E
         secondResponse.queue.push(0x41); // A
     }
+}
+
+void CDROM::ReadTOC() {
+    LOG_CDROM(prependState(std::format("========> ReadTOC() <========")));
+    // INT3 with status first, then INT2 with status
+
+    firstResponse.interrupt = 3;
+    firstResponse.setAndPush(driveState);
+
+    secondResponse.interrupt = 2;
+    secondResponse.setAndPush(driveState);
+    secondResponse.cycles = 0x1F78A40;
 }
 
 void CDROM::UnknownSF() {

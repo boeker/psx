@@ -202,6 +202,8 @@ private:
     void Test();
     // 0x1A
     void GetID();
+    // 0x1E
+    void ReadTOC();
 
     static const Command subFunctions[];
     void UnknownSF();
