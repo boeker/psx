@@ -43,6 +43,7 @@ void Core::emulateBlock() {
 
     bus.gpu.catchUpToCPU(cyclesTaken);
     bus.timers.catchUpToCPU(cyclesTaken);
+    bus.gio.catchUpToCPU(cyclesTaken);
     bus.cdrom.catchUpToCPU(cyclesTaken);
 }
 
