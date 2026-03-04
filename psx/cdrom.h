@@ -158,6 +158,7 @@ public:
     CDROM(Bus *bus);
     void reset();
     void setCD(std::unique_ptr<CD> cd);
+    CD& getCD();
     void catchUpToCPU(uint32_t cycles);
 
     void sendCommand();

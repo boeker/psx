@@ -118,6 +118,7 @@ public:
     void transferOTC();
     void transferToGPU();
     void transferFromGPU();
+    void transferFromCDROM();
 
 private:
     void updateControlRegister(uint32_t value);

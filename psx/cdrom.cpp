@@ -182,6 +182,10 @@ void CDROM::setCD(std::unique_ptr<CD> cd) {
     driveState = MOTOR_ON;
 }
 
+CD& CDROM::getCD() {
+    return *cd;
+}
+
 void CDROM::catchUpToCPU(uint32_t cycles) {
     cyclesLeft -= std::min(cyclesLeft, cycles);
     if (cyclesLeft > 0) {
@@ -308,7 +312,7 @@ void CDROM::write(uint32_t address, uint8_t value) {
     LOGT_CDROM(prependState(std::format("0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex())));
 
     if (address == 0x1F801800) { // status register
-        LOG_CDROM(prependState(std::format("0x{:02X} -> status register", value)));
+        LOGT_CDROM(prependState(std::format("0x{:02X} -> status register", value)));
         // Only the index can be written to
         statusRegister = (statusRegister & 0xF8) | value & 0x3;
 
@@ -461,12 +465,12 @@ uint8_t CDROM::read(uint32_t address) {
             case 0: // Interrupt Enabled Register
             case 2: // Mirror of Interrupt Enable Register
                 value = interruptEnableRegister | 0xE0; // Bits 7 to 5 unused, usually 1 on read
-                LOGV_CDROM(prependState(std::format("interrupt enable register -> 0x{:02X}", value)));
+                LOGT_CDROM(prependState(std::format("interrupt enable register -> 0x{:02X}", value)));
                 break;
             case 1: // Interrupt Flag Register
             case 3: // Mirror of Interrupt Flag Register
                 value = interruptFlagRegister | 0xE0; // Bits 7 to 5 are always 1
-                LOGV_CDROM(prependState(std::format("interrupt flag register -> 0x{:02X}", value)));
+                LOGT_CDROM(prependState(std::format("interrupt flag register -> 0x{:02X}", value)));
                 break;
             default:
                 assert(false);

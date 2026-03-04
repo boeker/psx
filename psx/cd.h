@@ -18,6 +18,7 @@ public:
 
     void seekTo(uint8_t minutes, uint8_t seconds, uint8_t sectors);
     uint8_t readByte();
+    uint32_t readWord();
 
     uint32_t getSectorSize() const;
 };

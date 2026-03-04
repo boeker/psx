@@ -213,6 +213,12 @@ void DMA::transfer(uint32_t channel) {
                 transferFromGPU();
             }
             break;
+        case 3:
+            if (fromMainRAM) {
+                LOG_DMA(std::format("Channel 3: transfer from main RAM not possible"));
+            } else {
+                transferFromCDROM();
+            }
         case 6:
             transferOTC();
             break;
@@ -456,6 +462,69 @@ void DMA::transferFromGPU() {
     }
 }
 
+void DMA::transferFromCDROM() {
+    LOG_DMA(std::format("Channel 3 (CDROM) transfer: from CDROM"));
+    uint32_t syncMode = (dmaChannelControl[3] >> DCHR_SYNC_MODE0) & 3;
+    uint32_t memoryAddressStep = (dmaChannelControl[3] >> DCHR_MEMORY_ADDRESS_STEP) & 1;
+    bool choppingEnabled = (dmaChannelControl[3] >> DCHR_CHOPPING_ENABLE) & 1;
+
+    if (choppingEnabled) {
+        LOG_DMA(std::format("Channel 3 (CDROM) transfer: chopping enabled but not implemented"));
+    }
+
+    if (syncMode == 0) {
+        uint32_t address = dmaBaseAddress[3];
+
+        LOG_DMA(std::format("Channel 3 (CDROM) transfer: single block @0x{:08X}",
+                            address));
+
+        uint32_t numberOfWords = dmaBlockControl[3] & 0x0000FFFF;
+        if (numberOfWords == 0) {
+            numberOfWords = 0x10000;
+        }
+        uint32_t numberOfBlocks = (dmaBlockControl[3] >> 16) & 0x0000FFFF; // Should be 1
+        if (numberOfBlocks != 1) {
+            LOG_DMA(std::format("Channel 3 (CDROM) transfer: number of blocks is not one, is {:d}",
+                                numberOfBlocks));
+        }
+
+        uint32_t previousAddress = address; // to update base address register
+        for (uint32_t i = 0; i < numberOfWords; ++i) {
+            uint32_t word = bus->cdrom.getCD().readWord();
+            LOG_DMA(std::format("Channel 3 (CDROM) transfer: reading 0x{:08X}", word));
+
+            bus->write<uint32_t>(address, word);
+
+            previousAddress = address;
+            if (memoryAddressStep == 0) {
+                address += 4;
+            } else {
+                address -= 4;
+            }
+        }
+
+        // updates only in chopping mode
+        //dmaBlockControl[3] = (dmaBlockControl[3] & 0x0000FFFF) | (numberOfBlocks << 16);
+        //dmaBaseAddress[3] = previousAddress;
+
+        // do we have to resume CPU operation?
+
+        // Clear start/busy on completion of transfer
+        dmaChannelControl[3] = dmaChannelControl[3] & ~(1 << DCHR_START_BUSY);
+
+        // Set interrupt flag
+        if ((dmaInterruptRegister >> DICR_ENABLE_FLAG_DMA3) & 1) {
+            LOG_DMA(std::format("Channel 3 (CDROM) setting IRQ flag"));
+
+            dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_FLAG_DMA3);
+            processDICRUpdate();
+        }
+
+    } else {
+        LOG_DMA(std::format("Transfer from CDROM: sync mode {:d} not implemented", syncMode));
+    }
+}
+
 
 void DMA::updateControlRegister(uint32_t value) {
     dmaControlRegister = value;
@@ -489,10 +558,14 @@ void DMA::updateInterruptRegister(uint32_t value) {
 void DMA::processDICRUpdate() {
     if ((((dmaInterruptRegister >> DICR_FORCE_IRQ) & 1) // Force IRQ?
          || (((dmaInterruptRegister >> DICR_ENABLE_IRQ_SIGNAL) & 1) // Set bit 31 on IRQ flag?
-             && ((dmaInterruptRegister >> DICR_IRQ_FLAG_DMA0) & 0x7F))) // IRQ flag set?
-        && !((dmaInterruptRegister >> DICR_IRQ_SIGNAL) & 1)) { // Not already set?
-        dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_SIGNAL);
-        bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_DMA);
+             && ((dmaInterruptRegister >> DICR_IRQ_FLAG_DMA0) & 0x7F)))) { // IRQ flag set?
+        if (!((dmaInterruptRegister >> DICR_IRQ_SIGNAL) & 1)) { // Not already set?
+            LOGV_DMA("Notifying about interrupt");
+            dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_SIGNAL);
+            bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_DMA);
+        } else {
+            LOGV_DMA("Not notifying, there already was a signal");
+        }
     } else {
         Bit::clearBit(dmaInterruptRegister, DICR_IRQ_SIGNAL);
     }
