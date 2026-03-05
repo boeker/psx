@@ -799,6 +799,7 @@ void CDROM::ReadN() {
     secondResponse.interrupt = 1;
     secondResponse.setAndPush(MOTOR_ON);
     secondResponse.cycles = 0x36CD2;
+    secondResponse.spam = true; // Keep spamming the responses until next command
 }
 
 void CDROM::Stop() {
