@@ -110,6 +110,7 @@ private:
     void SWL();
     void SWR();
     void XORI();
+    void LWC2();
 
     // Opcode SPECIAL encodes further instructions via function field
     static const Opcode special[];

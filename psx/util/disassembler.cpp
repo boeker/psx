@@ -104,7 +104,7 @@ const Disassembler::Opcode Disassembler::opcodes[] = {
     // 0b101100
     &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::SWR,      &Disassembler::UNK,
     // 0b110000
-    &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::UNK,
+    &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::LWC2,     &Disassembler::UNK,
     // 0b110100
     &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::UNK,
     // 0b111000
@@ -731,6 +731,23 @@ std::string Disassembler::XORI() {
                        getRegisterName(rt),
                        getRegisterName(rs),
                        immediate);
+}
+
+std::string Disassembler::LWC2() {
+    // Load Word To Coprocessor 2
+    // T: vAddr <- ((offset_{15})^{16} | offset_{15...0}) + GPR[base]
+    // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
+    // byte <- vAddr_{1...0}
+    // mem <- LoadMemory(uncached, DOUBLEWORD, pAddr, vAddr, DATA)
+    // T+1: COPzLW(rt, mem)
+    uint8_t base = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    return std::format("LWC2 {:s},0x{:04X}({:s})",
+                       getGTERegisterName(rt),
+                       offset,
+                       getRegisterName(base));
 }
 
 std::string Disassembler::UNKSPCL() {

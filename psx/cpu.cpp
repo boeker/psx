@@ -221,7 +221,7 @@ const CPU::Opcode CPU::opcodes[] = {
     // 0b101100
     &CPU::UNK,      &CPU::UNK,      &CPU::SWR,      &CPU::UNK,
     // 0b110000
-    &CPU::UNK,      &CPU::UNK,      &CPU::UNK,      &CPU::UNK,
+    &CPU::UNK,      &CPU::UNK,      &CPU::LWC2,     &CPU::UNK,
     // 0b110100
     &CPU::UNK,      &CPU::UNK,      &CPU::UNK,      &CPU::UNK,
     // 0b111000
@@ -1059,6 +1059,35 @@ void CPU::XORI() {
     regs.setRegister(rt, immediate ^ regs.getRegister(rs));
 }
 
+void CPU::LWC2() {
+    // Load Word To Coprocessor 2
+    // T: vAddr <- ((offset_{15})^{16} | offset_{15...0}) + GPR[base]
+    // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
+    // byte <- vAddr_{1...0}
+    // mem <- LoadMemory(uncached, DOUBLEWORD, pAddr, vAddr, DATA)
+    // T+1: COPzLW(rt, mem)
+    uint8_t base = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    LOGT_CPU(std::format("LWC2 {:s},0x{:04X}({:s})",
+                        gte.getRegisterName(rt),
+                        offset,
+                        regs.getRegisterName(base)));
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
+                     + regs.getRegister(base);
+    if (vAddr & 0x3) {
+        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
+        generateException(EXCCODE_ADES);
+
+    } else {
+        uint32_t data = bus->readWord(vAddr);
+
+        gte.setRegister(rt, data);
+    }
+}
+
 void CPU::UNKSPCL() {
     throw exceptions::UnknownFunctionError(std::format("Unknown function @0x{:x}: instruction 0x{:x} (SPECIAL), function 0b{:06b}", instructionPC, instruction, funct));
 }
@@ -1676,12 +1705,12 @@ void CPU::CTC2() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("CTC2 {:s},{:d}",
+    LOGT_CPU(std::format("CTC2 {:s},{:s}",
                          regs.getRegisterName(rt),
-                         rd));
+                         gte.getControlRegisterName(rd)));
 
     uint32_t data = regs.getRegister(rt);
-    LOGT_CPU(std::format(" (0x{:08X} -> CP2 c{:d})",data, rd));
+    LOGT_CPU(std::format(" (0x{:08X} -> CP2 {:s})", data, gte.getRegisterName(rd)));
 
     gte.setControlRegister(rd, data);
 }
@@ -1693,12 +1722,12 @@ void CPU::MTC2() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("MTC2 {:s},{:d}",
+    LOGT_CPU(std::format("MTC2 {:s},{:s}",
                          regs.getRegisterName(rt),
-                         rd));
+                         gte.getRegisterName(rd)));
 
     uint32_t data = regs.getRegister(rt);
-    LOGT_CPU(std::format(" (0x{:08X} -> CP2 {:d})",data, rd));
+    LOGT_CPU(std::format(" (0x{:08X} -> CP2 {:s})",data, gte.getRegisterName(rd)));
 
     gte.setRegister(rd, data);
 }
