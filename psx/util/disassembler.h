@@ -11,6 +11,10 @@ public:
     static const char* REGISTER_NAMES[];
     static std::string getRegisterName(uint8_t reg);
 
+    static const char* GTE_REGISTER_NAMES[];
+    static std::string getGTERegisterName(uint8_t reg);
+    static std::string getGTEControlRegisterName(uint8_t reg);
+
     static std::string disassemble(uint32_t ins);
 
     static uint32_t instruction;

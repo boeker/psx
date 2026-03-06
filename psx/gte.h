@@ -13,6 +13,10 @@ private:
     friend std::ostream& operator<<(std::ostream &os, const GTE &gte);
 
 public:
+    static const char* REGISTER_NAMES[];
+    std::string getRegisterName(uint8_t reg);
+    std::string getControlRegisterName(uint8_t reg);
+
     GTE();
     void reset();
 
