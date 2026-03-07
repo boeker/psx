@@ -116,6 +116,7 @@ private:
     static std::string UNKCP2M();
     static std::string CTC2();
     static std::string MTC2();
+    static std::string CFC2();
 
     // Opcode REGIMM encodes further instructions via rt field
     static const Opcode regimm[];

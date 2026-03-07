@@ -166,6 +166,7 @@ private:
     void UNKCP2M();
     void CTC2();
     void MTC2();
+    void CFC2();
 
     // Opcode REGIMM encodes further instructions via rt field
     static const Opcode regimm[];

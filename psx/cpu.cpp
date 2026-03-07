@@ -356,7 +356,7 @@ const CPU::Opcode CPU::cp2[] = {
 
 const CPU::Opcode CPU::cp2Move[] = {
     // 0b00000
-    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,
+    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::CFC2,     &CPU::UNKCP2M,
     // 0b00100
     &CPU::MTC2,     &CPU::UNKCP2M,  &CPU::CTC2,     &CPU::UNKCP2M,
     // 0b01000
@@ -1682,9 +1682,8 @@ void CPU::MFC0() {
 }
 
 void CPU::UNKCP2() {
-    throw exceptions::UnknownFunctionError(std::format("Unknown CP2 opcode @0x{:x}: instruction 0x{:x} (CP0), function 0b{:06b}", instructionPC, instruction, funct));
+    throw exceptions::UnknownFunctionError(std::format("Unknown CP2 opcode @0x{:x}: instruction 0x{:x} (CP2), function 0b{:06b}", instructionPC, instruction, funct));
 }
-
 
 void CPU::CP2MOVE() {
     // CP2 Move
@@ -1710,7 +1709,7 @@ void CPU::CTC2() {
                          gte.getControlRegisterName(rd)));
 
     uint32_t data = regs.getRegister(rt);
-    LOGT_CPU(std::format(" (0x{:08X} -> CP2 {:s})", data, gte.getRegisterName(rd)));
+    LOGT_CPU(std::format(" (0x{:08X} -> CP2 {:s})", data, gte.getControlRegisterName(rd)));
 
     gte.setControlRegister(rd, data);
 }
@@ -1730,6 +1729,23 @@ void CPU::MTC2() {
     LOGT_CPU(std::format(" (0x{:08X} -> CP2 {:s})",data, gte.getRegisterName(rd)));
 
     gte.setRegister(rd, data);
+}
+
+void CPU::CFC2() {
+    // Move Control From Coprocessor 2
+    // T: data <- CCR[2,rd]
+    // T+1: GPR[rt] <- data
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    LOGT_CPU(std::format("CFC2 {:s},{:s}",
+                         regs.getRegisterName(rt),
+                         gte.getControlRegisterName(rd)));
+
+    uint32_t data = gte.getControlRegister(rd);
+    LOGT_CPU(std::format(" (CP2 {:s} -> 0x{:08X})", gte.getControlRegisterName(rd), data));
+
+    regs.setRegister(rt, data);
 }
 
 void CPU::UNKRGMM() {
