@@ -160,6 +160,9 @@ private:
     static const Opcode cp2[];
     void UNKCP2();
     void CP2MOVE();
+    void NCLIP();
+    void RTPT();
+    void NCDS();
 
     // CP2 instructions are identified via move field
     static const Opcode cp2Move[];

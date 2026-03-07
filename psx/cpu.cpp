@@ -323,13 +323,13 @@ const CPU::Opcode CPU::cp2[] = {
     // 0b000000
     &CPU::CP2MOVE,  &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b000100
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::NCLIP,    &CPU::UNKCP2,
     // 0b001000
     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b001100
     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b010000
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::NCDS,
     // 0b010100
     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b011000
@@ -345,7 +345,7 @@ const CPU::Opcode CPU::cp2[] = {
     // 0b101100
     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b110000
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::RTPT,     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b110100
     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b111000
@@ -1691,6 +1691,24 @@ void CPU::CP2MOVE() {
     move = 0x1F & (instruction >> 21);
 
     (this->*cp2Move[move])();
+}
+
+void CPU::NCLIP() {
+    // Normal Clipping
+    // TODO
+    LOG_CPU(std::format("GTE_NCLIP not implemented"));
+}
+
+void CPU::RTPT() {
+    // Perspective Transformation (Triple)
+    // TODO
+    LOG_CPU(std::format("GTE_RTPT not implemented"));
+}
+
+void CPU::NCDS() {
+    // Normal Color Depth Cue (Single vector)
+    // TODO
+    LOG_CPU(std::format("GTE_NCDS not implemented"));
 }
 
 void CPU::UNKCP2M() {

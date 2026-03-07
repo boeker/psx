@@ -116,7 +116,7 @@ LogPack::LogPack()
 
     //bus.setConsoleLogEnabled(true);
     //cdrom.setConsoleLogEnabled(true);
-    //cpu.setConsoleLogEnabled(true);
+    cpu.setConsoleLogEnabled(true);
     //dma.setConsoleLogEnabled(true);
     //exceptions.setConsoleLogEnabled(true);
     //executable.setConsoleLogEnabled(true);
