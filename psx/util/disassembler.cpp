@@ -108,7 +108,7 @@ const Disassembler::Opcode Disassembler::opcodes[] = {
     // 0b110100
     &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::UNK,
     // 0b111000
-    &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::UNK,
+    &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::SWC2,     &Disassembler::UNK,
     // 0b111100
     &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::UNK,      &Disassembler::UNK
 };
@@ -745,6 +745,23 @@ std::string Disassembler::LWC2() {
     uint32_t offset = 0xFFFF & instruction;
 
     return std::format("LWC2 {:s},0x{:04X}({:s})",
+                       getGTERegisterName(rt),
+                       offset,
+                       getRegisterName(base));
+}
+
+std::string Disassembler::SWC2() {
+    // Store Word From Coprocessor 2
+    // T: vAddr <- ((offset_{15})^{16} | offset_{15...0}) + GPR[base]
+    // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
+    // byte <- vAddr_{1...0}
+    // data <- COP2SW(byte,rt)
+    // StoreMemory(uncached, WORD, data, pAddr, vAddr, DATA)
+    uint8_t base = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    return std::format("SWC2 {:s},0x{:04X}({:s})",
                        getGTERegisterName(rt),
                        offset,
                        getRegisterName(base));

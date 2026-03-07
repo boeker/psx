@@ -225,7 +225,7 @@ const CPU::Opcode CPU::opcodes[] = {
     // 0b110100
     &CPU::UNK,      &CPU::UNK,      &CPU::UNK,      &CPU::UNK,
     // 0b111000
-    &CPU::UNK,      &CPU::UNK,      &CPU::UNK,      &CPU::UNK,
+    &CPU::UNK,      &CPU::UNK,      &CPU::SWC2,     &CPU::UNK,
     // 0b111100
     &CPU::UNK,      &CPU::UNK,      &CPU::UNK,      &CPU::UNK
 };
@@ -1085,6 +1085,34 @@ void CPU::LWC2() {
         uint32_t data = bus->readWord(vAddr);
 
         gte.setRegister(rt, data);
+    }
+}
+
+void CPU::SWC2() {
+    // Store Word From Coprocessor 2
+    // T: vAddr <- ((offset_{15})^{16} | offset_{15...0}) + GPR[base]
+    // (pAddr, uncached) <- AddressTranslation(vAddr, DATA)
+    // byte <- vAddr_{1...0}
+    // data <- COP2SW(byte,rt)
+    // StoreMemory(uncached, WORD, data, pAddr, vAddr, DATA)
+    uint8_t base = 0x1F & (instruction >> 21);
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint32_t offset = 0xFFFF & instruction;
+
+    LOGT_CPU(std::format("SWC2 {:s},0x{:04X}({:s})",
+                        gte.getRegisterName(rt),
+                        offset,
+                        regs.getRegisterName(base)));
+
+    uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
+                     + regs.getRegister(base);
+    if (vAddr & 0x3) {
+        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
+        generateException(EXCCODE_ADES);
+
+    } else {
+        uint32_t data = gte.getRegister(rt);
+        bus->writeWord(vAddr, data);
     }
 }
 

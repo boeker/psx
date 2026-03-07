@@ -61,6 +61,7 @@ private:
     static std::string SWR();
     static std::string XORI();
     static std::string LWC2();
+    static std::string SWC2();
 
     // Opcode SPECIAL encodes further instructions via function field
     static const Opcode special[];
