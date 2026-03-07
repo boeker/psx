@@ -239,7 +239,7 @@ const Disassembler::Opcode Disassembler::cp2[] = {
 
 const Disassembler::Opcode Disassembler::cp2Move[] = {
     // 0b00000
-    &Disassembler::UNKCP2M,  &Disassembler::UNKCP2M,  &Disassembler::CFC2,     &Disassembler::UNKCP2M,
+    &Disassembler::MFC2,     &Disassembler::UNKCP2M,  &Disassembler::CFC2,     &Disassembler::UNKCP2M,
     // 0b00100
     &Disassembler::MTC2,     &Disassembler::UNKCP2M,  &Disassembler::CTC2,     &Disassembler::UNKCP2M,
     // 0b01000
@@ -1217,6 +1217,19 @@ std::string Disassembler::CFC2() {
                        getRegisterName(rt),
                        getGTEControlRegisterName(rd));
 }
+
+std::string Disassembler::MFC2() {
+    // Move From Coprocessor 2
+    // T: data <- CPR[2,rd]
+    // T+1: GPR[rt] <- data
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    return std::format("MFC2 {:s},{:s}",
+                       getRegisterName(rt),
+                       getGTERegisterName(rd));
+}
+
 
 std::string Disassembler::UNKRGMM() {
     return "UNKRGMM";

@@ -356,7 +356,7 @@ const CPU::Opcode CPU::cp2[] = {
 
 const CPU::Opcode CPU::cp2Move[] = {
     // 0b00000
-    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::CFC2,     &CPU::UNKCP2M,
+    &CPU::MFC2,     &CPU::UNKCP2M,  &CPU::CFC2,     &CPU::UNKCP2M,
     // 0b00100
     &CPU::MTC2,     &CPU::UNKCP2M,  &CPU::CTC2,     &CPU::UNKCP2M,
     // 0b01000
@@ -1747,6 +1747,24 @@ void CPU::CFC2() {
 
     regs.setRegister(rt, data);
 }
+
+void CPU::MFC2() {
+    // Move From Coprocessor 2
+    // T: data <- CPR[2,rd]
+    // T+1: GPR[rt] <- data
+    uint8_t rt = 0x1F & (instruction >> 16);
+    uint8_t rd = 0x1F & (instruction >> 11);
+
+    LOGT_CPU(std::format("MFC2 {:s},{:s}",
+                         regs.getRegisterName(rt),
+                         gte.getRegisterName(rd)));
+
+    uint32_t data = gte.getRegister(rd);
+    LOGT_CPU(std::format(" (CP2 {:s} -> 0x{:08X})", gte.getRegisterName(rd), data));
+
+    regs.setRegister(rt, data);
+}
+
 
 void CPU::UNKRGMM() {
     throw exceptions::UnknownOpcodeError(std::format("Unknown REGIMM @0x{:x}: instruction 0x{:x} (REGIMM), rt 0b{:05b}", instructionPC, instruction, instructionRt));
