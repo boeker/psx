@@ -85,7 +85,7 @@ template void Memory::writeDCache(uint32_t address, uint8_t value);
 template <typename T>
 T Memory::readExpansionAndDelayRegisters(uint32_t address) {
     uint32_t offset = address & 0x0000003F;
-    assert(offset + sizeof(T) < MEMORY_CONTROL_SIZE);
+    assert(offset + sizeof(T) <= EXPANSION_AND_DELAY_SIZE);
 
     return *((T*)(expansionAndDelayRegisters + offset));
 }
@@ -97,7 +97,7 @@ template uint8_t Memory::readExpansionAndDelayRegisters<uint8_t>(uint32_t addres
 template <typename T>
 void Memory::writeExpansionAndDelayRegisters(uint32_t address, T value) {
     uint32_t offset = address & 0x0000003F;
-    assert(offset + sizeof(T) < MEMORY_CONTROL_SIZE);
+    assert(offset + sizeof(T) <= EXPANSION_AND_DELAY_SIZE);
 
     *((T*)(expansionAndDelayRegisters + offset)) = value;
 }

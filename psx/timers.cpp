@@ -329,7 +329,7 @@ template <> void Timers::write(uint32_t address, uint8_t value) {
 
 template <>
 uint16_t Timers::read(uint32_t address) {
-    assert (address & 0xFFFFFF00 == 0x1F801100);
+    assert((address & 0xFFFFFF00) == 0x1F801100);
 
     uint32_t noNumberAddress = address & 0xFFFFFF0F;
     uint32_t number = (address & 0x000000F0) >> 4;

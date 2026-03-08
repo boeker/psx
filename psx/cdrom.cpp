@@ -120,8 +120,6 @@ uint8_t CDROM::driveStateToStatByte(DriveState driveState) {
     //2  SeekError     (0=Okay, 1=Seek error)     (followed by Error Byte)
     //1  Spindle Motor (0=Motor off, or in spin-up phase, 1=Motor on)
     //0  Error         Invalid Command/parameters (followed by Error Byte)
-    assert (driveState != INVALID);
-
     switch (driveState) {
         case OPEN:
             return 0x11;
