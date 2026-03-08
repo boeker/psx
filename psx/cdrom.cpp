@@ -772,7 +772,7 @@ void CDROM::Setloc() {
     ass = parameterQueue.pop();
     asect = parameterQueue.pop();
 
-    LOG_CDROM(prependState(std::format("========> Setloc(0x{:02}, 0x{:02}, 0x{:02}) <========", amm, ass, asect)));
+    LOG_CDROM(prependState(std::format("========> Setloc(0x{:02X}, 0x{:02X}, 0x{:02X}) <========", amm, ass, asect)));
 
     if (!cd) {
         firstResponse.setNoDisc();
