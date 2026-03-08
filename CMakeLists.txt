@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
+string( REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 
 project(psx)
 
