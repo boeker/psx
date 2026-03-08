@@ -1,6 +1,7 @@
 #include "disassembler.h"
 
 #include <format>
+#include <cassert>
 
 namespace util {
 
@@ -24,6 +25,7 @@ const char* Disassembler::REGISTER_NAMES[] = {
 };
 
 std::string Disassembler::getRegisterName(uint8_t reg) {
+    assert(reg < 32);
     return REGISTER_NAMES[reg];
 }
 
@@ -42,7 +44,7 @@ const char* Disassembler::GTE_REGISTER_NAMES[] = {
     "mac0", // 1xS32: 32bit math accumulator (value)
     "mac1", "mac2", "mac3", // 3xS32: 32bit math accumulator (vector)
     "irgb", "orgb", // 1xU15: convert RGB color (48bit vs 15bit?)
-    "lzcs", "lzcr" // 2xS32: Count leading zeros/ones (sign bits)
+    "lzcs", "lzcr", // 2xS32: Count leading zeros/ones (sign bits)
     "rt11rt12", "rt13rt21", "rt22rt23", "rt31rt32", "rt33", // 9xS16: Rotation matrix (3x3)
     "trx", "try", "trz", // 3x32: Translaction vector (X,Y,Z)
     "l11l12", "l13l21", "l22l23", "l31l32", "l33", // 9xS16: Light source matrix (3x3)
@@ -58,10 +60,12 @@ const char* Disassembler::GTE_REGISTER_NAMES[] = {
 };
 
 std::string Disassembler::getGTERegisterName(uint8_t reg) {
+    assert(reg < 32);
     return GTE_REGISTER_NAMES[reg];
 }
 
 std::string Disassembler::getGTEControlRegisterName(uint8_t reg) {
+    assert(reg < 32);
     return GTE_REGISTER_NAMES[32 + reg];
 }
 
