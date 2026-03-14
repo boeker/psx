@@ -1723,13 +1723,27 @@ void CPU::CP2MOVE() {
 
 void CPU::NCLIP() {
     // Normal Clipping
-    // TODO
-    LOG_CPU(std::format("GTE_NCLIP not implemented"));
+    LOG_CPU(std::format("GTE_NCLIP"));
+    // TODO Implement flags
+
+    int16_t in_sx0 = gte.getRegister(GTE_REG_SXY0) & 0xFFFF;
+    int16_t in_sy0 = gte.getRegister(GTE_REG_SXY0) >> 16;
+
+    int16_t in_sx1 = gte.getRegister(GTE_REG_SXY1) & 0xFFFF;
+    int16_t in_sy1 = gte.getRegister(GTE_REG_SXY1) >> 16;
+
+    int16_t in_sx2 = gte.getRegister(GTE_REG_SXY2) & 0xFFFF;
+    int16_t in_sy2 = gte.getRegister(GTE_REG_SXY2) >> 16;
+
+    int32_t temp_mac0 = in_sx0 * (in_sy1 - in_sy2) + in_sx1 * (in_sy2 - in_sy0) + in_sx2 * (in_sy0 - in_sy1);
+
+    gte.setRegister(GTE_REG_MAC0, temp_mac0);
 }
 
 void CPU::RTPS() {
     // Perspective Transformation (Single)
     LOG_CPU(std::format("GTE_RTPS"));
+    // TODO Implement flags
     uint8_t sf = 0x1 & (instruction >> 19);
 
     // Inputs
@@ -1798,6 +1812,7 @@ void CPU::RTPS() {
 void CPU::RTPT() {
     // Perspective Transformation (Triple)
     LOG_CPU(std::format("GTE_RTPT"));
+    // TODO Implement flags
     uint8_t sf = 0x1 & (instruction >> 19);
 
     // Inputs
