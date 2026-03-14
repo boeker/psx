@@ -6,6 +6,43 @@
 
 namespace PSX {
 
+#define GTE_REG_VXY0 0
+#define GTE_REG_VZ0 1
+#define GTE_REG_VXY1 2
+#define GTE_REG_VZ1 3
+#define GTE_REG_VXY2 4
+#define GTE_REG_VZ2 5
+#define GTE_REG_IR0 8
+#define GTE_REG_IR1 9
+#define GTE_REG_IR2 10
+#define GTE_REG_IR3 11
+#define GTE_REG_SXY0 12
+#define GTE_REG_SXY1 13
+#define GTE_REG_SXY2 14
+#define GTE_REG_SXYP 15
+#define GTE_REG_SZ0 16
+#define GTE_REG_SZ1 17
+#define GTE_REG_SZ2 18
+#define GTE_REG_SZ3 19
+#define GTE_REG_MAC0 24
+#define GTE_REG_MAC1 25
+#define GTE_REG_MAC2 26
+#define GTE_REG_MAC3 27
+
+#define GTE_REG_RT11RT12 32
+#define GTE_REG_RT13RT21 33
+#define GTE_REG_RT22RT23 34
+#define GTE_REG_RT31RT32 35
+#define GTE_REG_RT33 36
+#define GTE_REG_TRX 37
+#define GTE_REG_TRY 38
+#define GTE_REG_TRZ 39
+#define GTE_REG_OFX 56
+#define GTE_REG_OFY 57
+#define GTE_REG_H 58
+#define GTE_REG_DQA 59
+#define GTE_REG_DQB 60
+
 class GTE {
 private:
     uint32_t registers[64];

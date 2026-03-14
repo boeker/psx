@@ -321,7 +321,7 @@ const CPU::Opcode CPU::cp0Move[] = {
 
 const CPU::Opcode CPU::cp2[] = {
     // 0b000000
-    &CPU::CP2MOVE,  &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::CP2MOVE,  &CPU::RTPS,     &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b000100
     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::NCLIP,    &CPU::UNKCP2,
     // 0b001000
@@ -1727,9 +1727,76 @@ void CPU::NCLIP() {
     LOG_CPU(std::format("GTE_NCLIP not implemented"));
 }
 
+void CPU::RTPS() {
+    // Perspective Transformation (Single)
+    LOG_CPU(std::format("GTE_RTPS"));
+    uint8_t sf = 0x1 & (instruction >> 19);
+
+    // Inputs
+    int16_t in_vx0 = gte.getRegister(GTE_REG_VXY0) & 0xFFFF;
+    int16_t in_vy0 = gte.getRegister(GTE_REG_VXY0) >> 16;
+    int16_t in_vz0 = gte.getRegister(GTE_REG_VZ0) & 0xFFFF;
+
+    int32_t in_trx = gte.getRegister(GTE_REG_TRX);
+    int32_t in_try = gte.getRegister(GTE_REG_TRY);
+    int32_t in_trz = gte.getRegister(GTE_REG_TRZ);
+
+    int16_t in_rt11 = gte.getRegister(GTE_REG_RT11RT12) & 0xFFFF;
+    int16_t in_rt12 = gte.getRegister(GTE_REG_RT11RT12) >> 16;
+    int16_t in_rt13 = gte.getRegister(GTE_REG_RT13RT21) & 0xFFFF;
+    int16_t in_rt21 = gte.getRegister(GTE_REG_RT13RT21) >> 16;
+    int16_t in_rt22 = gte.getRegister(GTE_REG_RT22RT23) & 0xFFFF;
+    int16_t in_rt23 = gte.getRegister(GTE_REG_RT22RT23) >> 16;
+    int16_t in_rt31 = gte.getRegister(GTE_REG_RT31RT32) & 0xFFFF;
+    int16_t in_rt32 = gte.getRegister(GTE_REG_RT31RT32) >> 16;
+    int16_t in_rt33 = gte.getRegister(GTE_REG_RT33) & 0xFFFF;
+
+    uint16_t in_h = gte.getRegister(GTE_REG_H);
+    int32_t in_ofx = gte.getRegister(GTE_REG_OFX);
+    int32_t in_ofy = gte.getRegister(GTE_REG_OFY);
+    int16_t in_dqa = gte.getRegister(GTE_REG_DQA) & 0xFFFF;
+    int32_t in_dqb = gte.getRegister(GTE_REG_DQA) & 0xFFFF;
+
+    int32_t temp_mac1 = (in_trx * 0x1000 + in_rt11 * in_vx0 + in_rt12 * in_vy0 + in_rt13 * in_vz0) >> (sf * 12);
+    int16_t temp_ir1 = temp_mac1;
+    int32_t temp_mac2 = (in_try * 0x1000 + in_rt21 * in_vx0 + in_rt22 * in_vy0 + in_rt23 * in_vz0) >> (sf * 12);
+    int16_t temp_ir2 = temp_mac2;
+    int32_t temp_mac3 = (in_trz * 0x1000 + in_rt31 * in_vx0 + in_rt32 * in_vy0 + in_rt33 * in_vz0) >> (sf * 12);
+    int16_t temp_ir3 = temp_mac3;
+    uint16_t temp_sz3 = temp_mac3 >> ((1-sf) * 12);
+
+    int32_t temp = ((in_h * 0x20000) / temp_sz3 + 1) / 2;
+
+    int32_t temp_mac0 = temp * temp_ir1 + in_ofx;
+    int16_t temp_sx2 = temp_mac0 / 0x10000;
+
+    temp_mac0 = temp * temp_ir2 + in_ofy;
+    int16_t temp_sy2 = temp_mac0 / 0x10000;
+
+    temp_mac0 = temp * in_dqa + in_dqb;
+    int16_t temp_ir0 = temp_mac0 / 0x1000;
+
+    gte.setRegister(GTE_REG_MAC0, temp_mac0);
+    gte.setRegister(GTE_REG_MAC1, temp_mac1);
+    gte.setRegister(GTE_REG_MAC2, temp_mac2);
+    gte.setRegister(GTE_REG_MAC3, temp_mac3);
+    gte.setRegister(GTE_REG_IR0, temp_ir0);
+    gte.setRegister(GTE_REG_IR1, temp_ir1);
+    gte.setRegister(GTE_REG_IR2, temp_ir2);
+    gte.setRegister(GTE_REG_IR3, temp_ir3);
+
+    gte.setRegister(GTE_REG_SXY0, gte.getRegister(GTE_REG_SXY1));
+    gte.setRegister(GTE_REG_SXY1, gte.getRegister(GTE_REG_SXY2));
+    gte.setRegister(GTE_REG_SXY2, (((uint32_t)temp_sx2) << 16) | ((uint32_t)temp_sy2));
+    gte.setRegister(GTE_REG_SXYP, (((uint32_t)temp_sx2) << 16) | ((uint32_t)temp_sy2));
+    gte.setRegister(GTE_REG_SZ0, gte.getRegister(GTE_REG_SZ1));
+    gte.setRegister(GTE_REG_SZ1, gte.getRegister(GTE_REG_SZ2));
+    gte.setRegister(GTE_REG_SZ2, gte.getRegister(GTE_REG_SZ3));
+    gte.setRegister(GTE_REG_SZ3, temp_sz3);
+}
+
 void CPU::RTPT() {
     // Perspective Transformation (Triple)
-    // TODO
     LOG_CPU(std::format("GTE_RTPT not implemented"));
 }
 

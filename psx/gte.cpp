@@ -64,7 +64,7 @@ void GTE::reset() {
 }
 
 uint32_t GTE::getRegister(uint8_t rt) {
-    assert (rt < 32);
+    assert (rt < 64);
     uint32_t word = this->registers[rt];
 
     LOGT_GTE(std::format("{{gte r{:d} -> 0x{:08X}}}", rt, word));
@@ -73,7 +73,7 @@ uint32_t GTE::getRegister(uint8_t rt) {
 }
 
 void GTE::setRegister(uint8_t rt, uint32_t value) {
-    assert (rt < 32);
+    assert (rt < 64);
     LOGT_GTE(std::format(" {{0x{:08X} -> gte r{:d}}}", value, rt));
 
     this->registers[rt] = value;

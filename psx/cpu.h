@@ -162,6 +162,7 @@ private:
     void UNKCP2();
     void CP2MOVE();
     void NCLIP();
+    void RTPS();
     void RTPT();
     void NCDS();
 
