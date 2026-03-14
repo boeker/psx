@@ -165,6 +165,7 @@ private:
     void RTPS();
     void RTPT();
     void NCDS();
+    void AVSZ3();
 
     // CP2 instructions are identified via move field
     static const Opcode cp2Move[];

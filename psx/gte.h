@@ -13,6 +13,7 @@ namespace PSX {
 #define GTE_REG_VXY2 4
 #define GTE_REG_VZ2 5
 #define GTE_REG_RGBC 6
+#define GTE_REG_OTZ 7
 #define GTE_REG_IR0 8
 #define GTE_REG_IR1 9
 #define GTE_REG_IR2 10
@@ -62,6 +63,7 @@ namespace PSX {
 #define GTE_REG_H 58
 #define GTE_REG_DQA 59
 #define GTE_REG_DQB 60
+#define GTE_REG_ZSF3 61
 
 class GTE {
 private:

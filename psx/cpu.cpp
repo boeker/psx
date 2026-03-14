@@ -343,7 +343,7 @@ const CPU::Opcode CPU::cp2[] = {
     // 0b101000
     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b101100
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::UNKCP2,   &CPU::AVSZ3,    &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b110000
     &CPU::RTPT,     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b110100
@@ -2000,6 +2000,24 @@ void CPU::NCDS() {
     gte.setRegister(GTE_REG_RGB0, gte.getRegister(GTE_REG_RGB1));
     gte.setRegister(GTE_REG_RGB1, gte.getRegister(GTE_REG_RGB2));
     gte.setRegister(GTE_REG_RGB2, temp_rgb2);
+}
+
+void CPU::AVSZ3() {
+    // Average of three Z values
+    LOG_CPU(std::format("GTE_AVSZ3"));
+    uint8_t sf = 0x1 & (instruction >> 19);
+
+    uint16_t in_sz1 = gte.getRegister(GTE_REG_SZ1);
+    uint16_t in_sz2 = gte.getRegister(GTE_REG_SZ2);
+    uint16_t in_sz3 = gte.getRegister(GTE_REG_SZ3);
+
+    int16_t in_zsf3 = gte.getRegister(GTE_REG_ZSF3) & 0xFFFF;
+
+    int32_t temp_mac0 = in_zsf3 * (in_sz1 + in_sz2 + in_sz3);
+    uint16_t temp_otz = temp_mac0 / 0x1000;
+
+    gte.setRegister(GTE_REG_MAC0, temp_mac0);
+    gte.setRegister(GTE_REG_OTZ, temp_otz);
 }
 
 void CPU::UNKCP2M() {
