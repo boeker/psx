@@ -1914,8 +1914,92 @@ void CPU::RTPT() {
 
 void CPU::NCDS() {
     // Normal Color Depth Cue (Single vector)
-    // TODO
-    LOG_CPU(std::format("GTE_NCDS not implemented"));
+    // TODO Implement flags
+    // TODO Fix IR register values
+    LOG_CPU(std::format("GTE_NCDS"));
+    uint8_t sf = 0x1 & (instruction >> 19);
+
+    int16_t in_vx0 = gte.getRegister(GTE_REG_VXY0) & 0xFFFF;
+    int16_t in_vy0 = gte.getRegister(GTE_REG_VXY0) >> 16;
+    int16_t in_vz0 = gte.getRegister(GTE_REG_VZ0) & 0xFFFF;
+
+    int16_t in_l11 = gte.getRegister(GTE_REG_L11L12) & 0xFFFF;
+    int16_t in_l12 = gte.getRegister(GTE_REG_L11L12) >> 16;
+    int16_t in_l13 = gte.getRegister(GTE_REG_L13L21) & 0xFFFF;
+    int16_t in_l21 = gte.getRegister(GTE_REG_L13L21) >> 16;
+    int16_t in_l22 = gte.getRegister(GTE_REG_L22L23) & 0xFFFF;
+    int16_t in_l23 = gte.getRegister(GTE_REG_L22L23) >> 16;
+    int16_t in_l31 = gte.getRegister(GTE_REG_L31L32) & 0xFFFF;
+    int16_t in_l32 = gte.getRegister(GTE_REG_L31L32) >> 16;
+    int16_t in_l33 = gte.getRegister(GTE_REG_L33) & 0xFFFF;
+
+    int16_t in_lr1 = gte.getRegister(GTE_REG_LR1LR2) & 0xFFFF;
+    int16_t in_lr2 = gte.getRegister(GTE_REG_LR1LR2) >> 16;
+    int16_t in_lr3 = gte.getRegister(GTE_REG_LR3LG1) & 0xFFFF;
+    int16_t in_lg1 = gte.getRegister(GTE_REG_LR3LG1) >> 16;
+    int16_t in_lg2 = gte.getRegister(GTE_REG_LG2LG3) & 0xFFFF;
+    int16_t in_lg3 = gte.getRegister(GTE_REG_LG2LG3) >> 16;
+    int16_t in_lb1 = gte.getRegister(GTE_REG_LB1LB2) & 0xFFFF;
+    int16_t in_lb2 = gte.getRegister(GTE_REG_LB1LB2) >> 16;
+    int16_t in_lb3 = gte.getRegister(GTE_REG_LB3) & 0xFFFF;
+
+    int32_t in_rbk = gte.getRegister(GTE_REG_RBK);
+    int32_t in_gbk = gte.getRegister(GTE_REG_GBK);
+    int32_t in_bbk = gte.getRegister(GTE_REG_BBK);
+
+    int32_t in_rfc = gte.getRegister(GTE_REG_RFC);
+    int32_t in_gfc = gte.getRegister(GTE_REG_GFC);
+    int32_t in_bfc = gte.getRegister(GTE_REG_BFC);
+
+    uint8_t in_r = gte.getRegister(GTE_REG_RGBC) >> 24;
+    uint8_t in_g = (gte.getRegister(GTE_REG_RGBC) >> 16) & 0xFF;
+    uint8_t in_b = (gte.getRegister(GTE_REG_RGBC) >> 8) & 0xFF;
+    uint8_t in_c = gte.getRegister(GTE_REG_RGBC) & 0xFF;
+
+    int16_t in_ir0 = gte.getRegister(GTE_REG_IR0);
+
+    int32_t temp_mac1 = (in_l11 * in_vx0 + in_l12 * in_vy0 + in_l13 * in_vz0) >> (sf * 12);
+    int16_t temp_ir1 = temp_mac1;
+    int32_t temp_mac2 = (in_l21 * in_vx0 + in_l22 * in_vy0 + in_l23 * in_vz0) >> (sf * 12);
+    int16_t temp_ir2 = temp_mac2;
+    int32_t temp_mac3 = (in_l31 * in_vx0 + in_l32 * in_vy0 + in_l33 * in_vz0) >> (sf * 12);
+    int16_t temp_ir3 = temp_mac3;
+
+    temp_mac1 = (in_rbk * 0x1000 + in_lr1 * temp_ir1 + in_lr2 * temp_ir2 + in_lr3 * temp_ir3) >> (sf * 12);
+    temp_ir1 = temp_mac1;
+    temp_mac2 = (in_gbk * 0x1000 + in_lg1 * temp_ir1 + in_lg2 * temp_ir2 + in_lg3 * temp_ir3) >> (sf * 12);
+    temp_ir2 = temp_mac2;
+    temp_mac3 = (in_bbk * 0x1000 + in_lb1 * temp_ir1 + in_lb2 * temp_ir2 + in_lb3 * temp_ir3) >> (sf * 12);
+    temp_ir3 = temp_mac3;
+
+    temp_mac1 = (in_r * temp_ir1) << 4;
+    temp_mac2 = (in_g * temp_ir1) << 4;
+    temp_mac3 = (in_b * temp_ir1) << 4;
+
+    temp_mac1 =  temp_mac1 + (in_rfc - temp_mac1) * in_ir0;
+    temp_mac2 =  temp_mac2 + (in_gfc - temp_mac2) * in_ir0;
+    temp_mac3 =  temp_mac3 + (in_bfc - temp_mac3) * in_ir0;
+
+    temp_mac1 =  temp_mac1 >> (sf * 12);
+    temp_mac2 =  temp_mac2 >> (sf * 12);
+    temp_mac3 =  temp_mac3 >> (sf * 12);
+
+    uint8_t temp_rgb2 =  ((temp_mac1 / 16) << 24) | ((temp_mac2 / 16) << 16) | ((temp_mac3 / 16) << 8) | in_c;
+
+    temp_ir1 = temp_mac1;
+    temp_ir2 = temp_mac2;
+    temp_ir3 = temp_mac3;
+
+    gte.setRegister(GTE_REG_MAC1, temp_mac1);
+    gte.setRegister(GTE_REG_MAC2, temp_mac2);
+    gte.setRegister(GTE_REG_MAC3, temp_mac3);
+    gte.setRegister(GTE_REG_IR1, temp_ir1);
+    gte.setRegister(GTE_REG_IR2, temp_ir2);
+    gte.setRegister(GTE_REG_IR3, temp_ir3);
+
+    gte.setRegister(GTE_REG_RGB0, gte.getRegister(GTE_REG_RGB1));
+    gte.setRegister(GTE_REG_RGB1, gte.getRegister(GTE_REG_RGB2));
+    gte.setRegister(GTE_REG_RGB2, temp_rgb2);
 }
 
 void CPU::UNKCP2M() {
