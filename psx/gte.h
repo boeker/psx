@@ -83,6 +83,12 @@ public:
     void setRegister(uint8_t reg, uint32_t value);
     uint32_t getControlRegister(uint8_t reg);
     void setControlRegister(uint8_t reg, uint32_t value);
+
+    void NCLIP(uint32_t instruction);
+    void RTPS(uint32_t instruction);
+    void RTPT(uint32_t instruction);
+    void NCDS(uint32_t instruction);
+    void AVSZ3(uint32_t instruction);
 };
 
 }
