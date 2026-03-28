@@ -67,14 +67,14 @@ uint32_t GTE::getRegister(uint8_t rt) {
     assert (rt < 64);
     uint32_t word = this->registers[rt];
 
-    LOGT_GTE(std::format("{{gte r{:d} -> 0x{:08X}}}", rt, word));
+    LOGT_GTE(std::format("{{register {:d} ({:s}) -> 0x{:08X}}}", rt, getRegisterName(rt), word));
 
     return word;
 }
 
 void GTE::setRegister(uint8_t rt, uint32_t value) {
     assert (rt < 64);
-    LOGT_GTE(std::format(" {{0x{:08X} -> gte r{:d}}}", value, rt));
+    LOGT_GTE(std::format("{{0x{:08X} -> register {:d} ({:s})}}", value, rt, getRegisterName(rt)));
 
 
     this->registers[rt] = value;
@@ -84,14 +84,14 @@ uint32_t GTE::getControlRegister(uint8_t rt) {
     assert (rt < 32);
     uint32_t word = this->registers[32 + rt];
 
-    LOGT_GTE(std::format("{{gte c{:d} -> 0x{:08X}}}", rt, word));
+    LOGT_GTE(std::format("{{control register {:d} ({:s}) -> 0x{:08X}}}", rt, getControlRegisterName(rt), word));
 
     return word;
 }
 
 void GTE::setControlRegister(uint8_t rt, uint32_t value) {
     assert (rt < 32);
-    LOGT_GTE(std::format(" {{0x{:08X} -> gte c{:d}}}", value, rt));
+    LOGT_GTE(std::format("{{0x{:08X} -> control register {:d} ({:s})}}", value, rt, getControlRegisterName(rt)));
 
     this->registers[32 + rt] = value;
 }
@@ -154,7 +154,7 @@ void GTE::RTPS(uint32_t instruction) {
     int16_t temp_ir3 = temp_mac3;
     uint16_t temp_sz3 = temp_mac3 >> ((1-sf) * 12);
 
-    int32_t temp = ((in_h * 0x20000) / temp_sz3 + 1) / 2;
+    int32_t temp = temp_sz3 > 0 ? ((in_h * 0x20000) / temp_sz3 + 1) / 2 : 0;
 
     int32_t temp_mac0 = temp * temp_ir1 + in_ofx;
     int16_t temp_sx2 = temp_mac0 / 0x10000;
@@ -230,7 +230,7 @@ void GTE::RTPT(uint32_t instruction) {
     int32_t temp_mac3 = (in_trz * 0x1000 + in_rt31 * in_vx0 + in_rt32 * in_vy0 + in_rt33 * in_vz0) >> (sf * 12);
     int16_t temp_ir3 = temp_mac3;
     uint16_t temp_sz1 = temp_mac3 >> ((1-sf) * 12);
-    int32_t temp = ((in_h * 0x20000) / temp_sz1 + 1) / 2;
+    int32_t temp = temp_sz1 > 0 ? ((in_h * 0x20000) / temp_sz1 + 1) / 2 : 0;
     int32_t temp_mac0 = temp * temp_ir1 + in_ofx;
     int16_t temp_sx0 = temp_mac0 / 0x10000;
     temp_mac0 = temp * temp_ir2 + in_ofy;
@@ -245,7 +245,7 @@ void GTE::RTPT(uint32_t instruction) {
     temp_mac3 = (in_trz * 0x1000 + in_rt31 * in_vx1 + in_rt32 * in_vy1 + in_rt33 * in_vz1) >> (sf * 12);
     temp_ir3 = temp_mac3;
     uint16_t temp_sz2 = temp_mac3 >> ((1-sf) * 12);
-    temp = ((in_h * 0x20000) / temp_sz2 + 1) / 2;
+    temp = temp_sz2 > 0 ? ((in_h * 0x20000) / temp_sz2 + 1) / 2 : 0;
     temp_mac0 = temp * temp_ir1 + in_ofx;
     int16_t temp_sx1 = temp_mac0 / 0x10000;
     temp_mac0 = temp * temp_ir2 + in_ofy;
@@ -260,7 +260,7 @@ void GTE::RTPT(uint32_t instruction) {
     temp_mac3 = (in_trz * 0x1000 + in_rt31 * in_vx2 + in_rt32 * in_vy2 + in_rt33 * in_vz2) >> (sf * 12);
     temp_ir3 = temp_mac3;
     uint16_t temp_sz3 = temp_mac3 >> ((1-sf) * 12);
-    temp = ((in_h * 0x20000) / temp_sz3 + 1) / 2;
+    temp = temp_sz3 > 0 ? ((in_h * 0x20000) / temp_sz3 + 1) / 2 : 0;
     temp_mac0 = temp * temp_ir1 + in_ofx;
     int16_t temp_sx2 = temp_mac0 / 0x10000;
     temp_mac0 = temp * temp_ir2 + in_ofy;

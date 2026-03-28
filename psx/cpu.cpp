@@ -327,23 +327,23 @@ const CPU::Opcode CPU::cp2[] = {
     // 0b001000
     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b001100
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::OP,       &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b010000
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::NCDS,
+    &CPU::DPCS,     &CPU::INTPL,    &CPU::MVMVA,    &CPU::NCDS,
     // 0b010100
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::CDP,      &CPU::UNKCP2,   &CPU::NCDT,     &CPU::UNKCP2,
     // 0b011000
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::NCCS,
     // 0b011100
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::CC,       &CPU::UNKCP2,   &CPU::NCS,      &CPU::UNKCP2,
     // 0b100000
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::NCT,      &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b100100
     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b101000
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::SQR,      &CPU::DCPL,     &CPU::DPCT,   &CPU::UNKCP2,
     // 0b101100
-    &CPU::UNKCP2,   &CPU::AVSZ3,    &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::UNKCP2,   &CPU::AVSZ3,    &CPU::AVSZ4,    &CPU::UNKCP2,
     // 0b110000
     &CPU::RTPT,     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b110100
@@ -351,7 +351,7 @@ const CPU::Opcode CPU::cp2[] = {
     // 0b111000
     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
     // 0b111100
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2
+    &CPU::UNKCP2,   &CPU::GPF,      &CPU::GPL,      &CPU::NCCT
 };
 
 const CPU::Opcode CPU::cp2Move[] = {
@@ -1741,9 +1741,94 @@ void CPU::NCDS() {
     gte.NCDS(instruction);
 }
 
+void CPU::NCDT() {
+    LOGT_CPU(std::format("GTE_NCDT"));
+    //TODO
+}
+
 void CPU::AVSZ3() {
     LOGT_CPU(std::format("GTE_AVSZ3"));
     gte.AVSZ3(instruction);
+}
+
+void CPU::AVSZ4() {
+    LOGT_CPU(std::format("GTE_AVSZ4"));
+    //TODO
+}
+
+void CPU::SQR() {
+    LOGT_CPU(std::format("GTE_SQR"));
+    //TODO
+}
+
+void CPU::OP() {
+    LOGT_CPU(std::format("GTE_OP"));
+    //TODO
+}
+
+void CPU::GPF() {
+    LOGT_CPU(std::format("GTE_GPF"));
+    //TODO
+}
+
+void CPU::GPL() {
+    LOGT_CPU(std::format("GTE_GPL"));
+    //TODO
+}
+
+void CPU::NCCS() {
+    LOGT_CPU(std::format("GTE_NCCS"));
+    //TODO
+}
+
+void CPU::NCCT() {
+    LOGT_CPU(std::format("GTE_NCCT"));
+    //TODO
+}
+
+void CPU::NCS() {
+    LOGT_CPU(std::format("GTE_NCS"));
+    //TODO
+}
+
+void CPU::NCT() {
+    LOGT_CPU(std::format("GTE_NCT"));
+    //TODO
+}
+
+void CPU::CC() {
+    LOGT_CPU(std::format("GTE_CC"));
+    //TODO
+}
+
+void CPU::DPCS() {
+    LOGT_CPU(std::format("GTE_DPCS"));
+    //TODO
+}
+
+void CPU::DPCT() {
+    LOGT_CPU(std::format("GTE_DPCT"));
+    //TODO
+}
+
+void CPU::INTPL() {
+    LOGT_CPU(std::format("GTE_INTPL"));
+    //TODO
+}
+
+void CPU::CDP() {
+    LOGT_CPU(std::format("GTE_CDP"));
+    //TODO
+}
+
+void CPU::DCPL() {
+    LOGT_CPU(std::format("GTE_DCPL"));
+    //TODO
+}
+
+void CPU::MVMVA() {
+    LOGT_CPU(std::format("GTE_MVMVA"));
+    //TODO
 }
 
 void CPU::UNKCP2M() {
