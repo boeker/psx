@@ -319,41 +319,6 @@ const CPU::Opcode CPU::cp0Move[] = {
     &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M
 };
 
-const CPU::Opcode CPU::cp2[] = {
-    // 0b000000
-    &CPU::UNOFF,    &CPU::RTPS,     &CPU::UNOFF,    &CPU::UNOFF,
-    // 0b000100
-    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::NCLIP,    &CPU::UNOFF,
-    // 0b001000
-    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
-    // 0b001100
-    &CPU::OP,       &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
-    // 0b010000
-    &CPU::DPCS,     &CPU::INTPL,    &CPU::MVMVA,    &CPU::NCDS,
-    // 0b010100
-    &CPU::CDP,      &CPU::UNOFF,    &CPU::NCDT,     &CPU::UNOFF,
-    // 0b011000
-    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::NCCS,
-    // 0b011100
-    &CPU::CC,       &CPU::UNOFF,    &CPU::NCS,      &CPU::UNOFF,
-    // 0b100000
-    &CPU::NCT,      &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
-    // 0b100100
-    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
-    // 0b101000
-    &CPU::SQR,      &CPU::DCPL,     &CPU::DPCT,     &CPU::UNOFF,
-    // 0b101100
-    &CPU::UNOFF,    &CPU::AVSZ3,    &CPU::AVSZ4,    &CPU::UNOFF,
-    // 0b110000
-    &CPU::RTPT,     &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
-    // 0b110100
-    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
-    // 0b111000
-    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
-    // 0b111100
-    &CPU::UNOFF,    &CPU::GPF,      &CPU::GPL,      &CPU::NCCT
-};
-
 const CPU::Opcode CPU::cp2Move[] = {
     // 0b00000
     &CPU::MFC2,     &CPU::UNKCP2M,  &CPU::CFC2,     &CPU::UNKCP2M,
@@ -412,12 +377,14 @@ void CPU::CP0() {
     (this->*cp0[funct])();
 }
 
-void CPU::CP2() {
-    // CP2
-    // Operation depends on function field
-    funct = 0x3F & instruction;
+void CPU::CP2MOVE() {
+    // CP2 Move
+    // Whether this is a move operation or an CP2 operations depends on the first bit of the move field
+    // When it is 0, it is a move operation and the specific move operation depends on the move field
+    // When it is 1, it is a CP2 operation
+    move = 0x1F & (instruction >> 21);
 
-    (this->*cp2[funct])();
+    (this->*cp2Move[move])();
 }
 
 void CPU::REGIMM() {
@@ -1709,136 +1676,6 @@ void CPU::MFC0() {
     regs.setRegister(rt, data);
 }
 
-void CPU::UNKCP2() {
-    // Currently not used
-    throw exceptions::UnknownFunctionError(std::format("Unknown CP2 opcode @0x{:x}: instruction 0x{:x} = 0b{:032b} (CP2), function 0b{:06b}", instructionPC, instruction, instruction, funct));
-}
-
-void CPU::CP2MOVE() {
-    // CP2 Move
-    // Whether this is a move operation or an CP2 operations depends on the first bit of the move field
-    // When it is 0, it is a move operation and the specific move operation depends on the move field
-    // When it is 1, it is a CP2 operation
-    move = 0x1F & (instruction >> 21);
-
-    (this->*cp2Move[move])();
-}
-
-void CPU::NCLIP() {
-    LOGT_CPU(std::format("GTE_NCLIP"));
-    gte.NCLIP(instruction);
-}
-
-void CPU::RTPS() {
-    LOGT_CPU(std::format("GTE_RTPS"));
-    gte.RTPS(instruction);
-}
-
-void CPU::RTPT() {
-    LOGT_CPU(std::format("GTE_RTPT"));
-    gte.RTPT(instruction);
-}
-
-void CPU::NCDS() {
-    LOGT_CPU(std::format("GTE_NCDS"));
-    gte.NCDS(instruction);
-}
-
-void CPU::NCDT() {
-    LOGT_CPU(std::format("GTE_NCDT"));
-    //TODO
-}
-
-void CPU::AVSZ3() {
-    LOGT_CPU(std::format("GTE_AVSZ3"));
-    gte.AVSZ3(instruction);
-}
-
-void CPU::AVSZ4() {
-    LOGT_CPU(std::format("GTE_AVSZ4"));
-    //TODO
-}
-
-void CPU::SQR() {
-    LOGT_CPU(std::format("GTE_SQR"));
-    //TODO
-}
-
-void CPU::OP() {
-    LOGT_CPU(std::format("GTE_OP"));
-    //TODO
-}
-
-void CPU::GPF() {
-    LOGT_CPU(std::format("GTE_GPF"));
-    //TODO
-}
-
-void CPU::GPL() {
-    LOGT_CPU(std::format("GTE_GPL"));
-    //TODO
-}
-
-void CPU::NCCS() {
-    LOGT_CPU(std::format("GTE_NCCS"));
-    //TODO
-}
-
-void CPU::NCCT() {
-    LOGT_CPU(std::format("GTE_NCCT"));
-    //TODO
-}
-
-void CPU::NCS() {
-    LOGT_CPU(std::format("GTE_NCS"));
-    //TODO
-}
-
-void CPU::NCT() {
-    LOGT_CPU(std::format("GTE_NCT"));
-    //TODO
-}
-
-void CPU::CC() {
-    LOGT_CPU(std::format("GTE_CC"));
-    //TODO
-}
-
-void CPU::DPCS() {
-    LOGT_CPU(std::format("GTE_DPCS"));
-    //TODO
-}
-
-void CPU::DPCT() {
-    LOGT_CPU(std::format("GTE_DPCT"));
-    //TODO
-}
-
-void CPU::INTPL() {
-    LOGT_CPU(std::format("GTE_INTPL"));
-    //TODO
-}
-
-void CPU::CDP() {
-    LOGT_CPU(std::format("GTE_CDP"));
-    //TODO
-}
-
-void CPU::DCPL() {
-    LOGT_CPU(std::format("GTE_DCPL"));
-    //TODO
-}
-
-void CPU::MVMVA() {
-    LOGT_CPU(std::format("GTE_MVMVA"));
-    //TODO
-}
-
-void CPU::UNOFF() {
-    LOGT_CPU(std::format("GTE_UNOFF @0x{:x}: instruction 0x{:x} = 0b{:032b} (CP2), function 0b{:06b}", instructionPC, instruction, instruction, funct));
-    //TODO
-}
-
 void CPU::UNKCP2M() {
     throw exceptions::UnknownOpcodeError(std::format("0x{:x}: instruction 0x{:x} (CP2Move), move 0b{:05b}", instructionPC, instruction, move));
 }
@@ -1911,6 +1748,13 @@ void CPU::MFC2() {
     regs.setRegister(rt, data);
 }
 
+void CPU::CP2() {
+    // CP2
+    // Operation depends on function field
+    funct = 0x3F & instruction;
+    LOGT_CPU(std::format("GTE_{:02X}", funct));
+    gte.execute(instruction);
+}
 
 void CPU::UNKRGMM() {
     throw exceptions::UnknownOpcodeError(std::format("Unknown REGIMM @0x{:x}: instruction 0x{:x} (REGIMM), rt 0b{:05b}", instructionPC, instruction, instructionRt));

@@ -68,6 +68,8 @@ namespace PSX {
 class GTE {
 private:
     uint32_t registers[64];
+    uint32_t instruction;
+    uint8_t funct;
 
     friend std::ostream& operator<<(std::ostream &os, const GTE &gte);
 
@@ -84,11 +86,34 @@ public:
     uint32_t getControlRegister(uint8_t reg);
     void setControlRegister(uint8_t reg, uint32_t value);
 
-    void NCLIP(uint32_t instruction);
-    void RTPS(uint32_t instruction);
-    void RTPT(uint32_t instruction);
-    void NCDS(uint32_t instruction);
-    void AVSZ3(uint32_t instruction);
+    void NCLIP();
+    void RTPS();
+    void RTPT();
+    void NCDS();
+    void AVSZ3();
+
+    typedef void (GTE::*Opcode) ();
+    static const Opcode cp2[];
+    void execute(uint32_t instruction);
+    void UNKCP2();
+    void NCDT();
+    void AVSZ4();
+    void SQR();
+    void OP();
+    void GPF();
+    void GPL();
+    void NCCS();
+    void NCCT();
+    void NCS();
+    void NCT();
+    void CC();
+    void DPCS();
+    void DPCT();
+    void INTPL();
+    void CDP();
+    void DCPL();
+    void MVMVA();
+    void UNOFF();
 };
 
 }

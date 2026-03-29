@@ -82,7 +82,7 @@ private:
     void UNK();
     void SPECIAL();
     void CP0();
-    void CP2();
+    void CP2MOVE();
     void REGIMM();
     void LUI();
     void ORI();
@@ -157,34 +157,6 @@ private:
     void MTC0();
     void MFC0();
 
-    // Opcode CP2 encodes further instructions
-    static const Opcode cp2[];
-    void UNKCP2();
-    void CP2MOVE();
-    void NCLIP();
-    void RTPS();
-    void RTPT();
-    void NCDS();
-    void NCDT();
-    void AVSZ3();
-    void AVSZ4();
-    void SQR();
-    void OP();
-    void GPF();
-    void GPL();
-    void NCCS();
-    void NCCT();
-    void NCS();
-    void NCT();
-    void CC();
-    void DPCS();
-    void DPCT();
-    void INTPL();
-    void CDP();
-    void DCPL();
-    void MVMVA();
-    void UNOFF();
-
     // CP2 instructions are identified via move field
     static const Opcode cp2Move[];
     void UNKCP2M();
@@ -192,6 +164,7 @@ private:
     void MTC2();
     void CFC2();
     void MFC2();
+    void CP2();
 
     // Opcode REGIMM encodes further instructions via rt field
     static const Opcode regimm[];

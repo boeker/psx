@@ -44,6 +44,42 @@ const char* GTE::REGISTER_NAMES[] = {
     "flag" // U20: Calculation errors
 };
 
+const GTE::Opcode GTE::cp2[] = {
+    // 0b000000
+    &GTE::UNOFF,    &GTE::RTPS,     &GTE::UNOFF,    &GTE::UNOFF,
+    // 0b000100
+    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::NCLIP,    &GTE::UNOFF,
+    // 0b001000
+    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+    // 0b001100
+    &GTE::OP,       &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+    // 0b010000
+    &GTE::DPCS,     &GTE::INTPL,    &GTE::MVMVA,    &GTE::NCDS,
+    // 0b010100
+    &GTE::CDP,      &GTE::UNOFF,    &GTE::NCDT,     &GTE::UNOFF,
+    // 0b011000
+    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::NCCS,
+    // 0b011100
+    &GTE::CC,       &GTE::UNOFF,    &GTE::NCS,      &GTE::UNOFF,
+    // 0b100000
+    &GTE::NCT,      &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+    // 0b100100
+    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+    // 0b101000
+    &GTE::SQR,      &GTE::DCPL,     &GTE::DPCT,     &GTE::UNOFF,
+    // 0b101100
+    &GTE::UNOFF,    &GTE::AVSZ3,    &GTE::AVSZ4,    &GTE::UNOFF,
+    // 0b110000
+    &GTE::RTPT,     &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+    // 0b110100
+    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+    // 0b111000
+    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+    // 0b111100
+    &GTE::UNOFF,    &GTE::GPF,      &GTE::GPL,      &GTE::NCCT
+};
+
+
 std::string GTE::getRegisterName(uint8_t reg) {
     return REGISTER_NAMES[reg];
 }
@@ -61,6 +97,8 @@ void GTE::reset() {
     for (int i = 0; i < 64; ++i) {
         this->registers[i] = 0;
     }
+    instruction = 0;
+    funct = 0;
 }
 
 uint32_t GTE::getRegister(uint8_t rt) {
@@ -96,7 +134,7 @@ void GTE::setControlRegister(uint8_t rt, uint32_t value) {
     this->registers[32 + rt] = value;
 }
 
-void GTE::NCLIP(uint32_t instruction) {
+void GTE::NCLIP() {
     // Normal Clipping
     LOGT_GTE(std::format("NCLIP"));
     // TODO Implement flags
@@ -115,7 +153,7 @@ void GTE::NCLIP(uint32_t instruction) {
     setRegister(GTE_REG_MAC0, temp_mac0);
 }
 
-void GTE::RTPS(uint32_t instruction) {
+void GTE::RTPS() {
     // Perspective Transformation (Single)
     LOGT_GTE(std::format("RTPS"));
     // TODO Implement flags
@@ -184,7 +222,7 @@ void GTE::RTPS(uint32_t instruction) {
     setRegister(GTE_REG_SZ3, temp_sz3);
 }
 
-void GTE::RTPT(uint32_t instruction) {
+void GTE::RTPT() {
     // Perspective Transformation (Triple)
     LOGT_GTE(std::format("RTPT"));
     // TODO Implement flags
@@ -287,7 +325,7 @@ void GTE::RTPT(uint32_t instruction) {
     setRegister(GTE_REG_SZ3, temp_sz3);
 }
 
-void GTE::NCDS(uint32_t instruction) {
+void GTE::NCDS() {
     // Normal Color Depth Cue (Single vector)
     // TODO Implement flags
     // TODO Fix IR register values
@@ -377,7 +415,7 @@ void GTE::NCDS(uint32_t instruction) {
     setRegister(GTE_REG_RGB2, temp_rgb2);
 }
 
-void GTE::AVSZ3(uint32_t instruction) {
+void GTE::AVSZ3() {
     // Average of three Z values
     LOGT_GTE(std::format("AVSZ3"));
     uint8_t sf = 0x1 & (instruction >> 19);
@@ -393,6 +431,109 @@ void GTE::AVSZ3(uint32_t instruction) {
 
     setRegister(GTE_REG_MAC0, temp_mac0);
     setRegister(GTE_REG_OTZ, temp_otz);
+}
+
+void GTE::execute(uint32_t instruction) {
+    // Operation depends on function field
+    this->instruction = instruction;
+    funct = 0x3F & instruction;
+
+    (this->*cp2[funct])();
+}
+
+void GTE::UNKCP2() {
+    // Currently not used
+    //throw exceptions::UnknownFunctionError(std::format("Unknown CP2 opcode @0x{:x}: instruction 0x{:x} = 0b{:032b} (CP2), function 0b{:06b}", instructionPC, instruction, instruction, funct));
+}
+
+void GTE::NCDT() {
+    LOGT_GTE(std::format("GTE_NCDT"));
+    //TODO
+}
+
+void GTE::AVSZ4() {
+    LOGT_GTE(std::format("GTE_AVSZ4"));
+    //TODO
+}
+
+void GTE::SQR() {
+    LOGT_GTE(std::format("GTE_SQR"));
+    //TODO
+}
+
+void GTE::OP() {
+    LOGT_GTE(std::format("GTE_OP"));
+    //TODO
+}
+
+void GTE::GPF() {
+    LOGT_GTE(std::format("GTE_GPF"));
+    //TODO
+}
+
+void GTE::GPL() {
+    LOGT_GTE(std::format("GTE_GPL"));
+    //TODO
+}
+
+void GTE::NCCS() {
+    LOGT_GTE(std::format("GTE_NCCS"));
+    //TODO
+}
+
+void GTE::NCCT() {
+    LOGT_GTE(std::format("GTE_NCCT"));
+    //TODO
+}
+
+void GTE::NCS() {
+    LOGT_GTE(std::format("GTE_NCS"));
+    //TODO
+}
+
+void GTE::NCT() {
+    LOGT_GTE(std::format("GTE_NCT"));
+    //TODO
+}
+
+void GTE::CC() {
+    LOGT_GTE(std::format("GTE_CC"));
+    //TODO
+}
+
+void GTE::DPCS() {
+    LOGT_GTE(std::format("GTE_DPCS"));
+    //TODO
+}
+
+void GTE::DPCT() {
+    LOGT_GTE(std::format("GTE_DPCT"));
+    //TODO
+}
+
+void GTE::INTPL() {
+    LOGT_GTE(std::format("GTE_INTPL"));
+    //TODO
+}
+
+void GTE::CDP() {
+    LOGT_GTE(std::format("GTE_CDP"));
+    //TODO
+}
+
+void GTE::DCPL() {
+    LOGT_GTE(std::format("GTE_DCPL"));
+    //TODO
+}
+
+void GTE::MVMVA() {
+    LOGT_GTE(std::format("GTE_MVMVA"));
+    //TODO
+}
+
+void GTE::UNOFF() {
+    LOGT_GTE(std::format("GTE_UNOFF"));
+    //TODO
 }
 
 }
