@@ -21,7 +21,7 @@ CPU::CPU(Bus *bus) {
 
 void CPU::reset() {
     regs.reset();
-    cp0regs.reset();
+    cp0.reset();
     gte.reset();
 
     cycles = 0;
@@ -123,34 +123,34 @@ void CPU::generateException(uint8_t exccode, bool epcShouldBeNextInstruction) {
     uint32_t pc = epcShouldBeNextInstruction ? delaySlotPC : instructionPC;
 
     if (bd) {
-        cp0regs.setCP0Register(CP0_REGISTER_EPC, pc - 4);
+        cp0.setCP0Register(CP0_REGISTER_EPC, pc - 4);
         // set BD bit
-        uint32_t cause = cp0regs.getCP0Register(CP0_REGISTER_CAUSE);
-        cp0regs.setCP0Register(CP0_REGISTER_CAUSE, cause | (0x1 << CAUSE_BIT_BD));
+        uint32_t cause = cp0.getCP0Register(CP0_REGISTER_CAUSE);
+        cp0.setCP0Register(CP0_REGISTER_CAUSE, cause | (0x1 << CAUSE_BIT_BD));
 
     } else {
-        cp0regs.setCP0Register(CP0_REGISTER_EPC, pc);
+        cp0.setCP0Register(CP0_REGISTER_EPC, pc);
 
         // Make sure that BD bit is not set
-        uint32_t cause = cp0regs.getCP0Register(CP0_REGISTER_CAUSE);
-        cp0regs.setCP0Register(CP0_REGISTER_CAUSE, cause & ~(0x1u << CAUSE_BIT_BD));
+        uint32_t cause = cp0.getCP0Register(CP0_REGISTER_CAUSE);
+        cp0.setCP0Register(CP0_REGISTER_CAUSE, cause & ~(0x1u << CAUSE_BIT_BD));
     }
 
     // save user-mode-enable and interrupt-enable flags in SR
     // by pushing the 3-entry stack inside of SR
-    uint32_t sr = cp0regs.getCP0Register(CP0_REGISTER_SR);
+    uint32_t sr = cp0.getCP0Register(CP0_REGISTER_SR);
     // we clear KUc and IEc, not sure if this is correct
-    cp0regs.setCP0Register(CP0_REGISTER_SR, (sr & 0xFFFFFFC0) | ((sr & 0xF) << 2)); // KUo and IEo are lost
+    cp0.setCP0Register(CP0_REGISTER_SR, (sr & 0xFFFFFFC0) | ((sr & 0xF) << 2)); // KUo and IEo are lost
 
     // set up ExcCode in Cause register
-    uint32_t cause = cp0regs.getCP0Register(CP0_REGISTER_CAUSE);
+    uint32_t cause = cp0.getCP0Register(CP0_REGISTER_CAUSE);
     cause = (cause & 0xFFFFFF83) | (exccode << 2);
-    cp0regs.setCP0Register(CP0_REGISTER_CAUSE, cause);
+    cp0.setCP0Register(CP0_REGISTER_CAUSE, cause);
 
     // TODO: set BadVaddr on address exception
 
     // transfer control to exception entry point
-    if (cp0regs.getCP0Register(CP0_REGISTER_SR) & (1 << SR_BIT_BEV)) {
+    if (cp0.getCP0Register(CP0_REGISTER_SR) & (1 << SR_BIT_BEV)) {
         regs.setPC(0xBFC00180);
 
     } else {
@@ -166,9 +166,9 @@ void CPU::generateException(uint8_t exccode, bool epcShouldBeNextInstruction) {
 void CPU::checkAndExecuteInterrupts() {
     LOGV_EXC(std::format("Checking if interrupt exception should be issued"));
 
-    if (cp0regs.getBit(CP0_REGISTER_SR, SR_BIT_IEC)) {
-        uint32_t ip = (cp0regs.getCP0Register(CP0_REGISTER_CAUSE) >> CAUSE_BIT_IP0) & 0xFF;
-        uint32_t im = (cp0regs.getCP0Register(CP0_REGISTER_SR) >> SR_BIT_IM0) & 0xFF;
+    if (cp0.getBit(CP0_REGISTER_SR, SR_BIT_IEC)) {
+        uint32_t ip = (cp0.getCP0Register(CP0_REGISTER_CAUSE) >> CAUSE_BIT_IP0) & 0xFF;
+        uint32_t im = (cp0.getCP0Register(CP0_REGISTER_SR) >> SR_BIT_IM0) & 0xFF;
 
         if (ip & im) {
             generateException(EXCCODE_INT, true);
@@ -190,7 +190,7 @@ std::ostream& operator<<(std::ostream &os, const CPU &cpu) {
     os << cpu.regs << std::endl;
 
     os << "CP0 register contents: " << std::endl;
-    os << cpu.cp0regs;
+    os << cpu.cp0;
 
     return os;
 }
@@ -205,7 +205,7 @@ const CPU::Opcode CPU::opcodes[] = {
     // 0b001100
     &CPU::ANDI,     &CPU::ORI,      &CPU::XORI,     &CPU::LUI,
     // 0b010000
-    &CPU::CP0,      &CPU::UNK,      &CPU::CP2MOVE,  &CPU::UNK,
+    &CPU::CP0MOVE,  &CPU::UNK,      &CPU::CP2MOVE,  &CPU::UNK,
     // 0b010100
     &CPU::UNK,      &CPU::UNK,      &CPU::UNK,      &CPU::UNK,
     // 0b011000
@@ -265,41 +265,6 @@ const CPU::Opcode CPU::special[] = {
     &CPU::UNKSPCL,  &CPU::UNKSPCL,  &CPU::UNKSPCL,  &CPU::UNKSPCL
 };
 
-const CPU::Opcode CPU::cp0[] = {
-    // 0b000000
-    &CPU::CP0MOVE,  &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b000100
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b001000
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b001100
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b010000
-    &CPU::RFE,      &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b010100
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b011000
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b011100
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b100000
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b100100
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b101000
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b101100
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b110000
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b110100
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b111000
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,
-    // 0b111100
-    &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0,   &CPU::UNKCP0
-};
-
 const CPU::Opcode CPU::cp0Move[] = {
     // 0b00000
     &CPU::MFC0,     &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M,
@@ -310,13 +275,13 @@ const CPU::Opcode CPU::cp0Move[] = {
     // 0b01100
     &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M,
     // 0b10000
-    &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M,
+    &CPU::CP0INST,  &CPU::CP0INST,  &CPU::CP0INST,  &CPU::CP0INST,
     // 0b10100
-    &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M,
+    &CPU::CP0INST,  &CPU::CP0INST,  &CPU::CP0INST,  &CPU::CP0INST,
     // 0b11000
-    &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M,
+    &CPU::CP0INST,  &CPU::CP0INST,  &CPU::CP0INST,  &CPU::CP0INST,
     // 0b11100
-    &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M,  &CPU::UNKCP0M
+    &CPU::CP0INST,  &CPU::CP0INST,  &CPU::CP0INST,  &CPU::CP0INST
 };
 
 const CPU::Opcode CPU::cp2Move[] = {
@@ -329,13 +294,13 @@ const CPU::Opcode CPU::cp2Move[] = {
     // 0b01100
     &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,
     // 0b10000
-    &CPU::CP2,      &CPU::CP2,      &CPU::CP2,      &CPU::CP2,
+    &CPU::CP2INST,  &CPU::CP2INST,  &CPU::CP2INST,  &CPU::CP2INST,
     // 0b10100
-    &CPU::CP2,      &CPU::CP2,      &CPU::CP2,      &CPU::CP2,
+    &CPU::CP2INST,  &CPU::CP2INST,  &CPU::CP2INST,  &CPU::CP2INST,
     // 0b11000
-    &CPU::CP2,      &CPU::CP2,      &CPU::CP2,      &CPU::CP2,
+    &CPU::CP2INST,  &CPU::CP2INST,  &CPU::CP2INST,  &CPU::CP2INST,
     // 0b11100
-    &CPU::CP2,      &CPU::CP2,      &CPU::CP2,      &CPU::CP2
+    &CPU::CP2INST,  &CPU::CP2INST,  &CPU::CP2INST,  &CPU::CP2INST
 };
 
 const CPU::Opcode CPU::regimm[] = {
@@ -369,12 +334,14 @@ void CPU::SPECIAL() {
     (this->*special[funct])();
 }
 
-void CPU::CP0() {
-    // CP0
-    // Operation depends on function field
-    funct = 0x3F & instruction;
+void CPU::CP0MOVE() {
+    // CP0 Move
+    // Whether this is a move operation or an CP0 operations depends on the first bit of the move field
+    // When it is 0, it is a move operation and the specific move operation depends on the move field
+    // When it is 1, it is a CP) operation
+    move = 0x1F & (instruction >> 21);
 
-    (this->*cp0[funct])();
+    (this->*cp0Move[move])();
 }
 
 void CPU::CP2MOVE() {
@@ -442,7 +409,7 @@ void CPU::SW() {
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
                      + regs.getRegister(base);
     if (vAddr & 0x3) {
-        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
+        cp0.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
         generateException(EXCCODE_ADES);
 
     } else {
@@ -549,7 +516,7 @@ void CPU::LW() {
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset) + regs.getRegister(base);
 
     if (vAddr & 0x3) {
-        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
+        cp0.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
         generateException(EXCCODE_ADEL);
 
     } else {
@@ -578,7 +545,7 @@ void CPU::SH() {
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
     if (vAddr & 0x1) {
-        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
+        cp0.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
         generateException(EXCCODE_ADES);
 
     } else {
@@ -851,7 +818,7 @@ void CPU::LHU() {
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
     if (vAddr & 0x1) {
-        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
+        cp0.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
         generateException(EXCCODE_ADEL);
 
     } else {
@@ -882,7 +849,7 @@ void CPU::LH() {
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
 
     if (vAddr & 0x1) {
-        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
+        cp0.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
         generateException(EXCCODE_ADEL);
 
     } else {
@@ -1045,7 +1012,7 @@ void CPU::LWC2() {
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
                      + regs.getRegister(base);
     if (vAddr & 0x3) {
-        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
+        cp0.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
         generateException(EXCCODE_ADES);
 
     } else {
@@ -1074,7 +1041,7 @@ void CPU::SWC2() {
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
                      + regs.getRegister(base);
     if (vAddr & 0x3) {
-        cp0regs.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
+        cp0.setCP0Register(CP0_REGISTER_BADVADDR, vAddr);
         generateException(EXCCODE_ADES);
 
     } else {
@@ -1611,29 +1578,6 @@ void CPU::BREAK() {
     generateException(EXCCODE_BP);
 }
 
-void CPU::UNKCP0() {
-    throw exceptions::UnknownFunctionError(std::format("Unknown CP0 opcode @0x{:x}: instruction 0x{:x} (CP0), function 0b{:06b}", instructionPC, instruction, funct));
-}
-
-
-void CPU::CP0MOVE() {
-    // CP0 Move
-    // Operation depends on function field
-    move = 0x1F & (instruction >> 21);
-
-    (this->*cp0Move[move])();
-}
-
-void CPU::RFE() {
-    // Restore From Exception
-    // T: SR <- SR_{31...4} || SR_{5...2}
-
-    LOGT_CPU("RFE");
-
-    uint32_t sr = cp0regs.getCP0Register(CP0_REGISTER_SR);
-    cp0regs.setCP0Register(CP0_REGISTER_SR, (sr & 0xFFFFFFF0) | ((sr & 0x3C) >> 2));
-}
-
 void CPU::UNKCP0M() {
     throw exceptions::UnknownOpcodeError(std::format("0x{:x}: instruction 0x{:x} (CP0Move), move 0b{:05b}", instructionPC, instruction, move));
 }
@@ -1652,7 +1596,7 @@ void CPU::MTC0() {
     uint32_t data = regs.getRegister(rt);
     LOGT_CPU(std::format(" (0x{:08X} -> CP0 {:d})",data, rd));
 
-    cp0regs.setCP0Register(rd, data);
+    cp0.setCP0Register(rd, data);
     // Interrupts might have been enabled by that write
     checkAndExecuteInterrupts();
     //shouldCheckInterrupts = true;
@@ -1669,11 +1613,19 @@ void CPU::MFC0() {
                         regs.getRegisterName(rt),
                         rd));
 
-    uint32_t data = cp0regs.getCP0Register(rd);
+    uint32_t data = cp0.getCP0Register(rd);
     LOGT_CPU(std::format(" (CP0 {:d} -0x{:08X}->)",
                         rd, data));
 
     regs.setRegister(rt, data);
+}
+
+void CPU::CP0INST() {
+    // CP0INST
+    // Operation depends on function field
+    funct = 0x3F & instruction;
+    LOGT_CPU(std::format("CP0_{:02X}", funct));
+    cp0.execute(instruction);
 }
 
 void CPU::UNKCP2M() {
@@ -1748,8 +1700,8 @@ void CPU::MFC2() {
     regs.setRegister(rt, data);
 }
 
-void CPU::CP2() {
-    // CP2
+void CPU::CP2INST() {
+    // CP2INST
     // Operation depends on function field
     funct = 0x3F & instruction;
     LOGT_CPU(std::format("GTE_{:02X}", funct));

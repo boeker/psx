@@ -1,16 +1,17 @@
-#include "cp0registers.h"
+#include "cp0.h"
 
 #include <cassert>
 #include <format>
 #include <sstream>
 
+#include "exceptions/exceptions.h"
 #include "util/log.h"
 
 using namespace util;
 
 namespace PSX {
 
-std::string CP0Registers::getSRExplanation() const {
+std::string CP0::getSRExplanation() const {
     std::stringstream ss;
 
     uint32_t sr = cp0Registers[CP0_REGISTER_SR];
@@ -38,7 +39,7 @@ std::string CP0Registers::getSRExplanation() const {
     return ss.str();
 }
 
-std::string CP0Registers::getCauseExplanation() const {
+std::string CP0::getCauseExplanation() const {
     std::stringstream ss;
 
     uint32_t cause = cp0Registers[CP0_REGISTER_CAUSE];
@@ -51,12 +52,12 @@ std::string CP0Registers::getCauseExplanation() const {
     return ss.str();
 }
 
-std::ostream& operator<<(std::ostream &os, const CP0Registers &registers) {
+std::ostream& operator<<(std::ostream &os, const CP0 &registers) {
     for (int i = 0; i < 8; ++i) {
-        os << CP0Registers::CP0_REGISTER_NAMES[i] << (i != 6 ? "\t" : "")
+        os << CP0::CP0_REGISTER_NAMES[i] << (i != 6 ? "\t" : "")
            << std::format("0x{:08X}", registers.cp0Registers[i]);
         os << ", ";
-        os << CP0Registers::CP0_REGISTER_NAMES[8 + i] << (i != 4 && i != 6 ? "\t" : "\t\t")
+        os << CP0::CP0_REGISTER_NAMES[8 + i] << (i != 4 && i != 6 ? "\t" : "\t\t")
            << std::format("0x{:08X}", registers.cp0Registers[8 + i]);
         os << ",\n";
     }
@@ -68,7 +69,7 @@ std::ostream& operator<<(std::ostream &os, const CP0Registers &registers) {
     return os;
 }
 
-const char* CP0Registers::CP0_REGISTER_NAMES[] = {
+const char* CP0::CP0_REGISTER_NAMES[] = {
     // unknown
     "CP0_r0",        "CP0_r1",
     "BusCtrl",  // 2: configure bus interface signals
@@ -91,22 +92,60 @@ const char* CP0Registers::CP0_REGISTER_NAMES[] = {
     "CP0_r28",       "CP0_r29",       "CP0_r30",       "CP0_r31"
 };
 
-std::string CP0Registers::getCP0RegisterName(uint8_t reg) {
+const CP0::Opcode CP0::cp0[] = {
+    // 0b000000
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b000100
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b001000
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b001100
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b010000
+    &CP0::RFE,      &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b010100
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b011000
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b011100
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b100000
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b100100
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b101000
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b101100
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b110000
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b110100
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b111000
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,
+    // 0b111100
+    &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0,   &CP0::UNKCP0
+};
+
+
+std::string CP0::getCP0RegisterName(uint8_t reg) {
     return CP0_REGISTER_NAMES[reg];
 }
 
-CP0Registers::CP0Registers() {
+CP0::CP0() {
     reset();
 }
 
-void CP0Registers::reset() {
+void CP0::reset() {
     for (int i = 0; i < 32; ++i) {
         this->cp0Registers[i] = 0;
     }
     cp0Registers[15] = 0x00000001;
+    instruction = 0;
+    funct = 0;
 }
 
-uint32_t CP0Registers::getCP0Register(uint8_t rt) {
+uint32_t CP0::getCP0Register(uint8_t rt) {
     assert (rt < 32);
 
     uint32_t word = cp0Registers[rt];
@@ -115,32 +154,54 @@ uint32_t CP0Registers::getCP0Register(uint8_t rt) {
     return word;
 }
 
-void CP0Registers::setCP0Register(uint8_t rt, uint32_t value) {
+void CP0::setCP0Register(uint8_t rt, uint32_t value) {
     assert (rt < 32);
     LOGT_CPU(std::format("{{0x{:08X} -> {:s}}}", value, getCP0RegisterName(rt)));
     cp0Registers[rt] = value;
 }
 
-bool CP0Registers::statusRegisterIsolateCacheIsSet() const {
+bool CP0::statusRegisterIsolateCacheIsSet() const {
     return cp0Registers[CP0_REGISTER_SR] & (1 << 16);
 }
 
-bool CP0Registers::getBit(uint8_t reg, uint8_t bit) const {
+bool CP0::getBit(uint8_t reg, uint8_t bit) const {
     return cp0Registers[reg] & (1 << bit);
 }
 
-void CP0Registers::setBit(uint8_t reg, uint8_t bit, bool value) {
+void CP0::setBit(uint8_t reg, uint8_t bit, bool value) {
     uint32_t selectedBit = 1 << bit;
     cp0Registers[reg] = (cp0Registers[reg] & ~selectedBit) | ((value ? 1 : 0) << bit);
 }
 
-void CP0Registers::setBit(uint8_t reg, uint8_t bit) {
+void CP0::setBit(uint8_t reg, uint8_t bit) {
     cp0Registers[reg] = cp0Registers[reg] | (1 << bit);
 }
 
-void CP0Registers::clearBit(uint8_t reg, uint8_t bit) {
+void CP0::clearBit(uint8_t reg, uint8_t bit) {
     uint32_t selectedBit = 1 << bit;
     cp0Registers[reg] = cp0Registers[reg] & ~selectedBit;
+}
+
+void CP0::execute(uint32_t instruction) {
+    // Operation depends on function field
+    this->instruction = instruction;
+    funct = 0x3F & instruction;
+
+    (this->*cp0[funct])();
+}
+
+void CP0::UNKCP0() {
+    throw exceptions::UnknownFunctionError(std::format("Unknown CP0 opcode instruction 0x{:x} (CP0), function 0b{:06b}", instruction, funct));
+}
+
+void CP0::RFE() {
+    // Restore From Exception
+    // T: SR <- SR_{31...4} || SR_{5...2}
+
+    LOGT_CP0("RFE");
+
+    uint32_t sr = getCP0Register(CP0_REGISTER_SR);
+    setCP0Register(CP0_REGISTER_SR, (sr & 0xFFFFFFF0) | ((sr & 0x3C) >> 2));
 }
 
 }

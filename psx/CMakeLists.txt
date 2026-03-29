@@ -8,7 +8,7 @@ target_sources(psx PRIVATE
     cd.cpp
     cdrom.cpp
     core.cpp
-    cp0registers.cpp
+    cp0.cpp
     cpu.cpp
     dma.cpp
     executable.cpp

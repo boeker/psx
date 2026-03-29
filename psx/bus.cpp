@@ -54,7 +54,7 @@ T Bus::debugRead(uint32_t address) {
     T value = 0;
 
     if ((address & 0x1FE00000) == 0x00000000) { // Main RAM
-        if (cpu.cp0regs.statusRegisterIsolateCacheIsSet()) {
+        if (cpu.cp0.statusRegisterIsolateCacheIsSet()) {
             value = memory.readDCache<T>(address);
 
         } else {
@@ -139,7 +139,7 @@ T Bus::read(uint32_t address) {
     T value = 0;
 
     if ((address & 0x1FE00000) == 0x00000000) { // Main RAM
-        if (cpu.cp0regs.statusRegisterIsolateCacheIsSet()) {
+        if (cpu.cp0.statusRegisterIsolateCacheIsSet()) {
             value = memory.readDCache<T>(address);
 
         } else {
@@ -228,7 +228,7 @@ void Bus::write(uint32_t address, T value) {
     LOGT_BUS(std::format(" [0x{:0{}X} -> @0x{:08X}]", value, 2*sizeof(T), address));
 
     if ((address & 0x1FE00000) == 0x00000000) { // Main RAM
-        if (cpu.cp0regs.statusRegisterIsolateCacheIsSet()) {
+        if (cpu.cp0.statusRegisterIsolateCacheIsSet()) {
             return memory.writeDCache<T>(address, value);
 
         } else {

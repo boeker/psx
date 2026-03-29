@@ -105,14 +105,14 @@ void Interrupts::checkAndExecuteInterrupts() {
     if ((istat & imask) & 0x3FF) { // one or more interrupts is requested and enabled
         LOGV_INT(std::format("Interrupt requested and enabled: 0x{:03X}",
                                  (istat & imask) & 0x3FF));
-        bus->cpu.cp0regs.setBit(CP0_REGISTER_CAUSE, CAUSE_BIT_IP2);
+        bus->cpu.cp0.setBit(CP0_REGISTER_CAUSE, CAUSE_BIT_IP2);
 
         bus->cpu.checkAndExecuteInterrupts();
         //bus->cpu.shouldCheckInterrupts = true;
 
     } else {
         // CAUSE_BIT_IP2 is not a latch, has to be set to 0 once I_STAT and I_MASK are zero
-        bus->cpu.cp0regs.clearBit(CP0_REGISTER_CAUSE, CAUSE_BIT_IP2);
+        bus->cpu.cp0.clearBit(CP0_REGISTER_CAUSE, CAUSE_BIT_IP2);
     }
 }
 

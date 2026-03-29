@@ -5,7 +5,7 @@
 #include <sstream>
 
 #include "registers.h"
-#include "cp0registers.h"
+#include "cp0.h"
 #include "gte.h"
 
 namespace PSX {
@@ -32,7 +32,7 @@ class Bus;
 class CPU {
 public:
     Registers regs;
-    CP0Registers cp0regs;
+    CP0 cp0;
     GTE gte;
 
 public:
@@ -81,7 +81,7 @@ private:
     static const Opcode opcodes[];
     void UNK();
     void SPECIAL();
-    void CP0();
+    void CP0MOVE();
     void CP2MOVE();
     void REGIMM();
     void LUI();
@@ -145,17 +145,12 @@ private:
     void XOR();
     void BREAK();
 
-    // Opcode CP0 encodes further instructions
-    static const Opcode cp0[];
-    void UNKCP0();
-    void CP0MOVE();
-    void RFE();
-
     // CP0 instructions are identified via move field
     static const Opcode cp0Move[];
     void UNKCP0M();
     void MTC0();
     void MFC0();
+    void CP0INST();
 
     // CP2 instructions are identified via move field
     static const Opcode cp2Move[];
@@ -164,7 +159,7 @@ private:
     void MTC2();
     void CFC2();
     void MFC2();
-    void CP2();
+    void CP2INST();
 
     // Opcode REGIMM encodes further instructions via rt field
     static const Opcode regimm[];

@@ -88,6 +88,7 @@ LogPack logPack;
 LogPack::LogPack()
     : INIT_TWL(bus, "BUS"),
       INIT_TWL(cdrom, "CDROM"),
+      INIT_TWL(cp0, "CP0"),
       INIT_TWL(cpu, "CPU"),
       INIT_TWL(dma, "DMA"),
       INIT_TWL(exceptions, "EXC"),
@@ -114,43 +115,47 @@ LogPack::LogPack()
     //exceptions.setConsoleLogEnabled(true);
     //exceptionsV.setConsoleLogEnabled(true);
 
-    //bus.setConsoleLogEnabled(true);
-    //cdrom.setConsoleLogEnabled(true);
+    bus.setConsoleLogEnabled(true);
+    cdrom.setConsoleLogEnabled(true);
+    cp0.setConsoleLogEnabled(true);
     cpu.setConsoleLogEnabled(true);
-    //dma.setConsoleLogEnabled(true);
-    //exceptions.setConsoleLogEnabled(true);
-    //executable.setConsoleLogEnabled(true);
-    //gio.setConsoleLogEnabled(true);
-    //gpu.setConsoleLogEnabled(true);
-    //gte.setConsoleLogEnabled(true);
-    //interrupts.setConsoleLogEnabled(true);
-    //mdec.setConsoleLogEnabled(true);
-    //memory.setConsoleLogEnabled(true);
-    //misc.setConsoleLogEnabled(true);
-    //pad.setConsoleLogEnabled(true);
-    //renderer.setConsoleLogEnabled(true);
-    //spu.setConsoleLogEnabled(true);
-    //timers.setConsoleLogEnabled(true);
-    //tty.setConsoleLogEnabled(true);
+    dma.setConsoleLogEnabled(true);
+    exceptions.setConsoleLogEnabled(true);
+    executable.setConsoleLogEnabled(true);
+    gio.setConsoleLogEnabled(true);
+    gpu.setConsoleLogEnabled(true);
+    gte.setConsoleLogEnabled(true);
+    interrupts.setConsoleLogEnabled(true);
+    mdec.setConsoleLogEnabled(true);
+    memory.setConsoleLogEnabled(true);
+    misc.setConsoleLogEnabled(true);
+    pad.setConsoleLogEnabled(true);
+    renderer.setConsoleLogEnabled(true);
+    spu.setConsoleLogEnabled(true);
+    timers.setConsoleLogEnabled(true);
+    tty.setConsoleLogEnabled(true);
     warning.setConsoleLogEnabled(true);
 
-    //interrupts.setConsoleLogEnabled(true);
-    //interruptsV.setConsoleLogEnabled(true);
+    interrupts.setConsoleLogEnabled(true);
+    interruptsV.setConsoleLogEnabled(true);
 
     //gpu.setConsoleLogEnabled(true);
     //renderer.setConsoleLogEnabled(true);
     //rendererV.setConsoleLogEnabled(true);
     //rendererT.setConsoleLogEnabled(true);
 
-    //dma.setConsoleLogEnabled(true);
-    //dmaV.setConsoleLogEnabled(true);
+    dma.setConsoleLogEnabled(true);
+    dmaV.setConsoleLogEnabled(true);
+
+    //gteV.setConsoleLogEnabled(true);
+    //gteT.setConsoleLogEnabled(true);
 
     cdrom.setConsoleLogEnabled(true);
     cdromV.setConsoleLogEnabled(true);
     //cdromT.setConsoleLogEnabled(true);
 
-    //exceptions.setConsoleLogEnabled(true);
-    //exceptionsV.setConsoleLogEnabled(true);
+    exceptions.setConsoleLogEnabled(true);
+    exceptionsV.setConsoleLogEnabled(true);
 
     //gio.setConsoleLogEnabled(true);
     //gioV.setConsoleLogEnabled(true);
@@ -172,6 +177,7 @@ LogPack::LogPack()
 void LogPack::enableAllFileLogging() {
     ENABLE_TWL_FILELOG(bus);
     ENABLE_TWL_FILELOG(cdrom);
+    ENABLE_TWL_FILELOG(cp0);
     ENABLE_TWL_FILELOG(cpu);
     ENABLE_TWL_FILELOG(dma);
     ENABLE_TWL_FILELOG(exceptions);

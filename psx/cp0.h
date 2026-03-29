@@ -41,21 +41,23 @@
 #define CAUSE_BIT_IP0 8
 
 namespace PSX {
-class CP0Registers {
+class CP0 {
 public:
     uint32_t cp0Registers[32];
+    uint32_t instruction;
+    uint8_t funct;
 
     std::string getSRExplanation() const;
     std::string getCauseExplanation() const;
-    friend std::ostream& operator<<(std::ostream &os, const CP0Registers &registers);
+    friend std::ostream& operator<<(std::ostream &os, const CP0 &registers);
 
 public:
     static const char* CP0_REGISTER_NAMES[];
     std::string getCP0RegisterName(uint8_t reg);
 
-    CP0Registers();
+    CP0();
     void reset();
-    
+
     uint32_t getCP0Register(uint8_t reg);
     void setCP0Register(uint8_t reg, uint32_t value);
 
@@ -64,6 +66,12 @@ public:
     void setBit(uint8_t reg, uint8_t bit, bool value);
     void setBit(uint8_t reg, uint8_t bit);
     void clearBit(uint8_t reg, uint8_t bit);
+
+    typedef void (CP0::*Opcode) ();
+    static const Opcode cp0[];
+    void execute(uint32_t instruction);
+    void UNKCP0();
+    void RFE();
 };
 }
 

@@ -70,6 +70,7 @@ struct LogPack {
 
     DECLARE_TWL(bus);
     DECLARE_TWL(cdrom);
+    DECLARE_TWL(cp0);
     DECLARE_TWL(cpu);
     DECLARE_TWL(dma);
     DECLARE_TWL(exceptions);
@@ -99,6 +100,10 @@ extern LogPack logPack;
 #define LOG_BUS             MACRO_LOG(bus)
 #define LOGV_BUS            MACRO_LOG(busV)
 #define LOGT_BUS            MACRO_LOG(busT)
+
+#define LOG_CP0             MACRO_LOG(cp0)
+#define LOGV_CP0            MACRO_LOG(cp0V)
+#define LOGT_CP0            MACRO_LOG(cp0T)
 
 #define LOG_CPU             MACRO_LOG(cpu)
 #define LOGV_CPU            MACRO_LOG(cpuV)
