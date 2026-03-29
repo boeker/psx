@@ -205,7 +205,7 @@ const CPU::Opcode CPU::opcodes[] = {
     // 0b001100
     &CPU::ANDI,     &CPU::ORI,      &CPU::XORI,     &CPU::LUI,
     // 0b010000
-    &CPU::CP0,      &CPU::UNK,      &CPU::CP2,      &CPU::UNK,
+    &CPU::CP0,      &CPU::UNK,      &CPU::CP2MOVE,  &CPU::UNK,
     // 0b010100
     &CPU::UNK,      &CPU::UNK,      &CPU::UNK,      &CPU::UNK,
     // 0b011000
@@ -321,37 +321,37 @@ const CPU::Opcode CPU::cp0Move[] = {
 
 const CPU::Opcode CPU::cp2[] = {
     // 0b000000
-    &CPU::CP2MOVE,  &CPU::RTPS,     &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::UNOFF,    &CPU::RTPS,     &CPU::UNOFF,    &CPU::UNOFF,
     // 0b000100
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::NCLIP,    &CPU::UNKCP2,
+    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::NCLIP,    &CPU::UNOFF,
     // 0b001000
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
     // 0b001100
-    &CPU::OP,       &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::OP,       &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
     // 0b010000
     &CPU::DPCS,     &CPU::INTPL,    &CPU::MVMVA,    &CPU::NCDS,
     // 0b010100
-    &CPU::CDP,      &CPU::UNKCP2,   &CPU::NCDT,     &CPU::UNKCP2,
+    &CPU::CDP,      &CPU::UNOFF,    &CPU::NCDT,     &CPU::UNOFF,
     // 0b011000
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::NCCS,
+    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::NCCS,
     // 0b011100
-    &CPU::CC,       &CPU::UNKCP2,   &CPU::NCS,      &CPU::UNKCP2,
+    &CPU::CC,       &CPU::UNOFF,    &CPU::NCS,      &CPU::UNOFF,
     // 0b100000
-    &CPU::NCT,      &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::NCT,      &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
     // 0b100100
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
     // 0b101000
-    &CPU::SQR,      &CPU::DCPL,     &CPU::DPCT,   &CPU::UNKCP2,
+    &CPU::SQR,      &CPU::DCPL,     &CPU::DPCT,     &CPU::UNOFF,
     // 0b101100
-    &CPU::UNKCP2,   &CPU::AVSZ3,    &CPU::AVSZ4,    &CPU::UNKCP2,
+    &CPU::UNOFF,    &CPU::AVSZ3,    &CPU::AVSZ4,    &CPU::UNOFF,
     // 0b110000
-    &CPU::RTPT,     &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::RTPT,     &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
     // 0b110100
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
     // 0b111000
-    &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,   &CPU::UNKCP2,
+    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,    &CPU::UNOFF,
     // 0b111100
-    &CPU::UNKCP2,   &CPU::GPF,      &CPU::GPL,      &CPU::NCCT
+    &CPU::UNOFF,    &CPU::GPF,      &CPU::GPL,      &CPU::NCCT
 };
 
 const CPU::Opcode CPU::cp2Move[] = {
@@ -364,13 +364,13 @@ const CPU::Opcode CPU::cp2Move[] = {
     // 0b01100
     &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,
     // 0b10000
-    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,
+    &CPU::CP2,      &CPU::CP2,      &CPU::CP2,      &CPU::CP2,
     // 0b10100
-    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,
+    &CPU::CP2,      &CPU::CP2,      &CPU::CP2,      &CPU::CP2,
     // 0b11000
-    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,
+    &CPU::CP2,      &CPU::CP2,      &CPU::CP2,      &CPU::CP2,
     // 0b11100
-    &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M,  &CPU::UNKCP2M
+    &CPU::CP2,      &CPU::CP2,      &CPU::CP2,      &CPU::CP2
 };
 
 const CPU::Opcode CPU::regimm[] = {
@@ -1710,12 +1710,15 @@ void CPU::MFC0() {
 }
 
 void CPU::UNKCP2() {
-    throw exceptions::UnknownFunctionError(std::format("Unknown CP2 opcode @0x{:x}: instruction 0x{:x} (CP2), function 0b{:06b}", instructionPC, instruction, funct));
+    // Currently not used
+    throw exceptions::UnknownFunctionError(std::format("Unknown CP2 opcode @0x{:x}: instruction 0x{:x} = 0b{:032b} (CP2), function 0b{:06b}", instructionPC, instruction, instruction, funct));
 }
 
 void CPU::CP2MOVE() {
     // CP2 Move
-    // Operation depends on function field
+    // Whether this is a move operation or an CP2 operations depends on the first bit of the move field
+    // When it is 0, it is a move operation and the specific move operation depends on the move field
+    // When it is 1, it is a CP2 operation
     move = 0x1F & (instruction >> 21);
 
     (this->*cp2Move[move])();
@@ -1828,6 +1831,11 @@ void CPU::DCPL() {
 
 void CPU::MVMVA() {
     LOGT_CPU(std::format("GTE_MVMVA"));
+    //TODO
+}
+
+void CPU::UNOFF() {
+    LOGT_CPU(std::format("GTE_UNOFF @0x{:x}: instruction 0x{:x} = 0b{:032b} (CP2), function 0b{:06b}", instructionPC, instruction, instruction, funct));
     //TODO
 }
 

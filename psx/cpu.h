@@ -183,6 +183,7 @@ private:
     void CDP();
     void DCPL();
     void MVMVA();
+    void UNOFF();
 
     // CP2 instructions are identified via move field
     static const Opcode cp2Move[];
