@@ -458,7 +458,26 @@ void GTE::AVSZ4() {
 
 void GTE::SQR() {
     LOGT_GTE(std::format("GTE_SQR"));
-    //TODO
+    uint8_t sf = 0x1 & (instruction >> 19);
+
+    int16_t in_ir1 = getRegister(GTE_REG_IR1);
+    int16_t in_ir2 = getRegister(GTE_REG_IR2);
+    int16_t in_ir3 = getRegister(GTE_REG_IR3);
+
+    int32_t temp_mac1 = (in_ir1 * in_ir1) >> (sf * 12);
+    int32_t temp_mac2 = (in_ir2 * in_ir2) >> (sf * 12);
+    int32_t temp_mac3 = (in_ir3 * in_ir3) >> (sf * 12);
+
+    int16_t temp_ir1 = temp_mac1;
+    int16_t temp_ir2 = temp_mac2;
+    int16_t temp_ir3 = temp_mac3;
+
+    setRegister(GTE_REG_MAC1, temp_mac1);
+    setRegister(GTE_REG_MAC2, temp_mac2);
+    setRegister(GTE_REG_MAC3, temp_mac3);
+    setRegister(GTE_REG_IR1, temp_ir1);
+    setRegister(GTE_REG_IR2, temp_ir2);
+    setRegister(GTE_REG_IR3, temp_ir3);
 }
 
 void GTE::OP() {
