@@ -87,6 +87,7 @@ namespace PSX {
 #define GTE_REG_DQA 59
 #define GTE_REG_DQB 60
 #define GTE_REG_ZSF3 61
+#define GTE_REG_ZSF4 62
 #define GTE_REG_FLAGS 63
 
 class GTE {
@@ -171,6 +172,7 @@ public:
     uint32_t get_register_as_uint32_t(uint8_t rt);
     void set_register_from_uint32_t(uint8_t rt, uint32_t value);
     uint32_t get_control_register_as_uint32_t(uint8_t rt);
+    void set_control_register_from_uint32_t(uint8_t rt, uint32_t value);
 
     uint32_t getRegister(uint8_t reg);
     void setRegister(uint8_t reg, uint32_t value);

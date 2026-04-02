@@ -338,35 +338,67 @@ uint32_t GTE::get_control_register_as_uint32_t(uint8_t rt) {
     assert(rt < 32);
     switch(rt) {
         case GTE_REG_RT11RT12:
+            return (static_cast<uint32_t>(rotation_matrix[1]) << 16) | static_cast<uint32_t>(rotation_matrix[0]);
         case GTE_REG_RT13RT21:
+            return (static_cast<uint32_t>(rotation_matrix[3]) << 16) | static_cast<uint32_t>(rotation_matrix[2]);
         case GTE_REG_RT22RT23:
+            return (static_cast<uint32_t>(rotation_matrix[5]) << 16) | static_cast<uint32_t>(rotation_matrix[4]);
         case GTE_REG_RT31RT32:
+            return (static_cast<uint32_t>(rotation_matrix[7]) << 16) | static_cast<uint32_t>(rotation_matrix[6]);
         case GTE_REG_RT33:
+            return static_cast<int32_t>(rotation_matrix[8]);
         case GTE_REG_TRX:
+            return translation_vector[0];
         case GTE_REG_TRY:
+            return translation_vector[1];
         case GTE_REG_TRZ:
+            return translation_vector[2];
         case GTE_REG_L11L12:
+            return (static_cast<uint32_t>(light_source_matrix[1]) << 16) | static_cast<uint32_t>(light_source_matrix[0]);
         case GTE_REG_L13L21:
+            return (static_cast<uint32_t>(light_source_matrix[3]) << 16) | static_cast<uint32_t>(light_source_matrix[2]);
         case GTE_REG_L22L23:
+            return (static_cast<uint32_t>(light_source_matrix[5]) << 16) | static_cast<uint32_t>(light_source_matrix[4]);
         case GTE_REG_L31L32:
+            return (static_cast<uint32_t>(light_source_matrix[7]) << 16) | static_cast<uint32_t>(light_source_matrix[6]);
         case GTE_REG_L33:
+            return static_cast<int32_t>(light_source_matrix[8]);
         case GTE_REG_RBK:
+            return background_color[0];
         case GTE_REG_GBK:
+            return background_color[1];
         case GTE_REG_BBK:
+            return background_color[2];
         case GTE_REG_LR1LR2:
+            return (static_cast<uint32_t>(light_color_matrix_source[1]) << 16) | static_cast<uint32_t>(light_color_matrix_source[0]);
         case GTE_REG_LR3LG1:
+            return (static_cast<uint32_t>(light_color_matrix_source[3]) << 16) | static_cast<uint32_t>(light_color_matrix_source[2]);
         case GTE_REG_LG2LG3:
+            return (static_cast<uint32_t>(light_color_matrix_source[5]) << 16) | static_cast<uint32_t>(light_color_matrix_source[4]);
         case GTE_REG_LB1LB2:
+            return (static_cast<uint32_t>(light_color_matrix_source[7]) << 16) | static_cast<uint32_t>(light_color_matrix_source[6]);
         case GTE_REG_LB3:
+            return static_cast<int32_t>(light_color_matrix_source[8]);
         case GTE_REG_RFC:
+            return far_color[0];
         case GTE_REG_GFC:
+            return far_color[1];
         case GTE_REG_BFC:
+            return far_color[2];
         case GTE_REG_OFX:
+            return screen_offset[0];
         case GTE_REG_OFY:
+            return screen_offset[1];
         case GTE_REG_H:
+            return projection_plane_distance;
         case GTE_REG_DQA:
+            return static_cast<int32_t>(depth_cueing_coefficient);
         case GTE_REG_DQB:
+            return depth_cueing_coefficient;
         case GTE_REG_ZSF3:
+            return static_cast<int32_t>(average_z_scale_factors[0]);
+        case GTE_REG_ZSF4:
+            return static_cast<int32_t>(average_z_scale_factors[1]);
         case GTE_REG_FLAGS:
         default:
             assert(false);
@@ -374,24 +406,126 @@ uint32_t GTE::get_control_register_as_uint32_t(uint8_t rt) {
     }
 }
 
-uint32_t GTE::getRegister(uint8_t rt) {
-    assert (rt < 64);
-    uint32_t word;
-    if (rt == GTE_REG_MAC0) {
-        word = get_mac0();
-
-    } else if (rt == GTE_REG_MAC1) {
-        word = get_mac1();
-
-    } else if (rt == GTE_REG_MAC2) {
-        word = get_mac2();
-
-    } else if (rt == GTE_REG_MAC3) {
-        word = get_mac3();
-
-    } else {
-        word = this->registers[rt];
+void GTE::set_control_register_from_uint32_t(uint8_t rt, uint32_t value) {
+    assert(rt < 32);
+    switch(rt) {
+        case GTE_REG_RT11RT12:
+            rotation_matrix[1] = value >> 16;
+            rotation_matrix[0] = value & 0xFFFF;
+            break;
+        case GTE_REG_RT13RT21:
+            rotation_matrix[3] = value >> 16;
+            rotation_matrix[2] = value & 0xFFFF;
+            break;
+        case GTE_REG_RT22RT23:
+            rotation_matrix[5] = value >> 16;
+            rotation_matrix[4] = value & 0xFFFF;
+            break;
+        case GTE_REG_RT31RT32:
+            rotation_matrix[7] = value >> 16;
+            rotation_matrix[6] = value & 0xFFFF;
+            break;
+        case GTE_REG_RT33:
+            rotation_matrix[8] = value & 0xFFFF;
+            break;
+        case GTE_REG_TRX:
+            translation_vector[0] = value;
+            break;
+        case GTE_REG_TRY:
+            translation_vector[1] = value;
+            break;
+        case GTE_REG_TRZ:
+            translation_vector[2] = value;
+            break;
+        case GTE_REG_L11L12:
+            light_source_matrix[1] = value >> 16;
+            light_source_matrix[0] = value & 0xFFFF;
+            break;
+        case GTE_REG_L13L21:
+            light_source_matrix[3] = value >> 16;
+            light_source_matrix[2] = value & 0xFFFF;
+            break;
+        case GTE_REG_L22L23:
+            light_source_matrix[5] = value >> 16;
+            light_source_matrix[4] = value & 0xFFFF;
+            break;
+        case GTE_REG_L31L32:
+            light_source_matrix[7] = value >> 16;
+            light_source_matrix[6] = value & 0xFFFF;
+            break;
+        case GTE_REG_L33:
+            light_source_matrix[8] = value & 0xFFFF;
+            break;
+        case GTE_REG_RBK:
+            background_color[0] = value;
+            break;
+        case GTE_REG_GBK:
+            background_color[1] = value;
+            break;
+        case GTE_REG_BBK:
+            background_color[2] = value;
+            break;
+        case GTE_REG_LR1LR2:
+            light_color_matrix_source[1] = value >> 16;
+            light_color_matrix_source[0] = value & 0xFFFF;
+            break;
+        case GTE_REG_LR3LG1:
+            light_color_matrix_source[3] = value >> 16;
+            light_color_matrix_source[2] = value & 0xFFFF;
+            break;
+        case GTE_REG_LG2LG3:
+            light_color_matrix_source[5] = value >> 16;
+            light_color_matrix_source[4] = value & 0xFFFF;
+            break;
+        case GTE_REG_LB1LB2:
+            light_color_matrix_source[7] = value >> 16;
+            light_color_matrix_source[6] = value & 0xFFFF;
+            break;
+        case GTE_REG_LB3:
+            light_color_matrix_source[8] = value & 0xFFFF;
+            break;
+        case GTE_REG_RFC:
+            far_color[0] = value;
+            break;
+        case GTE_REG_GFC:
+            far_color[1] = value;
+            break;
+        case GTE_REG_BFC:
+            far_color[2] = value;
+            break;
+        case GTE_REG_OFX:
+            screen_offset[0] = value;
+            break;
+        case GTE_REG_OFY:
+            screen_offset[1] = value;
+            break;
+        case GTE_REG_H:
+            projection_plane_distance = value & 0xFFFF;
+            break;
+        case GTE_REG_DQA:
+            depth_cueing_coefficient = value;
+            break;
+        case GTE_REG_DQB:
+            depth_cueing_offset = value;
+            break;
+        case GTE_REG_ZSF3:
+            average_z_scale_factors[0] = value;
+            break;
+        case GTE_REG_ZSF4:
+            average_z_scale_factors[1] = value;
+            break;
+        case GTE_REG_FLAGS:
+            flags = value & 0x7FFF'F000;
+            update_error_flag();
+            break;
+        default:
+            assert(false);
     }
+}
+
+uint32_t GTE::getRegister(uint8_t rt) {
+    assert (rt < 32);
+    uint32_t word = get_register_as_uint32_t(rt);
 
     LOGT_GTE(std::format("{{register {:d} ({:s}) -> 0x{:08X}}}", rt, getRegisterName(rt), word));
 
@@ -399,29 +533,15 @@ uint32_t GTE::getRegister(uint8_t rt) {
 }
 
 void GTE::setRegister(uint8_t rt, uint32_t value) {
-    assert (rt < 64);
+    assert (rt < 32);
     LOGT_GTE(std::format("{{0x{:08X} -> register {:d} ({:s})}}", value, rt, getRegisterName(rt)));
 
-    if (rt == GTE_REG_MAC0) {
-        set_mac0(value);
-
-    } else if (rt == GTE_REG_MAC1) {
-        set_mac1(value);
-
-    } else if (rt == GTE_REG_MAC2) {
-        set_mac2(value);
-
-    } else if (rt == GTE_REG_MAC3) {
-        set_mac3(value);
-
-    } else {
-        this->registers[rt] = value;
-    }
+    set_register_from_uint32_t(rt, value);
 }
 
 uint32_t GTE::getControlRegister(uint8_t rt) {
     assert (rt < 32);
-    uint32_t word = this->registers[32 + rt];
+    uint32_t word = get_control_register_as_uint32_t(rt);
 
     LOGT_GTE(std::format("{{control register {:d} ({:s}) -> 0x{:08X}}}", rt, getControlRegisterName(rt), word));
 
@@ -432,7 +552,7 @@ void GTE::setControlRegister(uint8_t rt, uint32_t value) {
     assert (rt < 32);
     LOGT_GTE(std::format("{{0x{:08X} -> control register {:d} ({:s})}}", value, rt, getControlRegisterName(rt)));
 
-    this->registers[32 + rt] = value;
+    set_control_register_from_uint32_t(rt, value);
 }
 
 int32_t GTE::clamp_to_16bit(int32_t value, bool lm) {
