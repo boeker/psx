@@ -16,6 +16,8 @@ namespace PSX {
 #define GTE_FLAGS_IR1 24
 #define GTE_FLAGS_IR2 23
 #define GTE_FLAGS_IR3 22
+#define GTE_FLAGS_MAC0_POS_OVERFLOW 16
+#define GTE_FLAGS_MAC0_NEG_OVERFLOW 15
 
 #define GTE_INST_SF 19 // Shift 12 bit fraction in IR registers
 #define GTE_INST_LM 10 // Clamp IR1, IR2, and IR3 result to -0x8000/0x0000...0x7FFF
@@ -94,6 +96,7 @@ private:
     uint32_t &irgb;
     uint32_t &orgb;
 
+    int64_t mac0;
     int64_t mac1;
     int64_t mac2;
     int64_t mac3;
@@ -129,10 +132,23 @@ public:
     void set_ir3(int32_t value);
     void set_irgb(uint32_t value);
 
+    void set_mac0(int64_t value);
     void set_mac1(int64_t value);
     void set_mac2(int64_t value);
     void set_mac3(int64_t value);
 
+    int64_t get_sx0() const;
+    int64_t get_sy0() const;
+    int64_t get_sx1() const;
+    int64_t get_sy1() const;
+    int64_t get_sx2() const;
+    int64_t get_sy2() const;
+
+    int64_t get_ir1() const;
+    int64_t get_ir2() const;
+    int64_t get_ir3() const;
+
+    int64_t get_mac0() const;
     int64_t get_mac1() const;
     int64_t get_mac2() const;
     int64_t get_mac3() const;

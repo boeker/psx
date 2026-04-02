@@ -129,7 +129,10 @@ void GTE::set_flag(uint8_t flag) {
 uint32_t GTE::getRegister(uint8_t rt) {
     assert (rt < 64);
     uint32_t word;
-    if (rt == GTE_REG_MAC1) {
+    if (rt == GTE_REG_MAC0) {
+        word = get_mac0();
+
+    } else if (rt == GTE_REG_MAC1) {
         word = get_mac1();
 
     } else if (rt == GTE_REG_MAC2) {
@@ -151,7 +154,10 @@ void GTE::setRegister(uint8_t rt, uint32_t value) {
     assert (rt < 64);
     LOGT_GTE(std::format("{{0x{:08X} -> register {:d} ({:s})}}", value, rt, getRegisterName(rt)));
 
-    if (rt == GTE_REG_MAC1) {
+    if (rt == GTE_REG_MAC0) {
+        set_mac0(value);
+
+    } else if (rt == GTE_REG_MAC1) {
         set_mac1(value);
 
     } else if (rt == GTE_REG_MAC2) {
@@ -243,6 +249,20 @@ void GTE::set_irgb(uint32_t value) {
     setRegister(GTE_REG_IR3, b * 0x80);
 }
 
+void GTE::set_mac0(int64_t value) {
+    mac0 = std::min(static_cast<int64_t>(0x7FFF'FFFF), value);
+    if (mac0 != value) {
+        // positive 32bit overflow
+        set_flag(GTE_FLAGS_MAC0_POS_OVERFLOW);
+    }
+    int64_t temp = mac0;
+    mac0 = std::max(static_cast<int64_t>(-0x8000'0000), mac0);
+    if (mac0 != temp) {
+        // negative 32bit overflow
+        set_flag(GTE_FLAGS_MAC0_NEG_OVERFLOW);
+    }
+}
+
 void GTE::set_mac1(int64_t value) {
     mac1 = std::min(0x7FF'FFFF'FFFF, value);
     if (mac1 != value) {
@@ -285,6 +305,46 @@ void GTE::set_mac3(int64_t value) {
     }
 }
 
+int64_t GTE::get_sx0() const {
+    return static_cast<int16_t>(registers[GTE_REG_SXY0] & 0xFFFF);
+}
+
+int64_t GTE::get_sy0() const {
+    return static_cast<int16_t>(registers[GTE_REG_SXY0] >> 16);
+}
+
+int64_t GTE::get_sx1() const {
+    return static_cast<int16_t>(registers[GTE_REG_SXY1] & 0xFFFF);
+}
+
+int64_t GTE::get_sy1() const {
+    return static_cast<int16_t>(registers[GTE_REG_SXY1] >> 16);
+}
+
+int64_t GTE::get_sx2() const {
+    return static_cast<int16_t>(registers[GTE_REG_SXY2] & 0xFFFF);
+}
+
+int64_t GTE::get_sy2() const {
+    return static_cast<int16_t>(registers[GTE_REG_SXY2] >> 16);
+}
+
+int64_t GTE::get_ir1() const {
+    return static_cast<int16_t>(registers[GTE_REG_IR1]);
+}
+
+int64_t GTE::get_ir2() const {
+    return static_cast<int16_t>(registers[GTE_REG_IR2]);
+}
+
+int64_t GTE::get_ir3() const {
+    return static_cast<int16_t>(registers[GTE_REG_IR3]);
+}
+
+int64_t GTE::get_mac0() const {
+    return mac0;
+}
+
 int64_t GTE::get_mac1() const {
     return mac1;
 }
@@ -304,6 +364,7 @@ void GTE::execute(uint32_t instruction) {
     this->lm = Bit::getBit(instruction, GTE_INST_LM);
     funct = 0x3F & instruction;
 
+    reset_flags();
     (this->*cp2[funct])();
 }
 
@@ -314,21 +375,8 @@ void GTE::UNKCP2() {
 
 void GTE::NCLIP() {
     // Normal Clipping
-    LOGT_GTE(std::format("NCLIP"));
-    // TODO Implement flags
-
-    int16_t in_sx0 = getRegister(GTE_REG_SXY0) & 0xFFFF;
-    int16_t in_sy0 = getRegister(GTE_REG_SXY0) >> 16;
-
-    int16_t in_sx1 = getRegister(GTE_REG_SXY1) & 0xFFFF;
-    int16_t in_sy1 = getRegister(GTE_REG_SXY1) >> 16;
-
-    int16_t in_sx2 = getRegister(GTE_REG_SXY2) & 0xFFFF;
-    int16_t in_sy2 = getRegister(GTE_REG_SXY2) >> 16;
-
-    int32_t temp_mac0 = in_sx0 * (in_sy1 - in_sy2) + in_sx1 * (in_sy2 - in_sy0) + in_sx2 * (in_sy0 - in_sy1);
-
-    setRegister(GTE_REG_MAC0, temp_mac0);
+    LOG_GTE(std::format("NCLIP"));
+    set_mac0(get_sx0() * (get_sy1() - get_sy2()) + get_sx1() * (get_sy2() - get_sy0()) + get_sx2() * (get_sy0() - get_sy1()));
 }
 
 void GTE::RTPS() {
@@ -623,18 +671,19 @@ void GTE::AVSZ4() {
 
 void GTE::SQR() {
     LOG_GTE(std::format("GTE_SQR"));
-    int16_t in_ir1 = getRegister(GTE_REG_IR1);
-    int16_t in_ir2 = getRegister(GTE_REG_IR2);
-    int16_t in_ir3 = getRegister(GTE_REG_IR3);
-    LOG_GTE(std::format("ir1 = 0x{:04X}, ir2 = 0x{:04X}, ir3 = 0x{:04X}, sf = {:s}", in_ir1, in_ir2, in_ir3, sf));
+    LOG_GTE(std::format("ir1 = 0x{:04X}, ir2 = 0x{:04X}, ir3 = 0x{:04X}, sf = {:s}", get_ir1(), get_ir2(), get_ir3(), sf));
 
-    set_mac1((in_ir1 * in_ir1) >> (sf * 12));
-    set_mac2((in_ir2 * in_ir2) >> (sf * 12));
-    set_mac3((in_ir3 * in_ir3) >> (sf * 12));
+    set_mac1((get_ir1() * get_ir1()) >> (sf * 12));
+    set_mac2((get_ir2() * get_ir2()) >> (sf * 12));
+    set_mac3((get_ir3() * get_ir3()) >> (sf * 12));
 
-    set_ir1(get_mac1() & 0xFFFF'FFFF);
-    set_ir2(get_mac2() & 0xFFFF'FFFF);
-    set_ir3(get_mac3() & 0xFFFF'FFFF);
+    set_ir1(get_mac1());
+    set_ir2(get_mac2());
+    set_ir3(get_mac3());
+
+    LOG_GTE(std::format("mac1 = 0x{:011X}, mac2 = 0x{:011X}, mac3 = 0x{:011X}", get_mac1(), get_mac2(), get_mac3()));
+    LOG_GTE(std::format("ir1 = 0x{:04X}, ir2 = 0x{:04X}, ir3 = 0x{:04X}", get_ir1(), get_ir2(), get_ir3()));
+    LOG_GTE(std::format("ir1 = 0x{:08X}, ir2 = 0x{:08X}, ir3 = 0x{:08X}", registers[GTE_REG_IR1], registers[GTE_REG_IR2], registers[GTE_REG_IR3]));
 }
 
 void GTE::OP() {
