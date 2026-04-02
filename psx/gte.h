@@ -123,8 +123,8 @@ private:
     uint16_t ordering_table_z;           // OTZ
     int16_t ir0;                         // IR0
     int16_t ir1, ir2, ir3;               // IR1, IR2, IR3
-    int16_t_pair xy0, xy1, xy2, xyp;     // SXY0, SXY1, SXY2, SXYP
-    uint32_t z0, z1, z2, z3;             // SZ0, SZ1, SZ2, SZ3
+    int16_t_pair sxy0, sxy1, sxy2, sxyp; // SXY0, SXY1, SXY2, SXYP
+    uint16_t sz0, sz1, sz2, sz3;         // SZ0, SZ1, SZ2, SZ3
     uint32_t rgb0, rgb1, rgb2;           // RGB0, RGB1, RGB2
     uint32_t reserved;                   // RES1
     int64_t mac0;                        // MAC0
@@ -168,8 +168,10 @@ public:
     void update_error_flag();
     void set_flag(uint8_t flag);
 
-    uint32_t get_control_register_as_uint32_t(uint8_t rt);
     uint32_t get_register_as_uint32_t(uint8_t rt);
+    void set_register_from_uint32_t(uint8_t rt, uint32_t value);
+    uint32_t get_control_register_as_uint32_t(uint8_t rt);
+
     uint32_t getRegister(uint8_t reg);
     void setRegister(uint8_t reg, uint32_t value);
     uint32_t getControlRegister(uint8_t reg);

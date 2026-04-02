@@ -105,14 +105,14 @@ void GTE::reset() {
     ir1 = 0;
     ir2 = 0;
     ir3 = 0;
-    xy0.reset();
-    xy1.reset();
-    xy2.reset();
-    xyp.reset();
-    z0 = 0;
-    z1 = 0;
-    z2 = 0;
-    z3 = 0;
+    sxy0.reset();
+    sxy1.reset();
+    sxy2.reset();
+    sxyp.reset();
+    sz0 = 0;
+    sz1 = 0;
+    sz2 = 0;
+    sz3 = 0;
     rgb0 = 0;
     rgb1 = 0;
     rgb2 = 0;
@@ -169,37 +169,168 @@ uint32_t GTE::get_register_as_uint32_t(uint8_t rt) {
     assert(rt < 32);
     switch(rt) {
         case GTE_REG_VXY0:
+            return (static_cast<uint32_t>(v0.y) << 16) | static_cast<uint32_t>(v0.x);
         case GTE_REG_VZ0:
+            return static_cast<int32_t>(v0.z);
         case GTE_REG_VXY1:
+            return (static_cast<uint32_t>(v1.y) << 16) | static_cast<uint32_t>(v1.x);
         case GTE_REG_VZ1:
+            return static_cast<int32_t>(v1.z);
         case GTE_REG_VXY2:
+            return (static_cast<uint32_t>(v2.y) << 16) | static_cast<uint32_t>(v2.x);
         case GTE_REG_VZ2:
+            return static_cast<int32_t>(v2.z);
         case GTE_REG_RGBC:
+            return rgbc;
         case GTE_REG_OTZ:
+            return ordering_table_z;
         case GTE_REG_IR0:
+            return static_cast<int32_t>(ir0);
         case GTE_REG_IR1:
+            return static_cast<int32_t>(ir1);
         case GTE_REG_IR2:
+            return static_cast<int32_t>(ir2);
         case GTE_REG_IR3:
+            return static_cast<int32_t>(ir3);
         case GTE_REG_SXY0:
+            return (static_cast<uint32_t>(sxy0.y) << 16) | static_cast<uint32_t>(sxy0.x);
         case GTE_REG_SXY1:
+            return (static_cast<uint32_t>(sxy1.y) << 16) | static_cast<uint32_t>(sxy1.x);
         case GTE_REG_SXY2:
+            return (static_cast<uint32_t>(sxy2.y) << 16) | static_cast<uint32_t>(sxy2.x);
         case GTE_REG_SXYP:
+            return (static_cast<uint32_t>(sxyp.y) << 16) | static_cast<uint32_t>(sxyp.x);
         case GTE_REG_SZ0:
+            return sz0;
         case GTE_REG_SZ1:
+            return sz1;
         case GTE_REG_SZ2:
+            return sz2;
         case GTE_REG_SZ3:
+            return sz3;
         case GTE_REG_RGB0:
+            return rgb0;
         case GTE_REG_RGB1:
+            return rgb1;
         case GTE_REG_RGB2:
+            return rgb2;
         case GTE_REG_MAC0:
+            return mac0;
         case GTE_REG_MAC1:
+            return mac1;
         case GTE_REG_MAC2:
+            return mac2;
         case GTE_REG_MAC3:
+            return mac3;
         case GTE_REG_IRGB:
+            return input_rgb;
         case GTE_REG_ORGB:
+            return output_rgb;
         default:
             assert(false);
             return 0;
+    }
+}
+
+void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
+    assert(rt < 32);
+    switch(rt) {
+        case GTE_REG_VXY0:
+            v0.y = value >> 16;
+            v0.x = value & 0xFFFF;
+            break;
+        case GTE_REG_VZ0:
+            v0.z = value & 0xFFFF;
+            break;
+        case GTE_REG_VXY1:
+            v1.y = value >> 16;
+            v1.x = value & 0xFFFF;
+            break;
+        case GTE_REG_VZ1:
+            v1.z = value & 0xFFFF;
+            break;
+        case GTE_REG_VXY2:
+            v2.y = value >> 16;
+            v2.x = value & 0xFFFF;
+            break;
+        case GTE_REG_VZ2:
+            v2.z = value & 0xFFFF;
+            break;
+        case GTE_REG_RGBC:
+            rgbc = value;
+            break;
+        case GTE_REG_OTZ:
+            // Read-only
+            break;
+        case GTE_REG_IR0:
+            ir0 = value;
+            break;
+        case GTE_REG_IR1:
+            ir1 = value;
+            break;
+        case GTE_REG_IR2:
+            ir2 = value;
+            break;
+        case GTE_REG_IR3:
+            ir3 = value;
+            break;
+        case GTE_REG_SXY0:
+            sxy0.y = value >> 16;
+            sxy0.x = value & 0xFFFF;
+            break;
+        case GTE_REG_SXY1:
+            sxy1.y = value >> 16;
+            sxy1.x = value & 0xFFFF;
+            break;
+        case GTE_REG_SXY2:
+            sxy2.y = value >> 16;
+            sxy2.x = value & 0xFFFF;
+            break;
+        case GTE_REG_SXYP:
+            sxyp.y = value >> 16;
+            sxyp.x = value & 0xFFFF;
+            break;
+        case GTE_REG_SZ0:
+            sz0 = value;
+            break;
+        case GTE_REG_SZ1:
+            sz1 = value;
+            break;
+        case GTE_REG_SZ2:
+            sz2 = value;
+            break;
+        case GTE_REG_SZ3:
+            sz3 = value;
+            break;
+        case GTE_REG_RGB0:
+            rgb0 = value;
+            break;
+        case GTE_REG_RGB1:
+            rgb1 = value;
+            break;
+        case GTE_REG_RGB2:
+            rgb2 = value;
+            break;
+        case GTE_REG_MAC0:
+            mac0 = static_cast<int32_t>(value);
+            break;
+        case GTE_REG_MAC1:
+            mac1 = static_cast<int32_t>(value);
+            break;
+        case GTE_REG_MAC2:
+            mac2 = static_cast<int32_t>(value);
+            break;
+        case GTE_REG_MAC3:
+            mac3 = static_cast<int32_t>(value);
+            break;
+        case GTE_REG_IRGB:
+            set_irgb(value);
+            break;
+        case GTE_REG_ORGB:
+            // Read-only
+            break;
+        default:
+            assert(false);
     }
 }
 
