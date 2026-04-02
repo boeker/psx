@@ -1,9 +1,11 @@
 #include "gte.h"
 
+#include <algorithm>
 #include <cassert>
 #include <format>
 #include <sstream>
 
+#include "util/bit.h"
 #include "util/log.h"
 
 using namespace util;
@@ -89,7 +91,10 @@ std::string GTE::getControlRegisterName(uint8_t reg) {
 }
 
 
-GTE::GTE() {
+GTE::GTE()
+    : flags(registers[GTE_REG_FLAGS]),
+      irgb(registers[GTE_REG_IRGB]),
+      orgb(registers[GTE_REG_ORGB]) {
     reset();
 }
 
@@ -98,7 +103,13 @@ void GTE::reset() {
         this->registers[i] = 0;
     }
     instruction = 0;
+    lm = false;
+    sf = false;
     funct = 0;
+}
+
+void GTE::reset_flags() {
+    flags = 0;
 }
 
 uint32_t GTE::getRegister(uint8_t rt) {
@@ -132,6 +143,83 @@ void GTE::setControlRegister(uint8_t rt, uint32_t value) {
     LOGT_GTE(std::format("{{0x{:08X} -> control register {:d} ({:s})}}", value, rt, getControlRegisterName(rt)));
 
     this->registers[32 + rt] = value;
+}
+
+int32_t GTE::clamp_to_16bit(int32_t value, bool lm) {
+    int32_t clamped = std::min(0x7FFF, value);
+    clamped = lm ? std::max(0, clamped) : std::max(-0x8000, clamped);
+    return clamped;
+}
+
+uint8_t GTE::convert_16bit_to_5bit_color(int32_t color) {
+    color = color / 0x80;
+    color = std::min(0x1F, color);
+    color = std::max(0x00, color);
+    return color;
+}
+
+void GTE::set_ir1(int32_t value) {
+    int32_t clamped = clamp_to_16bit(value, lm);
+    setRegister(GTE_REG_IR1, clamped);
+    if (clamped != value) {
+        Bit::setBit(flags, GTE_FLAGS_IR1);
+    }
+
+    uint8_t r = convert_16bit_to_5bit_color(clamped);
+    irgb = (irgb & 0xFFFFFFE0) & r;
+    orgb = irgb;
+}
+
+void GTE::set_ir2(int32_t value) {
+    int32_t clamped = clamp_to_16bit(value, lm);
+    setRegister(GTE_REG_IR2, clamped);
+    if (clamped != value) {
+        Bit::setBit(flags, GTE_FLAGS_IR2);
+    }
+
+    uint8_t g = convert_16bit_to_5bit_color(clamped);
+    irgb = (irgb & 0xFFFFFC1F) & (g << 5);
+    orgb = irgb;
+}
+
+void GTE::set_ir3(int32_t value) {
+    int32_t clamped = clamp_to_16bit(value, lm);
+    setRegister(GTE_REG_IR3, clamped);
+    if (clamped != value) {
+        Bit::setBit(flags, GTE_FLAGS_IR3);
+    }
+
+    uint8_t b = convert_16bit_to_5bit_color(clamped);
+    irgb = (irgb & 0xFFFF83FF) & (b << 10);
+    orgb = irgb;
+}
+
+void GTE::set_irgb(uint32_t value) {
+    irgb = value & 0x00007FFF;
+    orgb = irgb;
+
+    uint8_t r = Bit::getBits<5>(value, 0);
+    uint8_t g = Bit::getBits<5>(value, 5);
+    uint8_t b = Bit::getBits<5>(value, 10);
+
+    setRegister(GTE_REG_IR1, r * 0x80);
+    setRegister(GTE_REG_IR2, g * 0x80);
+    setRegister(GTE_REG_IR3, b * 0x80);
+}
+
+void GTE::execute(uint32_t instruction) {
+    // Operation depends on function field
+    this->instruction = instruction;
+    this->sf = Bit::getBit(instruction, GTE_INST_SF);
+    this->lm = Bit::getBit(instruction, GTE_INST_LM);
+    funct = 0x3F & instruction;
+
+    (this->*cp2[funct])();
+}
+
+void GTE::UNKCP2() {
+    // Currently not used
+    //throw exceptions::UnknownFunctionError(std::format("Unknown CP2 opcode @0x{:x}: instruction 0x{:x} = 0b{:032b} (CP2), function 0b{:06b}", instructionPC, instruction, instruction, funct));
 }
 
 void GTE::NCLIP() {
@@ -431,19 +519,6 @@ void GTE::AVSZ3() {
 
     setRegister(GTE_REG_MAC0, temp_mac0);
     setRegister(GTE_REG_OTZ, temp_otz);
-}
-
-void GTE::execute(uint32_t instruction) {
-    // Operation depends on function field
-    this->instruction = instruction;
-    funct = 0x3F & instruction;
-
-    (this->*cp2[funct])();
-}
-
-void GTE::UNKCP2() {
-    // Currently not used
-    //throw exceptions::UnknownFunctionError(std::format("Unknown CP2 opcode @0x{:x}: instruction 0x{:x} = 0b{:032b} (CP2), function 0b{:06b}", instructionPC, instruction, instruction, funct));
 }
 
 void GTE::NCDT() {
