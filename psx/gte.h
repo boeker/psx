@@ -50,12 +50,15 @@ namespace PSX {
 #define GTE_REG_RGB0 20
 #define GTE_REG_RGB1 21
 #define GTE_REG_RGB2 22
+#define GTE_REG_RES1 23
 #define GTE_REG_MAC0 24
 #define GTE_REG_MAC1 25
 #define GTE_REG_MAC2 26
 #define GTE_REG_MAC3 27
 #define GTE_REG_IRGB 28
 #define GTE_REG_ORGB 29
+#define GTE_REG_LZCS 30
+#define GTE_REG_LZCR 31
 
 #define GTE_REG_RT11RT12 32
 #define GTE_REG_RT13RT21 33
@@ -115,8 +118,6 @@ private:
     };
 
     // Registers
-    uint32_t registers[64]; // TODO remove
-
     int16_t_triple v0;                   // VXY0, VZ0
     int16_t_triple v1;                   // VXY1, VZ1
     int16_t_triple v2;                   // VXY2, VZ2
@@ -169,6 +170,7 @@ public:
     void update_error_flag();
     void set_flag(uint8_t flag);
 
+    // Getters and setters for interaction with the CPU
     uint32_t get_register_as_uint32_t(uint8_t rt);
     void set_register_from_uint32_t(uint8_t rt, uint32_t value);
     uint32_t get_control_register_as_uint32_t(uint8_t rt);
@@ -179,6 +181,7 @@ public:
     uint32_t getControlRegister(uint8_t reg);
     void setControlRegister(uint8_t reg, uint32_t value);
 
+    // Getters and setters for internal use
     static int32_t clamp_to_16bit(int32_t value, bool lm);
     static uint8_t convert_16bit_to_5bit_color(int32_t color);
     void set_ir1(int32_t value);

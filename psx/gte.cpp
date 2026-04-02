@@ -214,6 +214,9 @@ uint32_t GTE::get_register_as_uint32_t(uint8_t rt) {
             return rgb1;
         case GTE_REG_RGB2:
             return rgb2;
+        case GTE_REG_RES1:
+            //TODO
+            return 0;
         case GTE_REG_MAC0:
             return mac0;
         case GTE_REG_MAC1:
@@ -226,6 +229,12 @@ uint32_t GTE::get_register_as_uint32_t(uint8_t rt) {
             return input_rgb;
         case GTE_REG_ORGB:
             return output_rgb;
+        case GTE_REG_LZCS:
+            //TODO
+            return 0;
+        case GTE_REG_LZCR:
+            //TODO
+            return 0;
         default:
             assert(false);
             return 0;
@@ -267,12 +276,18 @@ void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
             break;
         case GTE_REG_IR1:
             ir1 = value;
+            input_rgb = (input_rgb & 0xFFFFFFE0) & convert_16bit_to_5bit_color(ir1);
+            output_rgb = input_rgb;
             break;
         case GTE_REG_IR2:
             ir2 = value;
+            input_rgb = (input_rgb & 0xFFFFFC1F) & (convert_16bit_to_5bit_color(ir2) << 5);
+            output_rgb = input_rgb;
             break;
         case GTE_REG_IR3:
             ir3 = value;
+            input_rgb = (input_rgb & 0xFFFF83FF) & (convert_16bit_to_5bit_color(ir3) << 10);
+            output_rgb = input_rgb;
             break;
         case GTE_REG_SXY0:
             sxy0.y = value >> 16;
@@ -311,6 +326,9 @@ void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
         case GTE_REG_RGB2:
             rgb2 = value;
             break;
+        case GTE_REG_RES1:
+            //TODO
+            break;
         case GTE_REG_MAC0:
             mac0 = static_cast<int32_t>(value);
             break;
@@ -329,6 +347,12 @@ void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
         case GTE_REG_ORGB:
             // Read-only
             break;
+        case GTE_REG_LZCS:
+            //TODO
+            break;
+        case GTE_REG_LZCR:
+            //TODO
+            break;
         default:
             assert(false);
     }
@@ -336,6 +360,7 @@ void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
 
 uint32_t GTE::get_control_register_as_uint32_t(uint8_t rt) {
     assert(rt < 32);
+    rt += 32;
     switch(rt) {
         case GTE_REG_RT11RT12:
             return (static_cast<uint32_t>(rotation_matrix[1]) << 16) | static_cast<uint32_t>(rotation_matrix[0]);
@@ -400,6 +425,7 @@ uint32_t GTE::get_control_register_as_uint32_t(uint8_t rt) {
         case GTE_REG_ZSF4:
             return static_cast<int32_t>(average_z_scale_factors[1]);
         case GTE_REG_FLAGS:
+            return flags;
         default:
             assert(false);
             return 0;
@@ -408,6 +434,7 @@ uint32_t GTE::get_control_register_as_uint32_t(uint8_t rt) {
 
 void GTE::set_control_register_from_uint32_t(uint8_t rt, uint32_t value) {
     assert(rt < 32);
+    rt += 32;
     switch(rt) {
         case GTE_REG_RT11RT12:
             rotation_matrix[1] = value >> 16;
@@ -570,7 +597,7 @@ uint8_t GTE::convert_16bit_to_5bit_color(int32_t color) {
 
 void GTE::set_ir1(int32_t value) {
     int32_t clamped = clamp_to_16bit(value, lm);
-    setRegister(GTE_REG_IR1, clamped);
+    ir1 = clamped;
     if (clamped != value) {
         set_flag(GTE_FLAGS_IR1);
     }
@@ -582,7 +609,7 @@ void GTE::set_ir1(int32_t value) {
 
 void GTE::set_ir2(int32_t value) {
     int32_t clamped = clamp_to_16bit(value, lm);
-    setRegister(GTE_REG_IR2, clamped);
+    ir2 = clamped;
     if (clamped != value) {
         set_flag(GTE_FLAGS_IR2);
     }
@@ -594,7 +621,7 @@ void GTE::set_ir2(int32_t value) {
 
 void GTE::set_ir3(int32_t value) {
     int32_t clamped = clamp_to_16bit(value, lm);
-    setRegister(GTE_REG_IR3, clamped);
+    ir3 = clamped;
     if (clamped != value) {
         set_flag(GTE_FLAGS_IR3);
     }
@@ -612,9 +639,9 @@ void GTE::set_irgb(uint32_t value) {
     uint8_t g = Bit::getBits<5>(value, 5);
     uint8_t b = Bit::getBits<5>(value, 10);
 
-    setRegister(GTE_REG_IR1, r * 0x80);
-    setRegister(GTE_REG_IR2, g * 0x80);
-    setRegister(GTE_REG_IR3, b * 0x80);
+    ir1 = r * 0x80;
+    ir2 = g * 0x80;
+    ir3 = b * 0x80;
 }
 
 void GTE::set_mac0(int64_t value) {
@@ -674,39 +701,39 @@ void GTE::set_mac3(int64_t value) {
 }
 
 int64_t GTE::get_sx0() const {
-    return static_cast<int16_t>(registers[GTE_REG_SXY0] & 0xFFFF);
+    return sxy0.x;
 }
 
 int64_t GTE::get_sy0() const {
-    return static_cast<int16_t>(registers[GTE_REG_SXY0] >> 16);
+    return sxy0.y;
 }
 
 int64_t GTE::get_sx1() const {
-    return static_cast<int16_t>(registers[GTE_REG_SXY1] & 0xFFFF);
+    return sxy1.x;
 }
 
 int64_t GTE::get_sy1() const {
-    return static_cast<int16_t>(registers[GTE_REG_SXY1] >> 16);
+    return sxy1.y;
 }
 
 int64_t GTE::get_sx2() const {
-    return static_cast<int16_t>(registers[GTE_REG_SXY2] & 0xFFFF);
+    return sxy2.x;
 }
 
 int64_t GTE::get_sy2() const {
-    return static_cast<int16_t>(registers[GTE_REG_SXY2] >> 16);
+    return sxy2.y;
 }
 
 int64_t GTE::get_ir1() const {
-    return static_cast<int16_t>(registers[GTE_REG_IR1]);
+    return ir1;
 }
 
 int64_t GTE::get_ir2() const {
-    return static_cast<int16_t>(registers[GTE_REG_IR2]);
+    return ir2;
 }
 
 int64_t GTE::get_ir3() const {
-    return static_cast<int16_t>(registers[GTE_REG_IR3]);
+    return ir3;
 }
 
 int64_t GTE::get_mac0() const {
@@ -751,172 +778,172 @@ void GTE::RTPS() {
     // Perspective Transformation (Single)
     LOGT_GTE(std::format("RTPS"));
     // TODO Implement flags
-    uint8_t sf = 0x1 & (instruction >> 19);
+    //uint8_t sf = 0x1 & (instruction >> 19);
 
-    // Inputs
-    int16_t in_vx0 = getRegister(GTE_REG_VXY0) & 0xFFFF;
-    int16_t in_vy0 = getRegister(GTE_REG_VXY0) >> 16;
-    int16_t in_vz0 = getRegister(GTE_REG_VZ0) & 0xFFFF;
+    //// Inputs
+    //int16_t in_vx0 = getRegister(GTE_REG_VXY0) & 0xFFFF;
+    //int16_t in_vy0 = getRegister(GTE_REG_VXY0) >> 16;
+    //int16_t in_vz0 = getRegister(GTE_REG_VZ0) & 0xFFFF;
 
-    int32_t in_trx = getRegister(GTE_REG_TRX);
-    int32_t in_try = getRegister(GTE_REG_TRY);
-    int32_t in_trz = getRegister(GTE_REG_TRZ);
+    //int32_t in_trx = getRegister(GTE_REG_TRX);
+    //int32_t in_try = getRegister(GTE_REG_TRY);
+    //int32_t in_trz = getRegister(GTE_REG_TRZ);
 
-    int16_t in_rt11 = getRegister(GTE_REG_RT11RT12) & 0xFFFF;
-    int16_t in_rt12 = getRegister(GTE_REG_RT11RT12) >> 16;
-    int16_t in_rt13 = getRegister(GTE_REG_RT13RT21) & 0xFFFF;
-    int16_t in_rt21 = getRegister(GTE_REG_RT13RT21) >> 16;
-    int16_t in_rt22 = getRegister(GTE_REG_RT22RT23) & 0xFFFF;
-    int16_t in_rt23 = getRegister(GTE_REG_RT22RT23) >> 16;
-    int16_t in_rt31 = getRegister(GTE_REG_RT31RT32) & 0xFFFF;
-    int16_t in_rt32 = getRegister(GTE_REG_RT31RT32) >> 16;
-    int16_t in_rt33 = getRegister(GTE_REG_RT33) & 0xFFFF;
+    //int16_t in_rt11 = getRegister(GTE_REG_RT11RT12) & 0xFFFF;
+    //int16_t in_rt12 = getRegister(GTE_REG_RT11RT12) >> 16;
+    //int16_t in_rt13 = getRegister(GTE_REG_RT13RT21) & 0xFFFF;
+    //int16_t in_rt21 = getRegister(GTE_REG_RT13RT21) >> 16;
+    //int16_t in_rt22 = getRegister(GTE_REG_RT22RT23) & 0xFFFF;
+    //int16_t in_rt23 = getRegister(GTE_REG_RT22RT23) >> 16;
+    //int16_t in_rt31 = getRegister(GTE_REG_RT31RT32) & 0xFFFF;
+    //int16_t in_rt32 = getRegister(GTE_REG_RT31RT32) >> 16;
+    //int16_t in_rt33 = getRegister(GTE_REG_RT33) & 0xFFFF;
 
-    uint16_t in_h = getRegister(GTE_REG_H);
-    int32_t in_ofx = getRegister(GTE_REG_OFX);
-    int32_t in_ofy = getRegister(GTE_REG_OFY);
-    int16_t in_dqa = getRegister(GTE_REG_DQA) & 0xFFFF;
-    int32_t in_dqb = getRegister(GTE_REG_DQA) & 0xFFFF;
+    //uint16_t in_h = getRegister(GTE_REG_H);
+    //int32_t in_ofx = getRegister(GTE_REG_OFX);
+    //int32_t in_ofy = getRegister(GTE_REG_OFY);
+    //int16_t in_dqa = getRegister(GTE_REG_DQA) & 0xFFFF;
+    //int32_t in_dqb = getRegister(GTE_REG_DQA) & 0xFFFF;
 
-    int32_t temp_mac1 = (in_trx * 0x1000 + in_rt11 * in_vx0 + in_rt12 * in_vy0 + in_rt13 * in_vz0) >> (sf * 12);
-    int16_t temp_ir1 = temp_mac1;
-    int32_t temp_mac2 = (in_try * 0x1000 + in_rt21 * in_vx0 + in_rt22 * in_vy0 + in_rt23 * in_vz0) >> (sf * 12);
-    int16_t temp_ir2 = temp_mac2;
-    int32_t temp_mac3 = (in_trz * 0x1000 + in_rt31 * in_vx0 + in_rt32 * in_vy0 + in_rt33 * in_vz0) >> (sf * 12);
-    int16_t temp_ir3 = temp_mac3;
-    uint16_t temp_sz3 = temp_mac3 >> ((1-sf) * 12);
+    //int32_t temp_mac1 = (in_trx * 0x1000 + in_rt11 * in_vx0 + in_rt12 * in_vy0 + in_rt13 * in_vz0) >> (sf * 12);
+    //int16_t temp_ir1 = temp_mac1;
+    //int32_t temp_mac2 = (in_try * 0x1000 + in_rt21 * in_vx0 + in_rt22 * in_vy0 + in_rt23 * in_vz0) >> (sf * 12);
+    //int16_t temp_ir2 = temp_mac2;
+    //int32_t temp_mac3 = (in_trz * 0x1000 + in_rt31 * in_vx0 + in_rt32 * in_vy0 + in_rt33 * in_vz0) >> (sf * 12);
+    //int16_t temp_ir3 = temp_mac3;
+    //uint16_t temp_sz3 = temp_mac3 >> ((1-sf) * 12);
 
-    int32_t temp = temp_sz3 > 0 ? ((in_h * 0x20000) / temp_sz3 + 1) / 2 : 0;
+    //int32_t temp = temp_sz3 > 0 ? ((in_h * 0x20000) / temp_sz3 + 1) / 2 : 0;
 
-    int32_t temp_mac0 = temp * temp_ir1 + in_ofx;
-    int16_t temp_sx2 = temp_mac0 / 0x10000;
+    //int32_t temp_mac0 = temp * temp_ir1 + in_ofx;
+    //int16_t temp_sx2 = temp_mac0 / 0x10000;
 
-    temp_mac0 = temp * temp_ir2 + in_ofy;
-    int16_t temp_sy2 = temp_mac0 / 0x10000;
+    //temp_mac0 = temp * temp_ir2 + in_ofy;
+    //int16_t temp_sy2 = temp_mac0 / 0x10000;
 
-    temp_mac0 = temp * in_dqa + in_dqb;
-    int16_t temp_ir0 = temp_mac0 / 0x1000;
+    //temp_mac0 = temp * in_dqa + in_dqb;
+    //int16_t temp_ir0 = temp_mac0 / 0x1000;
 
-    setRegister(GTE_REG_MAC0, temp_mac0);
-    setRegister(GTE_REG_MAC1, temp_mac1);
-    setRegister(GTE_REG_MAC2, temp_mac2);
-    setRegister(GTE_REG_MAC3, temp_mac3);
-    setRegister(GTE_REG_IR0, temp_ir0);
-    setRegister(GTE_REG_IR1, temp_ir1);
-    setRegister(GTE_REG_IR2, temp_ir2);
-    setRegister(GTE_REG_IR3, temp_ir3);
+    //setRegister(GTE_REG_MAC0, temp_mac0);
+    //setRegister(GTE_REG_MAC1, temp_mac1);
+    //setRegister(GTE_REG_MAC2, temp_mac2);
+    //setRegister(GTE_REG_MAC3, temp_mac3);
+    //setRegister(GTE_REG_IR0, temp_ir0);
+    //setRegister(GTE_REG_IR1, temp_ir1);
+    //setRegister(GTE_REG_IR2, temp_ir2);
+    //setRegister(GTE_REG_IR3, temp_ir3);
 
-    setRegister(GTE_REG_SXY0, getRegister(GTE_REG_SXY1));
-    setRegister(GTE_REG_SXY1, getRegister(GTE_REG_SXY2));
-    setRegister(GTE_REG_SXY2, (((uint32_t)temp_sx2) << 16) | ((uint32_t)temp_sy2));
-    setRegister(GTE_REG_SXYP, (((uint32_t)temp_sx2) << 16) | ((uint32_t)temp_sy2));
-    setRegister(GTE_REG_SZ0, getRegister(GTE_REG_SZ1));
-    setRegister(GTE_REG_SZ1, getRegister(GTE_REG_SZ2));
-    setRegister(GTE_REG_SZ2, getRegister(GTE_REG_SZ3));
-    setRegister(GTE_REG_SZ3, temp_sz3);
+    //setRegister(GTE_REG_SXY0, getRegister(GTE_REG_SXY1));
+    //setRegister(GTE_REG_SXY1, getRegister(GTE_REG_SXY2));
+    //setRegister(GTE_REG_SXY2, (((uint32_t)temp_sx2) << 16) | ((uint32_t)temp_sy2));
+    //setRegister(GTE_REG_SXYP, (((uint32_t)temp_sx2) << 16) | ((uint32_t)temp_sy2));
+    //setRegister(GTE_REG_SZ0, getRegister(GTE_REG_SZ1));
+    //setRegister(GTE_REG_SZ1, getRegister(GTE_REG_SZ2));
+    //setRegister(GTE_REG_SZ2, getRegister(GTE_REG_SZ3));
+    //setRegister(GTE_REG_SZ3, temp_sz3);
 }
 
 void GTE::RTPT() {
     // Perspective Transformation (Triple)
     LOGT_GTE(std::format("RTPT"));
     // TODO Implement flags
-    uint8_t sf = 0x1 & (instruction >> 19);
+    //uint8_t sf = 0x1 & (instruction >> 19);
 
-    // Inputs
-    int16_t in_vx0 = getRegister(GTE_REG_VXY0) & 0xFFFF;
-    int16_t in_vy0 = getRegister(GTE_REG_VXY0) >> 16;
-    int16_t in_vz0 = getRegister(GTE_REG_VZ0) & 0xFFFF;
+    //// Inputs
+    //int16_t in_vx0 = getRegister(GTE_REG_VXY0) & 0xFFFF;
+    //int16_t in_vy0 = getRegister(GTE_REG_VXY0) >> 16;
+    //int16_t in_vz0 = getRegister(GTE_REG_VZ0) & 0xFFFF;
 
-    int16_t in_vx1 = getRegister(GTE_REG_VXY1) & 0xFFFF;
-    int16_t in_vy1 = getRegister(GTE_REG_VXY1) >> 16;
-    int16_t in_vz1 = getRegister(GTE_REG_VZ1) & 0xFFFF;
+    //int16_t in_vx1 = getRegister(GTE_REG_VXY1) & 0xFFFF;
+    //int16_t in_vy1 = getRegister(GTE_REG_VXY1) >> 16;
+    //int16_t in_vz1 = getRegister(GTE_REG_VZ1) & 0xFFFF;
 
-    int16_t in_vx2 = getRegister(GTE_REG_VXY2) & 0xFFFF;
-    int16_t in_vy2 = getRegister(GTE_REG_VXY2) >> 16;
-    int16_t in_vz2 = getRegister(GTE_REG_VZ2) & 0xFFFF;
+    //int16_t in_vx2 = getRegister(GTE_REG_VXY2) & 0xFFFF;
+    //int16_t in_vy2 = getRegister(GTE_REG_VXY2) >> 16;
+    //int16_t in_vz2 = getRegister(GTE_REG_VZ2) & 0xFFFF;
 
-    int32_t in_trx = getRegister(GTE_REG_TRX);
-    int32_t in_try = getRegister(GTE_REG_TRY);
-    int32_t in_trz = getRegister(GTE_REG_TRZ);
+    //int32_t in_trx = getRegister(GTE_REG_TRX);
+    //int32_t in_try = getRegister(GTE_REG_TRY);
+    //int32_t in_trz = getRegister(GTE_REG_TRZ);
 
-    int16_t in_rt11 = getRegister(GTE_REG_RT11RT12) & 0xFFFF;
-    int16_t in_rt12 = getRegister(GTE_REG_RT11RT12) >> 16;
-    int16_t in_rt13 = getRegister(GTE_REG_RT13RT21) & 0xFFFF;
-    int16_t in_rt21 = getRegister(GTE_REG_RT13RT21) >> 16;
-    int16_t in_rt22 = getRegister(GTE_REG_RT22RT23) & 0xFFFF;
-    int16_t in_rt23 = getRegister(GTE_REG_RT22RT23) >> 16;
-    int16_t in_rt31 = getRegister(GTE_REG_RT31RT32) & 0xFFFF;
-    int16_t in_rt32 = getRegister(GTE_REG_RT31RT32) >> 16;
-    int16_t in_rt33 = getRegister(GTE_REG_RT33) & 0xFFFF;
+    //int16_t in_rt11 = getRegister(GTE_REG_RT11RT12) & 0xFFFF;
+    //int16_t in_rt12 = getRegister(GTE_REG_RT11RT12) >> 16;
+    //int16_t in_rt13 = getRegister(GTE_REG_RT13RT21) & 0xFFFF;
+    //int16_t in_rt21 = getRegister(GTE_REG_RT13RT21) >> 16;
+    //int16_t in_rt22 = getRegister(GTE_REG_RT22RT23) & 0xFFFF;
+    //int16_t in_rt23 = getRegister(GTE_REG_RT22RT23) >> 16;
+    //int16_t in_rt31 = getRegister(GTE_REG_RT31RT32) & 0xFFFF;
+    //int16_t in_rt32 = getRegister(GTE_REG_RT31RT32) >> 16;
+    //int16_t in_rt33 = getRegister(GTE_REG_RT33) & 0xFFFF;
 
-    uint16_t in_h = getRegister(GTE_REG_H);
-    int32_t in_ofx = getRegister(GTE_REG_OFX);
-    int32_t in_ofy = getRegister(GTE_REG_OFY);
-    int16_t in_dqa = getRegister(GTE_REG_DQA) & 0xFFFF;
-    int32_t in_dqb = getRegister(GTE_REG_DQA) & 0xFFFF;
+    //uint16_t in_h = getRegister(GTE_REG_H);
+    //int32_t in_ofx = getRegister(GTE_REG_OFX);
+    //int32_t in_ofy = getRegister(GTE_REG_OFY);
+    //int16_t in_dqa = getRegister(GTE_REG_DQA) & 0xFFFF;
+    //int32_t in_dqb = getRegister(GTE_REG_DQA) & 0xFFFF;
 
-    int32_t temp_mac1 = (in_trx * 0x1000 + in_rt11 * in_vx0 + in_rt12 * in_vy0 + in_rt13 * in_vz0) >> (sf * 12);
-    int16_t temp_ir1 = temp_mac1;
-    int32_t temp_mac2 = (in_try * 0x1000 + in_rt21 * in_vx0 + in_rt22 * in_vy0 + in_rt23 * in_vz0) >> (sf * 12);
-    int16_t temp_ir2 = temp_mac2;
-    int32_t temp_mac3 = (in_trz * 0x1000 + in_rt31 * in_vx0 + in_rt32 * in_vy0 + in_rt33 * in_vz0) >> (sf * 12);
-    int16_t temp_ir3 = temp_mac3;
-    uint16_t temp_sz1 = temp_mac3 >> ((1-sf) * 12);
-    int32_t temp = temp_sz1 > 0 ? ((in_h * 0x20000) / temp_sz1 + 1) / 2 : 0;
-    int32_t temp_mac0 = temp * temp_ir1 + in_ofx;
-    int16_t temp_sx0 = temp_mac0 / 0x10000;
-    temp_mac0 = temp * temp_ir2 + in_ofy;
-    int16_t temp_sy0 = temp_mac0 / 0x10000;
-    temp_mac0 = temp * in_dqa + in_dqb;
-    int16_t temp_ir0 = temp_mac0 / 0x1000;
+    //int32_t temp_mac1 = (in_trx * 0x1000 + in_rt11 * in_vx0 + in_rt12 * in_vy0 + in_rt13 * in_vz0) >> (sf * 12);
+    //int16_t temp_ir1 = temp_mac1;
+    //int32_t temp_mac2 = (in_try * 0x1000 + in_rt21 * in_vx0 + in_rt22 * in_vy0 + in_rt23 * in_vz0) >> (sf * 12);
+    //int16_t temp_ir2 = temp_mac2;
+    //int32_t temp_mac3 = (in_trz * 0x1000 + in_rt31 * in_vx0 + in_rt32 * in_vy0 + in_rt33 * in_vz0) >> (sf * 12);
+    //int16_t temp_ir3 = temp_mac3;
+    //uint16_t temp_sz1 = temp_mac3 >> ((1-sf) * 12);
+    //int32_t temp = temp_sz1 > 0 ? ((in_h * 0x20000) / temp_sz1 + 1) / 2 : 0;
+    //int32_t temp_mac0 = temp * temp_ir1 + in_ofx;
+    //int16_t temp_sx0 = temp_mac0 / 0x10000;
+    //temp_mac0 = temp * temp_ir2 + in_ofy;
+    //int16_t temp_sy0 = temp_mac0 / 0x10000;
+    //temp_mac0 = temp * in_dqa + in_dqb;
+    //int16_t temp_ir0 = temp_mac0 / 0x1000;
 
-    temp_mac1 = (in_trx * 0x1000 + in_rt11 * in_vx1 + in_rt12 * in_vy1 + in_rt13 * in_vz1) >> (sf * 12);
-    temp_ir1 = temp_mac1;
-    temp_mac2 = (in_try * 0x1000 + in_rt21 * in_vx1 + in_rt22 * in_vy1 + in_rt23 * in_vz1) >> (sf * 12);
-    temp_ir2 = temp_mac2;
-    temp_mac3 = (in_trz * 0x1000 + in_rt31 * in_vx1 + in_rt32 * in_vy1 + in_rt33 * in_vz1) >> (sf * 12);
-    temp_ir3 = temp_mac3;
-    uint16_t temp_sz2 = temp_mac3 >> ((1-sf) * 12);
-    temp = temp_sz2 > 0 ? ((in_h * 0x20000) / temp_sz2 + 1) / 2 : 0;
-    temp_mac0 = temp * temp_ir1 + in_ofx;
-    int16_t temp_sx1 = temp_mac0 / 0x10000;
-    temp_mac0 = temp * temp_ir2 + in_ofy;
-    int16_t temp_sy1 = temp_mac0 / 0x10000;
-    temp_mac0 = temp * in_dqa + in_dqb;
-    temp_ir0 = temp_mac0 / 0x1000;
+    //temp_mac1 = (in_trx * 0x1000 + in_rt11 * in_vx1 + in_rt12 * in_vy1 + in_rt13 * in_vz1) >> (sf * 12);
+    //temp_ir1 = temp_mac1;
+    //temp_mac2 = (in_try * 0x1000 + in_rt21 * in_vx1 + in_rt22 * in_vy1 + in_rt23 * in_vz1) >> (sf * 12);
+    //temp_ir2 = temp_mac2;
+    //temp_mac3 = (in_trz * 0x1000 + in_rt31 * in_vx1 + in_rt32 * in_vy1 + in_rt33 * in_vz1) >> (sf * 12);
+    //temp_ir3 = temp_mac3;
+    //uint16_t temp_sz2 = temp_mac3 >> ((1-sf) * 12);
+    //temp = temp_sz2 > 0 ? ((in_h * 0x20000) / temp_sz2 + 1) / 2 : 0;
+    //temp_mac0 = temp * temp_ir1 + in_ofx;
+    //int16_t temp_sx1 = temp_mac0 / 0x10000;
+    //temp_mac0 = temp * temp_ir2 + in_ofy;
+    //int16_t temp_sy1 = temp_mac0 / 0x10000;
+    //temp_mac0 = temp * in_dqa + in_dqb;
+    //temp_ir0 = temp_mac0 / 0x1000;
 
-    temp_mac1 = (in_trx * 0x1000 + in_rt11 * in_vx2 + in_rt12 * in_vy2 + in_rt13 * in_vz2) >> (sf * 12);
-    temp_ir1 = temp_mac1;
-    temp_mac2 = (in_try * 0x1000 + in_rt21 * in_vx2 + in_rt22 * in_vy2 + in_rt23 * in_vz2) >> (sf * 12);
-    temp_ir2 = temp_mac2;
-    temp_mac3 = (in_trz * 0x1000 + in_rt31 * in_vx2 + in_rt32 * in_vy2 + in_rt33 * in_vz2) >> (sf * 12);
-    temp_ir3 = temp_mac3;
-    uint16_t temp_sz3 = temp_mac3 >> ((1-sf) * 12);
-    temp = temp_sz3 > 0 ? ((in_h * 0x20000) / temp_sz3 + 1) / 2 : 0;
-    temp_mac0 = temp * temp_ir1 + in_ofx;
-    int16_t temp_sx2 = temp_mac0 / 0x10000;
-    temp_mac0 = temp * temp_ir2 + in_ofy;
-    int16_t temp_sy2 = temp_mac0 / 0x10000;
-    temp_mac0 = temp * in_dqa + in_dqb;
-    temp_ir0 = temp_mac0 / 0x1000;
+    //temp_mac1 = (in_trx * 0x1000 + in_rt11 * in_vx2 + in_rt12 * in_vy2 + in_rt13 * in_vz2) >> (sf * 12);
+    //temp_ir1 = temp_mac1;
+    //temp_mac2 = (in_try * 0x1000 + in_rt21 * in_vx2 + in_rt22 * in_vy2 + in_rt23 * in_vz2) >> (sf * 12);
+    //temp_ir2 = temp_mac2;
+    //temp_mac3 = (in_trz * 0x1000 + in_rt31 * in_vx2 + in_rt32 * in_vy2 + in_rt33 * in_vz2) >> (sf * 12);
+    //temp_ir3 = temp_mac3;
+    //uint16_t temp_sz3 = temp_mac3 >> ((1-sf) * 12);
+    //temp = temp_sz3 > 0 ? ((in_h * 0x20000) / temp_sz3 + 1) / 2 : 0;
+    //temp_mac0 = temp * temp_ir1 + in_ofx;
+    //int16_t temp_sx2 = temp_mac0 / 0x10000;
+    //temp_mac0 = temp * temp_ir2 + in_ofy;
+    //int16_t temp_sy2 = temp_mac0 / 0x10000;
+    //temp_mac0 = temp * in_dqa + in_dqb;
+    //temp_ir0 = temp_mac0 / 0x1000;
 
-    setRegister(GTE_REG_MAC0, temp_mac0);
-    setRegister(GTE_REG_MAC1, temp_mac1);
-    setRegister(GTE_REG_MAC2, temp_mac2);
-    setRegister(GTE_REG_MAC3, temp_mac3);
-    setRegister(GTE_REG_IR0, temp_ir0);
-    setRegister(GTE_REG_IR1, temp_ir1);
-    setRegister(GTE_REG_IR2, temp_ir2);
-    setRegister(GTE_REG_IR3, temp_ir3);
+    //setRegister(GTE_REG_MAC0, temp_mac0);
+    //setRegister(GTE_REG_MAC1, temp_mac1);
+    //setRegister(GTE_REG_MAC2, temp_mac2);
+    //setRegister(GTE_REG_MAC3, temp_mac3);
+    //setRegister(GTE_REG_IR0, temp_ir0);
+    //setRegister(GTE_REG_IR1, temp_ir1);
+    //setRegister(GTE_REG_IR2, temp_ir2);
+    //setRegister(GTE_REG_IR3, temp_ir3);
 
-    setRegister(GTE_REG_SXY0, (((uint32_t)temp_sx0) << 16) | ((uint32_t)temp_sy0));
-    setRegister(GTE_REG_SXY1, (((uint32_t)temp_sx1) << 16) | ((uint32_t)temp_sy1));
-    setRegister(GTE_REG_SXY2, (((uint32_t)temp_sx2) << 16) | ((uint32_t)temp_sy2));
-    setRegister(GTE_REG_SXYP, (((uint32_t)temp_sx2) << 16) | ((uint32_t)temp_sy2));
-    setRegister(GTE_REG_SZ0, getRegister(GTE_REG_SZ1));
-    setRegister(GTE_REG_SZ1, temp_sz1);
-    setRegister(GTE_REG_SZ2, temp_sz2);
-    setRegister(GTE_REG_SZ3, temp_sz3);
+    //setRegister(GTE_REG_SXY0, (((uint32_t)temp_sx0) << 16) | ((uint32_t)temp_sy0));
+    //setRegister(GTE_REG_SXY1, (((uint32_t)temp_sx1) << 16) | ((uint32_t)temp_sy1));
+    //setRegister(GTE_REG_SXY2, (((uint32_t)temp_sx2) << 16) | ((uint32_t)temp_sy2));
+    //setRegister(GTE_REG_SXYP, (((uint32_t)temp_sx2) << 16) | ((uint32_t)temp_sy2));
+    //setRegister(GTE_REG_SZ0, getRegister(GTE_REG_SZ1));
+    //setRegister(GTE_REG_SZ1, temp_sz1);
+    //setRegister(GTE_REG_SZ2, temp_sz2);
+    //setRegister(GTE_REG_SZ3, temp_sz3);
 }
 
 void GTE::NCDS() {
@@ -924,107 +951,107 @@ void GTE::NCDS() {
     // TODO Implement flags
     // TODO Fix IR register values
     LOGT_GTE(std::format("NCDS"));
-    uint8_t sf = 0x1 & (instruction >> 19);
+    //uint8_t sf = 0x1 & (instruction >> 19);
 
-    int16_t in_vx0 = getRegister(GTE_REG_VXY0) & 0xFFFF;
-    int16_t in_vy0 = getRegister(GTE_REG_VXY0) >> 16;
-    int16_t in_vz0 = getRegister(GTE_REG_VZ0) & 0xFFFF;
+    //int16_t in_vx0 = getRegister(GTE_REG_VXY0) & 0xFFFF;
+    //int16_t in_vy0 = getRegister(GTE_REG_VXY0) >> 16;
+    //int16_t in_vz0 = getRegister(GTE_REG_VZ0) & 0xFFFF;
 
-    int16_t in_l11 = getRegister(GTE_REG_L11L12) & 0xFFFF;
-    int16_t in_l12 = getRegister(GTE_REG_L11L12) >> 16;
-    int16_t in_l13 = getRegister(GTE_REG_L13L21) & 0xFFFF;
-    int16_t in_l21 = getRegister(GTE_REG_L13L21) >> 16;
-    int16_t in_l22 = getRegister(GTE_REG_L22L23) & 0xFFFF;
-    int16_t in_l23 = getRegister(GTE_REG_L22L23) >> 16;
-    int16_t in_l31 = getRegister(GTE_REG_L31L32) & 0xFFFF;
-    int16_t in_l32 = getRegister(GTE_REG_L31L32) >> 16;
-    int16_t in_l33 = getRegister(GTE_REG_L33) & 0xFFFF;
+    //int16_t in_l11 = getRegister(GTE_REG_L11L12) & 0xFFFF;
+    //int16_t in_l12 = getRegister(GTE_REG_L11L12) >> 16;
+    //int16_t in_l13 = getRegister(GTE_REG_L13L21) & 0xFFFF;
+    //int16_t in_l21 = getRegister(GTE_REG_L13L21) >> 16;
+    //int16_t in_l22 = getRegister(GTE_REG_L22L23) & 0xFFFF;
+    //int16_t in_l23 = getRegister(GTE_REG_L22L23) >> 16;
+    //int16_t in_l31 = getRegister(GTE_REG_L31L32) & 0xFFFF;
+    //int16_t in_l32 = getRegister(GTE_REG_L31L32) >> 16;
+    //int16_t in_l33 = getRegister(GTE_REG_L33) & 0xFFFF;
 
-    int16_t in_lr1 = getRegister(GTE_REG_LR1LR2) & 0xFFFF;
-    int16_t in_lr2 = getRegister(GTE_REG_LR1LR2) >> 16;
-    int16_t in_lr3 = getRegister(GTE_REG_LR3LG1) & 0xFFFF;
-    int16_t in_lg1 = getRegister(GTE_REG_LR3LG1) >> 16;
-    int16_t in_lg2 = getRegister(GTE_REG_LG2LG3) & 0xFFFF;
-    int16_t in_lg3 = getRegister(GTE_REG_LG2LG3) >> 16;
-    int16_t in_lb1 = getRegister(GTE_REG_LB1LB2) & 0xFFFF;
-    int16_t in_lb2 = getRegister(GTE_REG_LB1LB2) >> 16;
-    int16_t in_lb3 = getRegister(GTE_REG_LB3) & 0xFFFF;
+    //int16_t in_lr1 = getRegister(GTE_REG_LR1LR2) & 0xFFFF;
+    //int16_t in_lr2 = getRegister(GTE_REG_LR1LR2) >> 16;
+    //int16_t in_lr3 = getRegister(GTE_REG_LR3LG1) & 0xFFFF;
+    //int16_t in_lg1 = getRegister(GTE_REG_LR3LG1) >> 16;
+    //int16_t in_lg2 = getRegister(GTE_REG_LG2LG3) & 0xFFFF;
+    //int16_t in_lg3 = getRegister(GTE_REG_LG2LG3) >> 16;
+    //int16_t in_lb1 = getRegister(GTE_REG_LB1LB2) & 0xFFFF;
+    //int16_t in_lb2 = getRegister(GTE_REG_LB1LB2) >> 16;
+    //int16_t in_lb3 = getRegister(GTE_REG_LB3) & 0xFFFF;
 
-    int32_t in_rbk = getRegister(GTE_REG_RBK);
-    int32_t in_gbk = getRegister(GTE_REG_GBK);
-    int32_t in_bbk = getRegister(GTE_REG_BBK);
+    //int32_t in_rbk = getRegister(GTE_REG_RBK);
+    //int32_t in_gbk = getRegister(GTE_REG_GBK);
+    //int32_t in_bbk = getRegister(GTE_REG_BBK);
 
-    int32_t in_rfc = getRegister(GTE_REG_RFC);
-    int32_t in_gfc = getRegister(GTE_REG_GFC);
-    int32_t in_bfc = getRegister(GTE_REG_BFC);
+    //int32_t in_rfc = getRegister(GTE_REG_RFC);
+    //int32_t in_gfc = getRegister(GTE_REG_GFC);
+    //int32_t in_bfc = getRegister(GTE_REG_BFC);
 
-    uint8_t in_r = getRegister(GTE_REG_RGBC) >> 24;
-    uint8_t in_g = (getRegister(GTE_REG_RGBC) >> 16) & 0xFF;
-    uint8_t in_b = (getRegister(GTE_REG_RGBC) >> 8) & 0xFF;
-    uint8_t in_c = getRegister(GTE_REG_RGBC) & 0xFF;
+    //uint8_t in_r = getRegister(GTE_REG_RGBC) >> 24;
+    //uint8_t in_g = (getRegister(GTE_REG_RGBC) >> 16) & 0xFF;
+    //uint8_t in_b = (getRegister(GTE_REG_RGBC) >> 8) & 0xFF;
+    //uint8_t in_c = getRegister(GTE_REG_RGBC) & 0xFF;
 
-    int16_t in_ir0 = getRegister(GTE_REG_IR0);
+    //int16_t in_ir0 = getRegister(GTE_REG_IR0);
 
-    int32_t temp_mac1 = (in_l11 * in_vx0 + in_l12 * in_vy0 + in_l13 * in_vz0) >> (sf * 12);
-    int16_t temp_ir1 = temp_mac1;
-    int32_t temp_mac2 = (in_l21 * in_vx0 + in_l22 * in_vy0 + in_l23 * in_vz0) >> (sf * 12);
-    int16_t temp_ir2 = temp_mac2;
-    int32_t temp_mac3 = (in_l31 * in_vx0 + in_l32 * in_vy0 + in_l33 * in_vz0) >> (sf * 12);
-    int16_t temp_ir3 = temp_mac3;
+    //int32_t temp_mac1 = (in_l11 * in_vx0 + in_l12 * in_vy0 + in_l13 * in_vz0) >> (sf * 12);
+    //int16_t temp_ir1 = temp_mac1;
+    //int32_t temp_mac2 = (in_l21 * in_vx0 + in_l22 * in_vy0 + in_l23 * in_vz0) >> (sf * 12);
+    //int16_t temp_ir2 = temp_mac2;
+    //int32_t temp_mac3 = (in_l31 * in_vx0 + in_l32 * in_vy0 + in_l33 * in_vz0) >> (sf * 12);
+    //int16_t temp_ir3 = temp_mac3;
 
-    temp_mac1 = (in_rbk * 0x1000 + in_lr1 * temp_ir1 + in_lr2 * temp_ir2 + in_lr3 * temp_ir3) >> (sf * 12);
-    temp_ir1 = temp_mac1;
-    temp_mac2 = (in_gbk * 0x1000 + in_lg1 * temp_ir1 + in_lg2 * temp_ir2 + in_lg3 * temp_ir3) >> (sf * 12);
-    temp_ir2 = temp_mac2;
-    temp_mac3 = (in_bbk * 0x1000 + in_lb1 * temp_ir1 + in_lb2 * temp_ir2 + in_lb3 * temp_ir3) >> (sf * 12);
-    temp_ir3 = temp_mac3;
+    //temp_mac1 = (in_rbk * 0x1000 + in_lr1 * temp_ir1 + in_lr2 * temp_ir2 + in_lr3 * temp_ir3) >> (sf * 12);
+    //temp_ir1 = temp_mac1;
+    //temp_mac2 = (in_gbk * 0x1000 + in_lg1 * temp_ir1 + in_lg2 * temp_ir2 + in_lg3 * temp_ir3) >> (sf * 12);
+    //temp_ir2 = temp_mac2;
+    //temp_mac3 = (in_bbk * 0x1000 + in_lb1 * temp_ir1 + in_lb2 * temp_ir2 + in_lb3 * temp_ir3) >> (sf * 12);
+    //temp_ir3 = temp_mac3;
 
-    temp_mac1 = (in_r * temp_ir1) << 4;
-    temp_mac2 = (in_g * temp_ir1) << 4;
-    temp_mac3 = (in_b * temp_ir1) << 4;
+    //temp_mac1 = (in_r * temp_ir1) << 4;
+    //temp_mac2 = (in_g * temp_ir1) << 4;
+    //temp_mac3 = (in_b * temp_ir1) << 4;
 
-    temp_mac1 =  temp_mac1 + (in_rfc - temp_mac1) * in_ir0;
-    temp_mac2 =  temp_mac2 + (in_gfc - temp_mac2) * in_ir0;
-    temp_mac3 =  temp_mac3 + (in_bfc - temp_mac3) * in_ir0;
+    //temp_mac1 =  temp_mac1 + (in_rfc - temp_mac1) * in_ir0;
+    //temp_mac2 =  temp_mac2 + (in_gfc - temp_mac2) * in_ir0;
+    //temp_mac3 =  temp_mac3 + (in_bfc - temp_mac3) * in_ir0;
 
-    temp_mac1 =  temp_mac1 >> (sf * 12);
-    temp_mac2 =  temp_mac2 >> (sf * 12);
-    temp_mac3 =  temp_mac3 >> (sf * 12);
+    //temp_mac1 =  temp_mac1 >> (sf * 12);
+    //temp_mac2 =  temp_mac2 >> (sf * 12);
+    //temp_mac3 =  temp_mac3 >> (sf * 12);
 
-    uint8_t temp_rgb2 =  ((temp_mac1 / 16) << 24) | ((temp_mac2 / 16) << 16) | ((temp_mac3 / 16) << 8) | in_c;
+    //uint8_t temp_rgb2 =  ((temp_mac1 / 16) << 24) | ((temp_mac2 / 16) << 16) | ((temp_mac3 / 16) << 8) | in_c;
 
-    temp_ir1 = temp_mac1;
-    temp_ir2 = temp_mac2;
-    temp_ir3 = temp_mac3;
+    //temp_ir1 = temp_mac1;
+    //temp_ir2 = temp_mac2;
+    //temp_ir3 = temp_mac3;
 
-    setRegister(GTE_REG_MAC1, temp_mac1);
-    setRegister(GTE_REG_MAC2, temp_mac2);
-    setRegister(GTE_REG_MAC3, temp_mac3);
-    setRegister(GTE_REG_IR1, temp_ir1);
-    setRegister(GTE_REG_IR2, temp_ir2);
-    setRegister(GTE_REG_IR3, temp_ir3);
+    //setRegister(GTE_REG_MAC1, temp_mac1);
+    //setRegister(GTE_REG_MAC2, temp_mac2);
+    //setRegister(GTE_REG_MAC3, temp_mac3);
+    //setRegister(GTE_REG_IR1, temp_ir1);
+    //setRegister(GTE_REG_IR2, temp_ir2);
+    //setRegister(GTE_REG_IR3, temp_ir3);
 
-    setRegister(GTE_REG_RGB0, getRegister(GTE_REG_RGB1));
-    setRegister(GTE_REG_RGB1, getRegister(GTE_REG_RGB2));
-    setRegister(GTE_REG_RGB2, temp_rgb2);
+    //setRegister(GTE_REG_RGB0, getRegister(GTE_REG_RGB1));
+    //setRegister(GTE_REG_RGB1, getRegister(GTE_REG_RGB2));
+    //setRegister(GTE_REG_RGB2, temp_rgb2);
 }
 
 void GTE::AVSZ3() {
     // Average of three Z values
     LOGT_GTE(std::format("AVSZ3"));
-    uint8_t sf = 0x1 & (instruction >> 19);
+    //uint8_t sf = 0x1 & (instruction >> 19);
 
-    uint16_t in_sz1 = getRegister(GTE_REG_SZ1);
-    uint16_t in_sz2 = getRegister(GTE_REG_SZ2);
-    uint16_t in_sz3 = getRegister(GTE_REG_SZ3);
+    //uint16_t in_sz1 = getRegister(GTE_REG_SZ1);
+    //uint16_t in_sz2 = getRegister(GTE_REG_SZ2);
+    //uint16_t in_sz3 = getRegister(GTE_REG_SZ3);
 
-    int16_t in_zsf3 = getRegister(GTE_REG_ZSF3) & 0xFFFF;
+    //int16_t in_zsf3 = getRegister(GTE_REG_ZSF3) & 0xFFFF;
 
-    int32_t temp_mac0 = in_zsf3 * (in_sz1 + in_sz2 + in_sz3);
-    uint16_t temp_otz = temp_mac0 / 0x1000;
+    //int32_t temp_mac0 = in_zsf3 * (in_sz1 + in_sz2 + in_sz3);
+    //uint16_t temp_otz = temp_mac0 / 0x1000;
 
-    setRegister(GTE_REG_MAC0, temp_mac0);
-    setRegister(GTE_REG_OTZ, temp_otz);
+    //setRegister(GTE_REG_MAC0, temp_mac0);
+    //setRegister(GTE_REG_OTZ, temp_otz);
 }
 
 void GTE::NCDT() {
@@ -1051,7 +1078,6 @@ void GTE::SQR() {
 
     LOG_GTE(std::format("mac1 = 0x{:011X}, mac2 = 0x{:011X}, mac3 = 0x{:011X}", get_mac1(), get_mac2(), get_mac3()));
     LOG_GTE(std::format("ir1 = 0x{:04X}, ir2 = 0x{:04X}, ir3 = 0x{:04X}", get_ir1(), get_ir2(), get_ir3()));
-    LOG_GTE(std::format("ir1 = 0x{:08X}, ir2 = 0x{:08X}, ir3 = 0x{:08X}", registers[GTE_REG_IR1], registers[GTE_REG_IR2], registers[GTE_REG_IR3]));
 }
 
 void GTE::OP() {
