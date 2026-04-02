@@ -6,6 +6,13 @@
 
 namespace PSX {
 
+#define GTE_FLAGS_ERROR 31
+#define GTE_FLAGS_MAC1_POS_OVERFLOW 30
+#define GTE_FLAGS_MAC2_POS_OVERFLOW 29
+#define GTE_FLAGS_MAC3_POS_OVERFLOW 28
+#define GTE_FLAGS_MAC1_NEG_OVERFLOW 27
+#define GTE_FLAGS_MAC2_NEG_OVERFLOW 26
+#define GTE_FLAGS_MAC3_NEG_OVERFLOW 25
 #define GTE_FLAGS_IR1 24
 #define GTE_FLAGS_IR2 23
 #define GTE_FLAGS_IR3 22
@@ -87,6 +94,10 @@ private:
     uint32_t &irgb;
     uint32_t &orgb;
 
+    int64_t mac1;
+    int64_t mac2;
+    int64_t mac3;
+
     uint32_t instruction;
     bool lm;
     bool sf;
@@ -103,6 +114,9 @@ public:
     void reset();
     void reset_flags();
 
+    void update_error_flag();
+    void set_flag(uint8_t flag);
+
     uint32_t getRegister(uint8_t reg);
     void setRegister(uint8_t reg, uint32_t value);
     uint32_t getControlRegister(uint8_t reg);
@@ -113,8 +127,15 @@ public:
     void set_ir1(int32_t value);
     void set_ir2(int32_t value);
     void set_ir3(int32_t value);
-
     void set_irgb(uint32_t value);
+
+    void set_mac1(int64_t value);
+    void set_mac2(int64_t value);
+    void set_mac3(int64_t value);
+
+    int64_t get_mac1() const;
+    int64_t get_mac2() const;
+    int64_t get_mac3() const;
 
     typedef void (GTE::*Opcode) ();
     static const Opcode cp2[];
