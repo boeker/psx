@@ -91,20 +91,59 @@ std::string GTE::getControlRegisterName(uint8_t reg) {
 }
 
 
-GTE::GTE()
-    : flags(registers[GTE_REG_FLAGS]),
-      irgb(registers[GTE_REG_IRGB]),
-      orgb(registers[GTE_REG_ORGB]) {
+GTE::GTE() {
     reset();
 }
 
 void GTE::reset() {
-    for (int i = 0; i < 64; ++i) {
-        this->registers[i] = 0;
-    }
+    v0.reset();
+    v1.reset();
+    v2.reset();
+    rgbc = 0;
+    ordering_table_z = 0;
+    ir0 = 0;
+    ir1 = 0;
+    ir2 = 0;
+    ir3 = 0;
+    xy0.reset();
+    xy1.reset();
+    xy2.reset();
+    xyp.reset();
+    z0 = 0;
+    z1 = 0;
+    z2 = 0;
+    z3 = 0;
+    rgb0 = 0;
+    rgb1 = 0;
+    rgb2 = 0;
+    reserved = 0;
+    mac0 = 0;
     mac1 = 0;
     mac2 = 0;
     mac3 = 0;
+    input_rgb = 0;
+    output_rgb = 0;
+    leading_zeros_count_source = 0;
+    leading_zeros_count_result = 0;
+
+    for (int i = 0; i < 9; ++i) {
+        rotation_matrix[i] = 0;
+        light_source_matrix[i] = 0;
+        light_color_matrix_source[i] = 0;
+    }
+    for (int i = 0; i < 3; ++i) {
+        translation_vector[i] = 0;
+        background_color[i] = 0;
+        far_color[i] = 0;
+    }
+    screen_offset[0] = 0;
+    screen_offset[1] = 0;
+    projection_plane_distance = 0;
+    depth_cueing_coefficient = 0;
+    depth_cueing_offset = 0;
+    average_z_scale_factors[0] = 0;
+    average_z_scale_factors[1] = 0;
+    flags = 0;
 
     instruction = 0;
     lm = false;
@@ -124,6 +163,84 @@ void GTE::update_error_flag() {
 void GTE::set_flag(uint8_t flag) {
     Bit::setBit(flags, flag);
     update_error_flag();
+}
+
+uint32_t GTE::get_register_as_uint32_t(uint8_t rt) {
+    assert(rt < 32);
+    switch(rt) {
+        case GTE_REG_VXY0:
+        case GTE_REG_VZ0:
+        case GTE_REG_VXY1:
+        case GTE_REG_VZ1:
+        case GTE_REG_VXY2:
+        case GTE_REG_VZ2:
+        case GTE_REG_RGBC:
+        case GTE_REG_OTZ:
+        case GTE_REG_IR0:
+        case GTE_REG_IR1:
+        case GTE_REG_IR2:
+        case GTE_REG_IR3:
+        case GTE_REG_SXY0:
+        case GTE_REG_SXY1:
+        case GTE_REG_SXY2:
+        case GTE_REG_SXYP:
+        case GTE_REG_SZ0:
+        case GTE_REG_SZ1:
+        case GTE_REG_SZ2:
+        case GTE_REG_SZ3:
+        case GTE_REG_RGB0:
+        case GTE_REG_RGB1:
+        case GTE_REG_RGB2:
+        case GTE_REG_MAC0:
+        case GTE_REG_MAC1:
+        case GTE_REG_MAC2:
+        case GTE_REG_MAC3:
+        case GTE_REG_IRGB:
+        case GTE_REG_ORGB:
+        default:
+            assert(false);
+            return 0;
+    }
+}
+
+uint32_t GTE::get_control_register_as_uint32_t(uint8_t rt) {
+    assert(rt < 32);
+    switch(rt) {
+        case GTE_REG_RT11RT12:
+        case GTE_REG_RT13RT21:
+        case GTE_REG_RT22RT23:
+        case GTE_REG_RT31RT32:
+        case GTE_REG_RT33:
+        case GTE_REG_TRX:
+        case GTE_REG_TRY:
+        case GTE_REG_TRZ:
+        case GTE_REG_L11L12:
+        case GTE_REG_L13L21:
+        case GTE_REG_L22L23:
+        case GTE_REG_L31L32:
+        case GTE_REG_L33:
+        case GTE_REG_RBK:
+        case GTE_REG_GBK:
+        case GTE_REG_BBK:
+        case GTE_REG_LR1LR2:
+        case GTE_REG_LR3LG1:
+        case GTE_REG_LG2LG3:
+        case GTE_REG_LB1LB2:
+        case GTE_REG_LB3:
+        case GTE_REG_RFC:
+        case GTE_REG_GFC:
+        case GTE_REG_BFC:
+        case GTE_REG_OFX:
+        case GTE_REG_OFY:
+        case GTE_REG_H:
+        case GTE_REG_DQA:
+        case GTE_REG_DQB:
+        case GTE_REG_ZSF3:
+        case GTE_REG_FLAGS:
+        default:
+            assert(false);
+            return 0;
+    }
 }
 
 uint32_t GTE::getRegister(uint8_t rt) {
@@ -208,8 +325,8 @@ void GTE::set_ir1(int32_t value) {
     }
 
     uint8_t r = convert_16bit_to_5bit_color(clamped);
-    irgb = (irgb & 0xFFFFFFE0) & r;
-    orgb = irgb;
+    input_rgb = (input_rgb & 0xFFFFFFE0) & r;
+    output_rgb = input_rgb;
 }
 
 void GTE::set_ir2(int32_t value) {
@@ -220,8 +337,8 @@ void GTE::set_ir2(int32_t value) {
     }
 
     uint8_t g = convert_16bit_to_5bit_color(clamped);
-    irgb = (irgb & 0xFFFFFC1F) & (g << 5);
-    orgb = irgb;
+    input_rgb = (input_rgb & 0xFFFFFC1F) & (g << 5);
+    output_rgb = input_rgb;
 }
 
 void GTE::set_ir3(int32_t value) {
@@ -232,13 +349,13 @@ void GTE::set_ir3(int32_t value) {
     }
 
     uint8_t b = convert_16bit_to_5bit_color(clamped);
-    irgb = (irgb & 0xFFFF83FF) & (b << 10);
-    orgb = irgb;
+    input_rgb = (input_rgb & 0xFFFF83FF) & (b << 10);
+    output_rgb = input_rgb;
 }
 
 void GTE::set_irgb(uint32_t value) {
-    irgb = value & 0x00007FFF;
-    orgb = irgb;
+    input_rgb = value & 0x00007FFF;
+    output_rgb = input_rgb;
 
     uint8_t r = Bit::getBits<5>(value, 0);
     uint8_t g = Bit::getBits<5>(value, 5);

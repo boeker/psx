@@ -91,15 +91,63 @@ namespace PSX {
 
 class GTE {
 private:
-    uint32_t registers[64];
-    uint32_t &flags;
-    uint32_t &irgb;
-    uint32_t &orgb;
+    struct int16_t_pair {
+        int16_t x;
+        int16_t y;
 
-    int64_t mac0;
-    int64_t mac1;
-    int64_t mac2;
-    int64_t mac3;
+        void reset() {
+            x = 0;
+            y = 0;
+        }
+    };
+
+    struct int16_t_triple {
+        int16_t x;
+        int16_t y;
+        int16_t z;
+
+        void reset() {
+            x = 0;
+            y = 0;
+            z = 0;
+        }
+    };
+
+    // Registers
+    uint32_t registers[64]; // TODO remove
+
+    int16_t_triple v0;                   // VXY0, VZ0
+    int16_t_triple v1;                   // VXY1, VZ1
+    int16_t_triple v2;                   // VXY2, VZ2
+    uint32_t rgbc;                       // RGBC
+    uint16_t ordering_table_z;           // OTZ
+    int16_t ir0;                         // IR0
+    int16_t ir1, ir2, ir3;               // IR1, IR2, IR3
+    int16_t_pair xy0, xy1, xy2, xyp;     // SXY0, SXY1, SXY2, SXYP
+    uint32_t z0, z1, z2, z3;             // SZ0, SZ1, SZ2, SZ3
+    uint32_t rgb0, rgb1, rgb2;           // RGB0, RGB1, RGB2
+    uint32_t reserved;                   // RES1
+    int64_t mac0;                        // MAC0
+    int64_t mac1, mac2, mac3;            // MAC1, MAC2, MAC3
+    uint32_t input_rgb;                  // IRGB
+    uint32_t output_rgb;                 // ORGB
+    uint32_t leading_zeros_count_source; // LZCS
+    uint32_t leading_zeros_count_result; // LZCR
+
+
+    // Control registers
+    int16_t rotation_matrix[9];           // RT11, ..., RT33
+    int32_t translation_vector[3];        // TRX, TRY, TRZ
+    int16_t light_source_matrix[9];       // L11, ..., L33
+    uint32_t background_color[3];         // RBK, GBK, BBK
+    int16_t light_color_matrix_source[9]; // LR1, ... ,LB3
+    uint32_t far_color[3];                // RFC, GFC ,BFC
+    int32_t screen_offset[2];             // OFX, OFY
+    uint16_t projection_plane_distance;   // H
+    int16_t depth_cueing_coefficient;     // DQA
+    int32_t depth_cueing_offset;          // DQB
+    int16_t average_z_scale_factors[2];   // ZSF3, ZSF4
+    uint32_t flags;                       // FLAG
 
     uint32_t instruction;
     bool lm;
@@ -120,6 +168,8 @@ public:
     void update_error_flag();
     void set_flag(uint8_t flag);
 
+    uint32_t get_control_register_as_uint32_t(uint8_t rt);
+    uint32_t get_register_as_uint32_t(uint8_t rt);
     uint32_t getRegister(uint8_t reg);
     void setRegister(uint8_t reg, uint32_t value);
     uint32_t getControlRegister(uint8_t reg);
