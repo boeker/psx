@@ -406,7 +406,7 @@ uint32_t GTE::get_control_register_as_uint32_t(uint8_t rt) {
         case GTE_REG_DQA:
             return static_cast<int32_t>(depth_cueing_coefficient);
         case GTE_REG_DQB:
-            return depth_cueing_coefficient;
+            return depth_cueing_offset;
         case GTE_REG_ZSF3:
             return static_cast<int32_t>(average_z_scale_factors[0]);
         case GTE_REG_ZSF4:
