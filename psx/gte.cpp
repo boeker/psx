@@ -215,8 +215,7 @@ uint32_t GTE::get_register_as_uint32_t(uint8_t rt) {
         case GTE_REG_RGB2:
             return rgb2;
         case GTE_REG_RES1:
-            //TODO
-            return 0;
+            return reserved;
         case GTE_REG_MAC0:
             return mac0;
         case GTE_REG_MAC1:
@@ -230,10 +229,9 @@ uint32_t GTE::get_register_as_uint32_t(uint8_t rt) {
         case GTE_REG_ORGB:
             return output_rgb;
         case GTE_REG_LZCS:
-            //TODO
-            return 0;
+            return leading_zeros_count_source;
         case GTE_REG_LZCR:
-            //TODO
+            return std::max(std::countl_one(leading_zeros_count_source), std::countl_zero(leading_zeros_count_source));
             return 0;
         default:
             assert(false);
@@ -327,7 +325,7 @@ void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
             rgb2 = value;
             break;
         case GTE_REG_RES1:
-            //TODO
+            reserved = value;
             break;
         case GTE_REG_MAC0:
             mac0 = static_cast<int32_t>(value);
@@ -348,10 +346,10 @@ void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
             // Read-only
             break;
         case GTE_REG_LZCS:
-            //TODO
+            leading_zeros_count_source = value;
             break;
         case GTE_REG_LZCR:
-            //TODO
+            // Read-only
             break;
         default:
             assert(false);
