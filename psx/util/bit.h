@@ -41,6 +41,66 @@ namespace Bit {
         uint32_t selectedBit = 1 << bit;
         target = target & ~selectedBit;
     }
+
+    inline int16_t unpack_first_int16_t(uint32_t value) {
+        return value & 0xFFFF;
+    }
+
+    inline int16_t unpack_second_int16_t(uint32_t value) {
+        return value >> 16;
+    }
+
+    inline uint32_t pack_int16_ts(int16_t x, int16_t y) {
+        return (static_cast<uint32_t>(y) << 16) | (static_cast<uint32_t>(x) & 0xFFFF);
+    }
+
+    inline uint32_t pack_int16_t(int16_t z) {
+        return static_cast<int32_t>(z);
+    }
+
+    struct int16_t_pair {
+        int16_t x;
+        int16_t y;
+
+        void reset() {
+            x = 0;
+            y = 0;
+        }
+
+        uint32_t pack() const {
+            return pack_int16_ts(x, y);
+        }
+        void unpack(uint32_t value) {
+            y = value >> 16;
+            x = value & 0xFFFF;
+        }
+    };
+
+    struct int16_t_triple {
+        int16_t x;
+        int16_t y;
+        int16_t z;
+
+        void reset() {
+            x = 0;
+            y = 0;
+            z = 0;
+        }
+
+        uint32_t packXY() const {
+            return pack_int16_ts(x, y);
+        }
+        uint32_t packZ() const {
+            return pack_int16_t(z);
+        }
+        void unpackXY(uint32_t value) {
+            y = value >> 16;
+            x = value & 0xFFFF;
+        }
+        void unpackZ(uint32_t value) {
+            z = value & 0xFFFF;
+        }
+    };
 };
 
 }

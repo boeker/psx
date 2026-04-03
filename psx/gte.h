@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <iostream>
 
+#include "util/bit.h"
+
 namespace PSX {
 
 #define GTE_FLAGS_ERROR 31
@@ -95,44 +97,22 @@ namespace PSX {
 
 class GTE {
 private:
-    struct int16_t_pair {
-        int16_t x;
-        int16_t y;
-
-        void reset() {
-            x = 0;
-            y = 0;
-        }
-    };
-
-    struct int16_t_triple {
-        int16_t x;
-        int16_t y;
-        int16_t z;
-
-        void reset() {
-            x = 0;
-            y = 0;
-            z = 0;
-        }
-    };
 
     // Registers
-    int16_t_triple v0;                   // VXY0, VZ0
-    int16_t_triple v1;                   // VXY1, VZ1
-    int16_t_triple v2;                   // VXY2, VZ2
+    util::Bit::int16_t_triple v0;        // VXY0, VZ0
+    util::Bit::int16_t_triple v1;        // VXY1, VZ1
+    util::Bit::int16_t_triple v2;        // VXY2, VZ2
     uint32_t rgbc;                       // RGBC
     uint16_t ordering_table_z;           // OTZ
     int16_t ir0;                         // IR0
     int16_t ir1, ir2, ir3;               // IR1, IR2, IR3
-    int16_t_pair sxy0, sxy1, sxy2, sxyp; // SXY0, SXY1, SXY2, SXYP
+    util::Bit::int16_t_pair sxy0, sxy1, sxy2;  // SXY0, SXY1, SXY2, SXYP (pushing mirror of SXY2)
     uint16_t sz0, sz1, sz2, sz3;         // SZ0, SZ1, SZ2, SZ3
     uint32_t rgb0, rgb1, rgb2;           // RGB0, RGB1, RGB2
     uint32_t reserved;                   // RES1
     int64_t mac0;                        // MAC0
     int64_t mac1, mac2, mac3;            // MAC1, MAC2, MAC3
-    uint32_t input_rgb;                  // IRGB
-    uint32_t output_rgb;                 // ORGB
+    uint32_t rgb;                        // IRGB, ORGB
     uint32_t leading_zeros_count_source; // LZCS
     uint32_t leading_zeros_count_result; // LZCR
 
@@ -141,9 +121,9 @@ private:
     int16_t rotation_matrix[9];           // RT11, ..., RT33
     int32_t translation_vector[3];        // TRX, TRY, TRZ
     int16_t light_source_matrix[9];       // L11, ..., L33
-    uint32_t background_color[3];         // RBK, GBK, BBK
+    int32_t background_color[3];          // RBK, GBK, BBK
     int16_t light_color_matrix_source[9]; // LR1, ... ,LB3
-    uint32_t far_color[3];                // RFC, GFC ,BFC
+    int32_t far_color[3];                 // RFC, GFC ,BFC
     int32_t screen_offset[2];             // OFX, OFY
     uint16_t projection_plane_distance;   // H
     int16_t depth_cueing_coefficient;     // DQA
@@ -187,6 +167,9 @@ public:
     void set_ir1(int32_t value);
     void set_ir2(int32_t value);
     void set_ir3(int32_t value);
+    void set_ir1_without_clamping(int16_t value);
+    void set_ir2_without_clamping(int16_t value);
+    void set_ir3_without_clamping(int16_t value);
     void set_irgb(uint32_t value);
 
     void set_mac0(int64_t value);

@@ -5,7 +5,6 @@
 #include <format>
 #include <sstream>
 
-#include "util/bit.h"
 #include "util/log.h"
 
 using namespace util;
@@ -108,7 +107,6 @@ void GTE::reset() {
     sxy0.reset();
     sxy1.reset();
     sxy2.reset();
-    sxyp.reset();
     sz0 = 0;
     sz1 = 0;
     sz2 = 0;
@@ -121,8 +119,7 @@ void GTE::reset() {
     mac1 = 0;
     mac2 = 0;
     mac3 = 0;
-    input_rgb = 0;
-    output_rgb = 0;
+    rgb = 0;
     leading_zeros_count_source = 0;
     leading_zeros_count_result = 0;
 
@@ -169,17 +166,17 @@ uint32_t GTE::get_register_as_uint32_t(uint8_t rt) {
     assert(rt < 32);
     switch(rt) {
         case GTE_REG_VXY0:
-            return (static_cast<uint32_t>(v0.y) << 16) | static_cast<uint32_t>(v0.x);
+            return v0.packXY();
         case GTE_REG_VZ0:
-            return static_cast<int32_t>(v0.z);
+            return v0.packZ();
         case GTE_REG_VXY1:
-            return (static_cast<uint32_t>(v1.y) << 16) | static_cast<uint32_t>(v1.x);
+            return v1.packXY();
         case GTE_REG_VZ1:
-            return static_cast<int32_t>(v1.z);
+            return v1.packZ();
         case GTE_REG_VXY2:
-            return (static_cast<uint32_t>(v2.y) << 16) | static_cast<uint32_t>(v2.x);
+            return v2.packXY();
         case GTE_REG_VZ2:
-            return static_cast<int32_t>(v2.z);
+            return v2.packZ();
         case GTE_REG_RGBC:
             return rgbc;
         case GTE_REG_OTZ:
@@ -193,13 +190,14 @@ uint32_t GTE::get_register_as_uint32_t(uint8_t rt) {
         case GTE_REG_IR3:
             return static_cast<int32_t>(ir3);
         case GTE_REG_SXY0:
-            return (static_cast<uint32_t>(sxy0.y) << 16) | static_cast<uint32_t>(sxy0.x);
+            return sxy0.pack();
         case GTE_REG_SXY1:
-            return (static_cast<uint32_t>(sxy1.y) << 16) | static_cast<uint32_t>(sxy1.x);
+            return sxy1.pack();
         case GTE_REG_SXY2:
-            return (static_cast<uint32_t>(sxy2.y) << 16) | static_cast<uint32_t>(sxy2.x);
+            return sxy2.pack();
         case GTE_REG_SXYP:
-            return (static_cast<uint32_t>(sxyp.y) << 16) | static_cast<uint32_t>(sxyp.x);
+            // Mirror of SXY2 when reading
+            return sxy2.pack();
         case GTE_REG_SZ0:
             return sz0;
         case GTE_REG_SZ1:
@@ -225,9 +223,9 @@ uint32_t GTE::get_register_as_uint32_t(uint8_t rt) {
         case GTE_REG_MAC3:
             return mac3;
         case GTE_REG_IRGB:
-            return input_rgb;
+            return rgb;
         case GTE_REG_ORGB:
-            return output_rgb;
+            return rgb;
         case GTE_REG_LZCS:
             return leading_zeros_count_source;
         case GTE_REG_LZCR:
@@ -243,25 +241,22 @@ void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
     assert(rt < 32);
     switch(rt) {
         case GTE_REG_VXY0:
-            v0.y = value >> 16;
-            v0.x = value & 0xFFFF;
+            v0.unpackXY(value);
             break;
         case GTE_REG_VZ0:
-            v0.z = value & 0xFFFF;
+            v0.unpackZ(value);
             break;
         case GTE_REG_VXY1:
-            v1.y = value >> 16;
-            v1.x = value & 0xFFFF;
+            v1.unpackXY(value);
             break;
         case GTE_REG_VZ1:
-            v1.z = value & 0xFFFF;
+            v1.unpackZ(value);
             break;
         case GTE_REG_VXY2:
-            v2.y = value >> 16;
-            v2.x = value & 0xFFFF;
+            v2.unpackXY(value);
             break;
         case GTE_REG_VZ2:
-            v2.z = value & 0xFFFF;
+            v2.unpackZ(value);
             break;
         case GTE_REG_RGBC:
             rgbc = value;
@@ -273,35 +268,28 @@ void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
             ir0 = value;
             break;
         case GTE_REG_IR1:
-            ir1 = value;
-            input_rgb = (input_rgb & 0xFFFFFFE0) & convert_16bit_to_5bit_color(ir1);
-            output_rgb = input_rgb;
+            set_ir1_without_clamping(value);
             break;
         case GTE_REG_IR2:
-            ir2 = value;
-            input_rgb = (input_rgb & 0xFFFFFC1F) & (convert_16bit_to_5bit_color(ir2) << 5);
-            output_rgb = input_rgb;
+            set_ir2_without_clamping(value);
             break;
         case GTE_REG_IR3:
-            ir3 = value;
-            input_rgb = (input_rgb & 0xFFFF83FF) & (convert_16bit_to_5bit_color(ir3) << 10);
-            output_rgb = input_rgb;
+            set_ir3_without_clamping(value);
             break;
         case GTE_REG_SXY0:
-            sxy0.y = value >> 16;
-            sxy0.x = value & 0xFFFF;
+            sxy0.unpack(value);
             break;
         case GTE_REG_SXY1:
-            sxy1.y = value >> 16;
-            sxy1.x = value & 0xFFFF;
+            sxy1.unpack(value);
             break;
         case GTE_REG_SXY2:
-            sxy2.y = value >> 16;
-            sxy2.x = value & 0xFFFF;
+            sxy2.unpack(value);
             break;
         case GTE_REG_SXYP:
-            sxyp.y = value >> 16;
-            sxyp.x = value & 0xFFFF;
+            // Writes to SXY2 and moves the whole queue down
+            sxy0 = sxy1;
+            sxy1 = sxy2;
+            sxy2.unpack(value);
             break;
         case GTE_REG_SZ0:
             sz0 = value;
@@ -361,15 +349,15 @@ uint32_t GTE::get_control_register_as_uint32_t(uint8_t rt) {
     rt += 32;
     switch(rt) {
         case GTE_REG_RT11RT12:
-            return (static_cast<uint32_t>(rotation_matrix[1]) << 16) | static_cast<uint32_t>(rotation_matrix[0]);
+            return Bit::pack_int16_ts(rotation_matrix[0], rotation_matrix[1]);
         case GTE_REG_RT13RT21:
-            return (static_cast<uint32_t>(rotation_matrix[3]) << 16) | static_cast<uint32_t>(rotation_matrix[2]);
+            return Bit::pack_int16_ts(rotation_matrix[2], rotation_matrix[3]);
         case GTE_REG_RT22RT23:
-            return (static_cast<uint32_t>(rotation_matrix[5]) << 16) | static_cast<uint32_t>(rotation_matrix[4]);
+            return Bit::pack_int16_ts(rotation_matrix[4], rotation_matrix[5]);
         case GTE_REG_RT31RT32:
-            return (static_cast<uint32_t>(rotation_matrix[7]) << 16) | static_cast<uint32_t>(rotation_matrix[6]);
+            return Bit::pack_int16_ts(rotation_matrix[6], rotation_matrix[7]);
         case GTE_REG_RT33:
-            return static_cast<int32_t>(rotation_matrix[8]);
+            return Bit::pack_int16_t(rotation_matrix[8]);
         case GTE_REG_TRX:
             return translation_vector[0];
         case GTE_REG_TRY:
@@ -377,15 +365,15 @@ uint32_t GTE::get_control_register_as_uint32_t(uint8_t rt) {
         case GTE_REG_TRZ:
             return translation_vector[2];
         case GTE_REG_L11L12:
-            return (static_cast<uint32_t>(light_source_matrix[1]) << 16) | static_cast<uint32_t>(light_source_matrix[0]);
+            return Bit::pack_int16_ts(light_source_matrix[0], light_source_matrix[1]);
         case GTE_REG_L13L21:
-            return (static_cast<uint32_t>(light_source_matrix[3]) << 16) | static_cast<uint32_t>(light_source_matrix[2]);
+            return Bit::pack_int16_ts(light_source_matrix[2], light_source_matrix[3]);
         case GTE_REG_L22L23:
-            return (static_cast<uint32_t>(light_source_matrix[5]) << 16) | static_cast<uint32_t>(light_source_matrix[4]);
+            return Bit::pack_int16_ts(light_source_matrix[4], light_source_matrix[5]);
         case GTE_REG_L31L32:
-            return (static_cast<uint32_t>(light_source_matrix[7]) << 16) | static_cast<uint32_t>(light_source_matrix[6]);
+            return Bit::pack_int16_ts(light_source_matrix[6], light_source_matrix[7]);
         case GTE_REG_L33:
-            return static_cast<int32_t>(light_source_matrix[8]);
+            return Bit::pack_int16_t(light_source_matrix[8]);
         case GTE_REG_RBK:
             return background_color[0];
         case GTE_REG_GBK:
@@ -393,15 +381,15 @@ uint32_t GTE::get_control_register_as_uint32_t(uint8_t rt) {
         case GTE_REG_BBK:
             return background_color[2];
         case GTE_REG_LR1LR2:
-            return (static_cast<uint32_t>(light_color_matrix_source[1]) << 16) | static_cast<uint32_t>(light_color_matrix_source[0]);
+            return Bit::pack_int16_ts(light_color_matrix_source[0], light_color_matrix_source[1]);
         case GTE_REG_LR3LG1:
-            return (static_cast<uint32_t>(light_color_matrix_source[3]) << 16) | static_cast<uint32_t>(light_color_matrix_source[2]);
+            return Bit::pack_int16_ts(light_color_matrix_source[2], light_color_matrix_source[3]);
         case GTE_REG_LG2LG3:
-            return (static_cast<uint32_t>(light_color_matrix_source[5]) << 16) | static_cast<uint32_t>(light_color_matrix_source[4]);
+            return Bit::pack_int16_ts(light_color_matrix_source[4], light_color_matrix_source[5]);
         case GTE_REG_LB1LB2:
-            return (static_cast<uint32_t>(light_color_matrix_source[7]) << 16) | static_cast<uint32_t>(light_color_matrix_source[6]);
+            return Bit::pack_int16_ts(light_color_matrix_source[6], light_color_matrix_source[7]);
         case GTE_REG_LB3:
-            return static_cast<int32_t>(light_color_matrix_source[8]);
+            return Bit::pack_int16_t(light_color_matrix_source[8]);
         case GTE_REG_RFC:
             return far_color[0];
         case GTE_REG_GFC:
@@ -413,7 +401,8 @@ uint32_t GTE::get_control_register_as_uint32_t(uint8_t rt) {
         case GTE_REG_OFY:
             return screen_offset[1];
         case GTE_REG_H:
-            return projection_plane_distance;
+            // Hardware bug: sign-extend unsigned value
+            return static_cast<int32_t>(static_cast<int16_t>(projection_plane_distance));
         case GTE_REG_DQA:
             return static_cast<int32_t>(depth_cueing_coefficient);
         case GTE_REG_DQB:
@@ -435,23 +424,23 @@ void GTE::set_control_register_from_uint32_t(uint8_t rt, uint32_t value) {
     rt += 32;
     switch(rt) {
         case GTE_REG_RT11RT12:
-            rotation_matrix[1] = value >> 16;
-            rotation_matrix[0] = value & 0xFFFF;
+            rotation_matrix[0] = Bit::unpack_first_int16_t(value);
+            rotation_matrix[1] = Bit::unpack_second_int16_t(value);
             break;
         case GTE_REG_RT13RT21:
-            rotation_matrix[3] = value >> 16;
-            rotation_matrix[2] = value & 0xFFFF;
+            rotation_matrix[2] = Bit::unpack_first_int16_t(value);
+            rotation_matrix[3] = Bit::unpack_second_int16_t(value);
             break;
         case GTE_REG_RT22RT23:
-            rotation_matrix[5] = value >> 16;
-            rotation_matrix[4] = value & 0xFFFF;
+            rotation_matrix[4] = Bit::unpack_first_int16_t(value);
+            rotation_matrix[5] = Bit::unpack_second_int16_t(value);
             break;
         case GTE_REG_RT31RT32:
-            rotation_matrix[7] = value >> 16;
-            rotation_matrix[6] = value & 0xFFFF;
+            rotation_matrix[6] = Bit::unpack_first_int16_t(value);
+            rotation_matrix[7] = Bit::unpack_second_int16_t(value);
             break;
         case GTE_REG_RT33:
-            rotation_matrix[8] = value & 0xFFFF;
+            rotation_matrix[8] = Bit::unpack_first_int16_t(value);
             break;
         case GTE_REG_TRX:
             translation_vector[0] = value;
@@ -463,23 +452,23 @@ void GTE::set_control_register_from_uint32_t(uint8_t rt, uint32_t value) {
             translation_vector[2] = value;
             break;
         case GTE_REG_L11L12:
-            light_source_matrix[1] = value >> 16;
-            light_source_matrix[0] = value & 0xFFFF;
+            light_source_matrix[0] = Bit::unpack_first_int16_t(value);
+            light_source_matrix[1] = Bit::unpack_second_int16_t(value);
             break;
         case GTE_REG_L13L21:
-            light_source_matrix[3] = value >> 16;
-            light_source_matrix[2] = value & 0xFFFF;
+            light_source_matrix[2] = Bit::unpack_first_int16_t(value);
+            light_source_matrix[3] = Bit::unpack_second_int16_t(value);
             break;
         case GTE_REG_L22L23:
-            light_source_matrix[5] = value >> 16;
-            light_source_matrix[4] = value & 0xFFFF;
+            light_source_matrix[4] = Bit::unpack_first_int16_t(value);
+            light_source_matrix[5] = Bit::unpack_second_int16_t(value);
             break;
         case GTE_REG_L31L32:
-            light_source_matrix[7] = value >> 16;
-            light_source_matrix[6] = value & 0xFFFF;
+            light_source_matrix[6] = Bit::unpack_first_int16_t(value);
+            light_source_matrix[7] = Bit::unpack_second_int16_t(value);
             break;
         case GTE_REG_L33:
-            light_source_matrix[8] = value & 0xFFFF;
+            light_source_matrix[8] = Bit::unpack_first_int16_t(value);
             break;
         case GTE_REG_RBK:
             background_color[0] = value;
@@ -491,23 +480,23 @@ void GTE::set_control_register_from_uint32_t(uint8_t rt, uint32_t value) {
             background_color[2] = value;
             break;
         case GTE_REG_LR1LR2:
-            light_color_matrix_source[1] = value >> 16;
-            light_color_matrix_source[0] = value & 0xFFFF;
+            light_color_matrix_source[0] = Bit::unpack_first_int16_t(value);
+            light_color_matrix_source[1] = Bit::unpack_second_int16_t(value);
             break;
         case GTE_REG_LR3LG1:
-            light_color_matrix_source[3] = value >> 16;
-            light_color_matrix_source[2] = value & 0xFFFF;
+            light_color_matrix_source[2] = Bit::unpack_first_int16_t(value);
+            light_color_matrix_source[3] = Bit::unpack_second_int16_t(value);
             break;
         case GTE_REG_LG2LG3:
-            light_color_matrix_source[5] = value >> 16;
-            light_color_matrix_source[4] = value & 0xFFFF;
+            light_color_matrix_source[4] = Bit::unpack_first_int16_t(value);
+            light_color_matrix_source[5] = Bit::unpack_second_int16_t(value);
             break;
         case GTE_REG_LB1LB2:
-            light_color_matrix_source[7] = value >> 16;
-            light_color_matrix_source[6] = value & 0xFFFF;
+            light_color_matrix_source[6] = Bit::unpack_first_int16_t(value);
+            light_color_matrix_source[7] = Bit::unpack_second_int16_t(value);
             break;
         case GTE_REG_LB3:
-            light_color_matrix_source[8] = value & 0xFFFF;
+            light_color_matrix_source[8] = Bit::unpack_first_int16_t(value);
             break;
         case GTE_REG_RFC:
             far_color[0] = value;
@@ -595,43 +584,45 @@ uint8_t GTE::convert_16bit_to_5bit_color(int32_t color) {
 
 void GTE::set_ir1(int32_t value) {
     int32_t clamped = clamp_to_16bit(value, lm);
-    ir1 = clamped;
     if (clamped != value) {
         set_flag(GTE_FLAGS_IR1);
     }
-
-    uint8_t r = convert_16bit_to_5bit_color(clamped);
-    input_rgb = (input_rgb & 0xFFFFFFE0) & r;
-    output_rgb = input_rgb;
+    set_ir1_without_clamping(clamped);
 }
 
 void GTE::set_ir2(int32_t value) {
     int32_t clamped = clamp_to_16bit(value, lm);
-    ir2 = clamped;
     if (clamped != value) {
         set_flag(GTE_FLAGS_IR2);
     }
-
-    uint8_t g = convert_16bit_to_5bit_color(clamped);
-    input_rgb = (input_rgb & 0xFFFFFC1F) & (g << 5);
-    output_rgb = input_rgb;
+    set_ir2_without_clamping(clamped);
 }
 
 void GTE::set_ir3(int32_t value) {
     int32_t clamped = clamp_to_16bit(value, lm);
-    ir3 = clamped;
     if (clamped != value) {
         set_flag(GTE_FLAGS_IR3);
     }
+    set_ir3_without_clamping(clamped);
+}
 
-    uint8_t b = convert_16bit_to_5bit_color(clamped);
-    input_rgb = (input_rgb & 0xFFFF83FF) & (b << 10);
-    output_rgb = input_rgb;
+void GTE::set_ir1_without_clamping(int16_t value) {
+    ir1 = value;
+    rgb = (rgb & 0xFFFFFFE0) | convert_16bit_to_5bit_color(value);
+}
+
+void GTE::set_ir2_without_clamping(int16_t value) {
+    ir2 = value;
+    rgb = (rgb & 0xFFFFFC1F) | (convert_16bit_to_5bit_color(value) << 5);
+}
+
+void GTE::set_ir3_without_clamping(int16_t value) {
+    ir3 = value;
+    rgb = (rgb & 0xFFFF83FF) | (convert_16bit_to_5bit_color(value) << 10);
 }
 
 void GTE::set_irgb(uint32_t value) {
-    input_rgb = value & 0x00007FFF;
-    output_rgb = input_rgb;
+    rgb = value & 0x00007FFF;
 
     uint8_t r = Bit::getBits<5>(value, 0);
     uint8_t g = Bit::getBits<5>(value, 5);
