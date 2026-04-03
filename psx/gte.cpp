@@ -1055,8 +1055,7 @@ void GTE::AVSZ4() {
 }
 
 void GTE::SQR() {
-    LOG_GTE(std::format("GTE_SQR"));
-    LOG_GTE(std::format("ir1 = 0x{:04X}, ir2 = 0x{:04X}, ir3 = 0x{:04X}, sf = {:s}", get_ir1(), get_ir2(), get_ir3(), sf));
+    LOGT_GTE(std::format("GTE_SQR"));
 
     set_mac1((get_ir1() * get_ir1()) >> (sf * 12));
     set_mac2((get_ir2() * get_ir2()) >> (sf * 12));
@@ -1065,9 +1064,6 @@ void GTE::SQR() {
     set_ir1(get_mac1());
     set_ir2(get_mac2());
     set_ir3(get_mac3());
-
-    LOG_GTE(std::format("mac1 = 0x{:011X}, mac2 = 0x{:011X}, mac3 = 0x{:011X}", get_mac1(), get_mac2(), get_mac3()));
-    LOG_GTE(std::format("ir1 = 0x{:04X}, ir2 = 0x{:04X}, ir3 = 0x{:04X}", get_ir1(), get_ir2(), get_ir3()));
 }
 
 void GTE::OP() {
