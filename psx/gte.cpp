@@ -7,6 +7,9 @@
 
 #include "util/log.h"
 
+#define INT32(x) static_cast<int32_t>(x)
+#define INT64(x) static_cast<int64_t>(x)
+
 using namespace util;
 
 namespace PSX {
@@ -635,17 +638,19 @@ void GTE::set_irgb(uint32_t value) {
 }
 
 void GTE::set_mac0(int64_t value) {
-    mac0 = std::min(static_cast<int64_t>(0x7FFF'FFFF), value);
-    if (mac0 != value) {
+    int64_t clamped = std::min(static_cast<int64_t>(0x7FFF'FFFF), value);
+    if (clamped != value) {
         // positive 32bit overflow
         set_flag(GTE_FLAGS_MAC0_POS_OVERFLOW);
     }
-    int64_t temp = mac0;
-    mac0 = std::max(static_cast<int64_t>(-0x8000'0000), mac0);
-    if (mac0 != temp) {
+    int64_t temp = clamped;
+    clamped = std::max(-static_cast<int64_t>(0x8000'0000), clamped); // Minus has to be in front of the cast!
+    if (clamped != temp) {
         // negative 32bit overflow
         set_flag(GTE_FLAGS_MAC0_NEG_OVERFLOW);
     }
+    // MAC0 does not get clamped! Value is just used for checking overflow
+    mac0 = static_cast<int32_t>(value);
 }
 
 void GTE::set_mac1(int64_t value) {
@@ -760,7 +765,7 @@ void GTE::UNKCP2() {
 
 void GTE::NCLIP() {
     // Normal Clipping
-    LOG_GTE(std::format("NCLIP"));
+    LOGT_GTE(std::format("NCLIP"));
     set_mac0(get_sx0() * (get_sy1() - get_sy2()) + get_sx1() * (get_sy2() - get_sy0()) + get_sx2() * (get_sy0() - get_sy1()));
 }
 

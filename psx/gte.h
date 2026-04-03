@@ -110,7 +110,7 @@ private:
     uint16_t sz0, sz1, sz2, sz3;         // SZ0, SZ1, SZ2, SZ3
     uint32_t rgb0, rgb1, rgb2;           // RGB0, RGB1, RGB2
     uint32_t reserved;                   // RES1
-    int64_t mac0;                        // MAC0
+    int32_t mac0;                        // MAC0
     int64_t mac1, mac2, mac3;            // MAC1, MAC2, MAC3
     uint32_t rgb;                        // IRGB, ORGB
     uint32_t leading_zeros_count_source; // LZCS
