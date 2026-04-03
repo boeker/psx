@@ -262,7 +262,8 @@ void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
             rgbc = value;
             break;
         case GTE_REG_OTZ:
-            // Read-only
+            // Apparently not read-only?
+            ordering_table_z = value;
             break;
         case GTE_REG_IR0:
             ir0 = value;
