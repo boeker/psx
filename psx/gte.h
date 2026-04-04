@@ -173,6 +173,7 @@ public:
     static uint8_t convert_16bit_to_5bit_color(int32_t color);
     void push_sxy_queue();
     void push_sz_queue();
+    void push_color_queue();
     void set_sx2(int64_t value);
     void set_sy2(int64_t value);
     void set_ir0(int64_t value);
@@ -191,15 +192,20 @@ public:
     void set_mac2(int64_t value);
     void set_mac3(int64_t value);
 
-    int64_t get_vx0() const { return v0.x; };
-    int64_t get_vy0() const { return v0.y; };
-    int64_t get_vz0() const { return v0.z; };
-    int64_t get_vx1() const { return v1.x; };
-    int64_t get_vy1() const { return v1.y; };
-    int64_t get_vz1() const { return v1.z; };
-    int64_t get_vx2() const { return v2.x; };
-    int64_t get_vy2() const { return v2.y; };
-    int64_t get_vz2() const { return v2.z; };
+    int64_t get_vx0() const { return v0.x; }
+    int64_t get_vy0() const { return v0.y; }
+    int64_t get_vz0() const { return v0.z; }
+    int64_t get_vx1() const { return v1.x; }
+    int64_t get_vy1() const { return v1.y; }
+    int64_t get_vz1() const { return v1.z; }
+    int64_t get_vx2() const { return v2.x; }
+    int64_t get_vy2() const { return v2.y; }
+    int64_t get_vz2() const { return v2.z; }
+
+    int64_t get_r() const { return (rgbc >> 24) & 0xFF; }
+    int64_t get_g() const { return (rgbc >> 16) & 0xFF; }
+    int64_t get_b() const { return (rgbc >> 8) & 0xFF; }
+    int64_t get_c() const { return rgbc & 0xFF; }
 
     int64_t get_sx0() const;
     int64_t get_sy0() const;
@@ -212,6 +218,7 @@ public:
     int64_t get_sz2() const;
     int64_t get_sz3() const;
 
+    int64_t get_ir0() const { return ir0; }
     int64_t get_ir1() const;
     int64_t get_ir2() const;
     int64_t get_ir3() const;
@@ -221,18 +228,42 @@ public:
     int64_t get_mac2() const;
     int64_t get_mac3() const;
 
-    int64_t get_rt11() const { return rotation_matrix[0]; };
-    int64_t get_rt12() const { return rotation_matrix[1]; };
-    int64_t get_rt13() const { return rotation_matrix[2]; };
-    int64_t get_rt21() const { return rotation_matrix[3]; };
-    int64_t get_rt22() const { return rotation_matrix[4]; };
-    int64_t get_rt23() const { return rotation_matrix[5]; };
-    int64_t get_rt31() const { return rotation_matrix[6]; };
-    int64_t get_rt32() const { return rotation_matrix[7]; };
-    int64_t get_rt33() const { return rotation_matrix[8]; };
-    int64_t get_trx() const { return translation_vector[0]; };
-    int64_t get_try() const { return translation_vector[1]; };
-    int64_t get_trz() const { return translation_vector[2]; };
+    int64_t get_rt11() const { return rotation_matrix[0]; }
+    int64_t get_rt12() const { return rotation_matrix[1]; }
+    int64_t get_rt13() const { return rotation_matrix[2]; }
+    int64_t get_rt21() const { return rotation_matrix[3]; }
+    int64_t get_rt22() const { return rotation_matrix[4]; }
+    int64_t get_rt23() const { return rotation_matrix[5]; }
+    int64_t get_rt31() const { return rotation_matrix[6]; }
+    int64_t get_rt32() const { return rotation_matrix[7]; }
+    int64_t get_rt33() const { return rotation_matrix[8]; }
+    int64_t get_trx() const { return translation_vector[0]; }
+    int64_t get_try() const { return translation_vector[1]; }
+    int64_t get_trz() const { return translation_vector[2]; }
+    int64_t get_l11() const { return light_source_matrix[0]; }
+    int64_t get_l12() const { return light_source_matrix[1]; }
+    int64_t get_l13() const { return light_source_matrix[2]; }
+    int64_t get_l21() const { return light_source_matrix[3]; }
+    int64_t get_l22() const { return light_source_matrix[4]; }
+    int64_t get_l23() const { return light_source_matrix[5]; }
+    int64_t get_l31() const { return light_source_matrix[6]; }
+    int64_t get_l32() const { return light_source_matrix[7]; }
+    int64_t get_l33() const { return light_source_matrix[8]; }
+    int64_t get_rbk() const { return background_color[0]; }
+    int64_t get_gbk() const { return background_color[1]; }
+    int64_t get_bbk() const { return background_color[2]; }
+    int64_t get_lr1() const { return light_color_matrix_source[0]; }
+    int64_t get_lr2() const { return light_color_matrix_source[1]; }
+    int64_t get_lr3() const { return light_color_matrix_source[2]; }
+    int64_t get_lg1() const { return light_color_matrix_source[3]; }
+    int64_t get_lg2() const { return light_color_matrix_source[4]; }
+    int64_t get_lg3() const { return light_color_matrix_source[5]; }
+    int64_t get_lb1() const { return light_color_matrix_source[6]; }
+    int64_t get_lb2() const { return light_color_matrix_source[7]; }
+    int64_t get_lb3() const { return light_color_matrix_source[8]; }
+    int64_t get_rfc() const { return far_color[0]; }
+    int64_t get_gfc() const { return far_color[1]; }
+    int64_t get_bfc() const { return far_color[2]; }
     int64_t get_ofx() const { return screen_offset[0]; };
     int64_t get_ofy() const { return screen_offset[1]; };
     int64_t get_h() const;

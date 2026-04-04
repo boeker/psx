@@ -614,6 +614,11 @@ void GTE::push_sz_queue() {
     sz2 = sz3;
 }
 
+void GTE::push_color_queue() {
+    rgb0 = rgb1;
+    rgb1 = rgb2;
+}
+
 void GTE::set_sx2(int64_t value) {
     int64_t clamped = std::min(static_cast<int64_t>(0x03FF), value);
     clamped = std::max(-static_cast<int64_t>(0x0400), clamped); // Minus in front of static_cast
@@ -953,92 +958,40 @@ void GTE::RTPT() {
 
 void GTE::NCDS() {
     // Normal Color Depth Cue (Single vector)
-    // TODO Implement flags
-    // TODO Fix IR register values
     LOGT_GTE(std::format("NCDS"));
-    //uint8_t sf = 0x1 & (instruction >> 19);
 
-    //int16_t in_vx0 = getRegister(GTE_REG_VXY0) & 0xFFFF;
-    //int16_t in_vy0 = getRegister(GTE_REG_VXY0) >> 16;
-    //int16_t in_vz0 = getRegister(GTE_REG_VZ0) & 0xFFFF;
+    set_mac1((get_l11() * get_vx0() + get_l12() * get_vy0() + get_l13() * get_vz0()) >> (sf * 12));
+    set_mac2((get_l21() * get_vx0() + get_l22() * get_vy0() + get_l23() * get_vz0()) >> (sf * 12));
+    set_mac3((get_l31() * get_vx0() + get_l32() * get_vy0() + get_l33() * get_vz0()) >> (sf * 12));
+    set_ir1(get_mac1());
+    set_ir2(get_mac2());
+    set_ir3(get_mac3());
 
-    //int16_t in_l11 = getRegister(GTE_REG_L11L12) & 0xFFFF;
-    //int16_t in_l12 = getRegister(GTE_REG_L11L12) >> 16;
-    //int16_t in_l13 = getRegister(GTE_REG_L13L21) & 0xFFFF;
-    //int16_t in_l21 = getRegister(GTE_REG_L13L21) >> 16;
-    //int16_t in_l22 = getRegister(GTE_REG_L22L23) & 0xFFFF;
-    //int16_t in_l23 = getRegister(GTE_REG_L22L23) >> 16;
-    //int16_t in_l31 = getRegister(GTE_REG_L31L32) & 0xFFFF;
-    //int16_t in_l32 = getRegister(GTE_REG_L31L32) >> 16;
-    //int16_t in_l33 = getRegister(GTE_REG_L33) & 0xFFFF;
+    set_mac1((get_rbk() * 0x1000 + get_lr1() * get_ir1() + get_lr2() * get_ir2() + get_lr3() * get_ir3()) >> (sf * 12));
+    set_mac2((get_gbk() * 0x1000 + get_lg1() * get_ir1() + get_lg2() * get_ir2() + get_lg3() * get_ir3()) >> (sf * 12));
+    set_mac3((get_bbk() * 0x1000 + get_lb1() * get_ir1() + get_lb2() * get_ir2() + get_lb3() * get_ir3()) >> (sf * 12));
+    set_ir1(get_mac1());
+    set_ir2(get_mac2());
+    set_ir3(get_mac3());
 
-    //int16_t in_lr1 = getRegister(GTE_REG_LR1LR2) & 0xFFFF;
-    //int16_t in_lr2 = getRegister(GTE_REG_LR1LR2) >> 16;
-    //int16_t in_lr3 = getRegister(GTE_REG_LR3LG1) & 0xFFFF;
-    //int16_t in_lg1 = getRegister(GTE_REG_LR3LG1) >> 16;
-    //int16_t in_lg2 = getRegister(GTE_REG_LG2LG3) & 0xFFFF;
-    //int16_t in_lg3 = getRegister(GTE_REG_LG2LG3) >> 16;
-    //int16_t in_lb1 = getRegister(GTE_REG_LB1LB2) & 0xFFFF;
-    //int16_t in_lb2 = getRegister(GTE_REG_LB1LB2) >> 16;
-    //int16_t in_lb3 = getRegister(GTE_REG_LB3) & 0xFFFF;
+    set_mac1((get_r() * get_ir1()) << 4);
+    set_mac2((get_g() * get_ir2()) << 4);
+    set_mac3((get_b() * get_ir3()) << 4);
 
-    //int32_t in_rbk = getRegister(GTE_REG_RBK);
-    //int32_t in_gbk = getRegister(GTE_REG_GBK);
-    //int32_t in_bbk = getRegister(GTE_REG_BBK);
+    set_mac1(get_mac1() + (get_rfc() - get_mac1()) * get_ir0());
+    set_mac2(get_mac2() + (get_gfc() - get_mac2()) * get_ir0());
+    set_mac3(get_mac3() + (get_bfc() - get_mac3()) * get_ir0());
 
-    //int32_t in_rfc = getRegister(GTE_REG_RFC);
-    //int32_t in_gfc = getRegister(GTE_REG_GFC);
-    //int32_t in_bfc = getRegister(GTE_REG_BFC);
+    set_mac1(get_mac1() >> (sf * 12));
+    set_mac2(get_mac2() >> (sf * 12));
+    set_mac3(get_mac3() >> (sf * 12));
 
-    //uint8_t in_r = getRegister(GTE_REG_RGBC) >> 24;
-    //uint8_t in_g = (getRegister(GTE_REG_RGBC) >> 16) & 0xFF;
-    //uint8_t in_b = (getRegister(GTE_REG_RGBC) >> 8) & 0xFF;
-    //uint8_t in_c = getRegister(GTE_REG_RGBC) & 0xFF;
+    push_color_queue();
+    rgb2 = (((get_mac1() / 16) & 0xFF) << 24) | (((get_mac2() / 16) & 0xFF) << 16) | (((get_mac3() / 16) & 0xFF) << 8) | (get_c() & 0xFF);
 
-    //int16_t in_ir0 = getRegister(GTE_REG_IR0);
-
-    //int32_t temp_mac1 = (in_l11 * in_vx0 + in_l12 * in_vy0 + in_l13 * in_vz0) >> (sf * 12);
-    //int16_t temp_ir1 = temp_mac1;
-    //int32_t temp_mac2 = (in_l21 * in_vx0 + in_l22 * in_vy0 + in_l23 * in_vz0) >> (sf * 12);
-    //int16_t temp_ir2 = temp_mac2;
-    //int32_t temp_mac3 = (in_l31 * in_vx0 + in_l32 * in_vy0 + in_l33 * in_vz0) >> (sf * 12);
-    //int16_t temp_ir3 = temp_mac3;
-
-    //temp_mac1 = (in_rbk * 0x1000 + in_lr1 * temp_ir1 + in_lr2 * temp_ir2 + in_lr3 * temp_ir3) >> (sf * 12);
-    //temp_ir1 = temp_mac1;
-    //temp_mac2 = (in_gbk * 0x1000 + in_lg1 * temp_ir1 + in_lg2 * temp_ir2 + in_lg3 * temp_ir3) >> (sf * 12);
-    //temp_ir2 = temp_mac2;
-    //temp_mac3 = (in_bbk * 0x1000 + in_lb1 * temp_ir1 + in_lb2 * temp_ir2 + in_lb3 * temp_ir3) >> (sf * 12);
-    //temp_ir3 = temp_mac3;
-
-    //temp_mac1 = (in_r * temp_ir1) << 4;
-    //temp_mac2 = (in_g * temp_ir1) << 4;
-    //temp_mac3 = (in_b * temp_ir1) << 4;
-
-    //temp_mac1 =  temp_mac1 + (in_rfc - temp_mac1) * in_ir0;
-    //temp_mac2 =  temp_mac2 + (in_gfc - temp_mac2) * in_ir0;
-    //temp_mac3 =  temp_mac3 + (in_bfc - temp_mac3) * in_ir0;
-
-    //temp_mac1 =  temp_mac1 >> (sf * 12);
-    //temp_mac2 =  temp_mac2 >> (sf * 12);
-    //temp_mac3 =  temp_mac3 >> (sf * 12);
-
-    //uint8_t temp_rgb2 =  ((temp_mac1 / 16) << 24) | ((temp_mac2 / 16) << 16) | ((temp_mac3 / 16) << 8) | in_c;
-
-    //temp_ir1 = temp_mac1;
-    //temp_ir2 = temp_mac2;
-    //temp_ir3 = temp_mac3;
-
-    //setRegister(GTE_REG_MAC1, temp_mac1);
-    //setRegister(GTE_REG_MAC2, temp_mac2);
-    //setRegister(GTE_REG_MAC3, temp_mac3);
-    //setRegister(GTE_REG_IR1, temp_ir1);
-    //setRegister(GTE_REG_IR2, temp_ir2);
-    //setRegister(GTE_REG_IR3, temp_ir3);
-
-    //setRegister(GTE_REG_RGB0, getRegister(GTE_REG_RGB1));
-    //setRegister(GTE_REG_RGB1, getRegister(GTE_REG_RGB2));
-    //setRegister(GTE_REG_RGB2, temp_rgb2);
+    set_ir1(get_mac1());
+    set_ir2(get_mac2());
+    set_ir3(get_mac3());
 }
 
 void GTE::AVSZ3() {
