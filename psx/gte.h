@@ -236,6 +236,8 @@ public:
     int64_t get_ofx() const { return screen_offset[0]; };
     int64_t get_ofy() const { return screen_offset[1]; };
     int64_t get_h() const;
+    int64_t get_dqa() const { return depth_cueing_coefficient; }
+    int64_t get_dqb() const { return depth_cueing_offset; }
     int64_t get_zsf3() const;
 
     typedef void (GTE::*Opcode) ();
