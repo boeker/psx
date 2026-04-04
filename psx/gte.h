@@ -18,8 +18,13 @@ namespace PSX {
 #define GTE_FLAGS_IR1 24
 #define GTE_FLAGS_IR2 23
 #define GTE_FLAGS_IR3 22
+#define GTE_FLAGS_SZ3_OTZ_CLAMPED 18
+#define GTE_FLAGS_RTP_DIVISION_CLAMPED 17
 #define GTE_FLAGS_MAC0_POS_OVERFLOW 16
 #define GTE_FLAGS_MAC0_NEG_OVERFLOW 15
+#define GTE_FLAGS_SX2_CLAMPED 14
+#define GTE_FLAGS_SY2_CLAMPED 13
+#define GTE_FLAGS_IR0_CLAMPED 12
 
 #define GTE_INST_SF 19 // Shift 12 bit fraction in IR registers
 #define GTE_INST_LM 10 // Clamp IR1, IR2, and IR3 result to -0x8000/0x0000...0x7FFF
@@ -97,6 +102,8 @@ namespace PSX {
 
 class GTE {
 private:
+    uint16_t unr_table[0x101];
+    uint32_t unr_division(uint16_t h, uint16_t sz3);
 
     // Registers
     util::Bit::int16_t_triple v0;        // VXY0, VZ0
@@ -164,6 +171,9 @@ public:
     // Getters and setters for internal use
     static int32_t clamp_to_16bit(int32_t value, bool lm);
     static uint8_t convert_16bit_to_5bit_color(int32_t color);
+    void set_sx2(int64_t value);
+    void set_sy2(int64_t value);
+    void set_ir0(int64_t value);
     void set_ir1(int32_t value);
     void set_ir2(int32_t value);
     void set_ir3(int32_t value);
@@ -172,17 +182,33 @@ public:
     void set_ir3_without_clamping(int16_t value);
     void set_irgb(uint32_t value);
 
+    void set_otz(int64_t value);
+    void set_sz3(int64_t value);
     void set_mac0(int64_t value);
     void set_mac1(int64_t value);
     void set_mac2(int64_t value);
     void set_mac3(int64_t value);
 
+    int64_t get_vx0() const { return v0.x; };
+    int64_t get_vy0() const { return v0.y; };
+    int64_t get_vz0() const { return v0.z; };
+    int64_t get_vx1() const { return v1.x; };
+    int64_t get_vy1() const { return v1.y; };
+    int64_t get_vz1() const { return v1.z; };
+    int64_t get_vx2() const { return v2.x; };
+    int64_t get_vy2() const { return v2.y; };
+    int64_t get_vz2() const { return v2.z; };
+
     int64_t get_sx0() const;
     int64_t get_sy0() const;
+    int64_t get_sz0() const;
     int64_t get_sx1() const;
     int64_t get_sy1() const;
+    int64_t get_sz1() const;
     int64_t get_sx2() const;
     int64_t get_sy2() const;
+    int64_t get_sz2() const;
+    int64_t get_sz3() const;
 
     int64_t get_ir1() const;
     int64_t get_ir2() const;
@@ -192,6 +218,23 @@ public:
     int64_t get_mac1() const;
     int64_t get_mac2() const;
     int64_t get_mac3() const;
+
+    int64_t get_rt11() const { return rotation_matrix[0]; };
+    int64_t get_rt12() const { return rotation_matrix[1]; };
+    int64_t get_rt13() const { return rotation_matrix[2]; };
+    int64_t get_rt21() const { return rotation_matrix[3]; };
+    int64_t get_rt22() const { return rotation_matrix[4]; };
+    int64_t get_rt23() const { return rotation_matrix[5]; };
+    int64_t get_rt31() const { return rotation_matrix[6]; };
+    int64_t get_rt32() const { return rotation_matrix[7]; };
+    int64_t get_rt33() const { return rotation_matrix[8]; };
+    int64_t get_trx() const { return translation_vector[0]; };
+    int64_t get_try() const { return translation_vector[1]; };
+    int64_t get_trz() const { return translation_vector[2]; };
+    int64_t get_ofx() const { return screen_offset[0]; };
+    int64_t get_ofy() const { return screen_offset[1]; };
+    int64_t get_h() const;
+    int64_t get_zsf3() const;
 
     typedef void (GTE::*Opcode) ();
     static const Opcode cp2[];
