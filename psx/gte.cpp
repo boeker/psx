@@ -309,8 +309,7 @@ void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
             break;
         case GTE_REG_SXYP:
             // Writes to SXY2 and moves the whole queue down
-            sxy0 = sxy1;
-            sxy1 = sxy2;
+            push_sxy_queue();
             sxy2.unpack(value);
             break;
         case GTE_REG_SZ0:
@@ -604,6 +603,17 @@ uint8_t GTE::convert_16bit_to_5bit_color(int32_t color) {
     return color;
 }
 
+void GTE::push_sxy_queue() {
+    sxy0 = sxy1;
+    sxy1 = sxy2;
+}
+
+void GTE::push_sz_queue() {
+    sz0 = sz1;
+    sz1 = sz2;
+    sz2 = sz3;
+}
+
 void GTE::set_sx2(int64_t value) {
     int64_t clamped = std::min(static_cast<int64_t>(0x03FF), value);
     clamped = std::max(-static_cast<int64_t>(0x0400), clamped); // Minus in front of static_cast
@@ -868,10 +878,12 @@ void GTE::RTPS() {
     set_ir2(get_mac2());
     set_ir3(get_mac3());
 
+    push_sz_queue();
     set_sz3(get_mac3() >> ((1-sf) * 12));
 
     int64_t division = static_cast<int64_t>(unr_division(projection_plane_distance, sz3));
     set_mac0(division * get_ir1() + get_ofx());
+    push_sxy_queue();
     set_sx2(get_mac0() / 0x10000);
 
     set_mac0(division * get_ir2() + get_ofy());

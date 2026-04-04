@@ -171,6 +171,8 @@ public:
     // Getters and setters for internal use
     static int32_t clamp_to_16bit(int32_t value, bool lm);
     static uint8_t convert_16bit_to_5bit_color(int32_t color);
+    void push_sxy_queue();
+    void push_sz_queue();
     void set_sx2(int64_t value);
     void set_sy2(int64_t value);
     void set_ir0(int64_t value);
