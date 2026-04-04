@@ -1077,19 +1077,9 @@ void GTE::NCDS() {
 void GTE::AVSZ3() {
     // Average of three Z values
     LOGT_GTE(std::format("AVSZ3"));
-    //uint8_t sf = 0x1 & (instruction >> 19);
 
-    //uint16_t in_sz1 = getRegister(GTE_REG_SZ1);
-    //uint16_t in_sz2 = getRegister(GTE_REG_SZ2);
-    //uint16_t in_sz3 = getRegister(GTE_REG_SZ3);
-
-    //int16_t in_zsf3 = getRegister(GTE_REG_ZSF3) & 0xFFFF;
-
-    //int32_t temp_mac0 = in_zsf3 * (in_sz1 + in_sz2 + in_sz3);
-    //uint16_t temp_otz = temp_mac0 / 0x1000;
-
-    //setRegister(GTE_REG_MAC0, temp_mac0);
-    //setRegister(GTE_REG_OTZ, temp_otz);
+    set_mac0(get_zsf3() * (get_sz1() + get_sz2() + get_sz3()));
+    set_otz(get_mac0() / 0x1000);
 }
 
 void GTE::NCDT() {
