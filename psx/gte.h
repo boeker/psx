@@ -174,6 +174,7 @@ public:
     void push_sxy_queue();
     void push_sz_queue();
     void push_color_queue();
+
     void set_sx2(int64_t value);
     void set_sy2(int64_t value);
     void set_ir0(int64_t value);
@@ -187,6 +188,7 @@ public:
 
     void set_otz(int64_t value);
     void set_sz3(int64_t value);
+
     void set_mac0(int64_t value);
     void set_mac1(int64_t value);
     void set_mac2(int64_t value);
@@ -207,26 +209,26 @@ public:
     int64_t get_b() const { return (rgbc >> 8) & 0xFF; }
     int64_t get_c() const { return rgbc & 0xFF; }
 
-    int64_t get_sx0() const;
-    int64_t get_sy0() const;
-    int64_t get_sz0() const;
-    int64_t get_sx1() const;
-    int64_t get_sy1() const;
-    int64_t get_sz1() const;
-    int64_t get_sx2() const;
-    int64_t get_sy2() const;
-    int64_t get_sz2() const;
-    int64_t get_sz3() const;
+    int64_t get_sx0() const { return sxy0.x; }
+    int64_t get_sy0() const { return sxy0.y; }
+    int64_t get_sz0() const { return sz0; }
+    int64_t get_sx1() const { return sxy1.x; }
+    int64_t get_sy1() const { return sxy1.y; }
+    int64_t get_sz1() const { return sz1; }
+    int64_t get_sx2() const { return sxy2.x; }
+    int64_t get_sy2() const { return sxy2.y; }
+    int64_t get_sz2() const { return sz2; }
+    int64_t get_sz3() const { return sz3; }
 
     int64_t get_ir0() const { return ir0; }
-    int64_t get_ir1() const;
-    int64_t get_ir2() const;
-    int64_t get_ir3() const;
+    int64_t get_ir1() const { return ir1; }
+    int64_t get_ir2() const { return ir2; }
+    int64_t get_ir3() const { return ir3; }
 
-    int64_t get_mac0() const;
-    int64_t get_mac1() const;
-    int64_t get_mac2() const;
-    int64_t get_mac3() const;
+    int64_t get_mac0() const { return mac0; }
+    int64_t get_mac1() const { return mac1; }
+    int64_t get_mac2() const { return mac2; }
+    int64_t get_mac3() const { return mac3; }
 
     int64_t get_rt11() const { return rotation_matrix[0]; }
     int64_t get_rt12() const { return rotation_matrix[1]; }
@@ -237,9 +239,11 @@ public:
     int64_t get_rt31() const { return rotation_matrix[6]; }
     int64_t get_rt32() const { return rotation_matrix[7]; }
     int64_t get_rt33() const { return rotation_matrix[8]; }
+
     int64_t get_trx() const { return translation_vector[0]; }
     int64_t get_try() const { return translation_vector[1]; }
     int64_t get_trz() const { return translation_vector[2]; }
+
     int64_t get_l11() const { return light_source_matrix[0]; }
     int64_t get_l12() const { return light_source_matrix[1]; }
     int64_t get_l13() const { return light_source_matrix[2]; }
@@ -249,9 +253,11 @@ public:
     int64_t get_l31() const { return light_source_matrix[6]; }
     int64_t get_l32() const { return light_source_matrix[7]; }
     int64_t get_l33() const { return light_source_matrix[8]; }
+
     int64_t get_rbk() const { return background_color[0]; }
     int64_t get_gbk() const { return background_color[1]; }
     int64_t get_bbk() const { return background_color[2]; }
+
     int64_t get_lr1() const { return light_color_matrix_source[0]; }
     int64_t get_lr2() const { return light_color_matrix_source[1]; }
     int64_t get_lr3() const { return light_color_matrix_source[2]; }
@@ -261,42 +267,45 @@ public:
     int64_t get_lb1() const { return light_color_matrix_source[6]; }
     int64_t get_lb2() const { return light_color_matrix_source[7]; }
     int64_t get_lb3() const { return light_color_matrix_source[8]; }
+
     int64_t get_rfc() const { return far_color[0]; }
     int64_t get_gfc() const { return far_color[1]; }
     int64_t get_bfc() const { return far_color[2]; }
-    int64_t get_ofx() const { return screen_offset[0]; };
-    int64_t get_ofy() const { return screen_offset[1]; };
-    int64_t get_h() const;
+
+    int64_t get_ofx() const { return screen_offset[0]; }
+    int64_t get_ofy() const { return screen_offset[1]; }
+
+    int64_t get_h() const { return projection_plane_distance; }
     int64_t get_dqa() const { return depth_cueing_coefficient; }
     int64_t get_dqb() const { return depth_cueing_offset; }
-    int64_t get_zsf3() const;
+    int64_t get_zsf3() const { return average_z_scale_factors[0]; }
 
     typedef void (GTE::*Opcode) ();
     static const Opcode cp2[];
     void execute(uint32_t instruction);
     void UNKCP2();
-    void NCLIP();
     void RTPS();
     void RTPT();
-    void NCDS();
-    void AVSZ3();
-    void NCDT();
-    void AVSZ4();
-    void SQR();
-    void OP();
-    void GPF();
-    void GPL();
-    void NCCS();
-    void NCCT();
-    void NCS();
-    void NCT();
-    void CC();
+    void MVMVA();
+    void DCPL();
     void DPCS();
     void DPCT();
     void INTPL();
+    void SQR();
+    void NCS();
+    void NCT();
+    void NCDS();
+    void NCDT();
+    void NCCS();
+    void NCCT();
     void CDP();
-    void DCPL();
-    void MVMVA();
+    void CC();
+    void NCLIP();
+    void AVSZ3();
+    void AVSZ4();
+    void OP();
+    void GPF();
+    void GPL();
     void UNOFF();
 };
 

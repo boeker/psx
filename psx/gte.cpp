@@ -773,82 +773,6 @@ void GTE::set_mac3(int64_t value) {
     }
 }
 
-int64_t GTE::get_sx0() const {
-    return sxy0.x;
-}
-
-int64_t GTE::get_sy0() const {
-    return sxy0.y;
-}
-
-int64_t GTE::get_sz0() const {
-    return sz0;
-}
-
-int64_t GTE::get_sx1() const {
-    return sxy1.x;
-}
-
-int64_t GTE::get_sy1() const {
-    return sxy1.y;
-}
-
-int64_t GTE::get_sz1() const {
-    return sz1;
-}
-
-int64_t GTE::get_sx2() const {
-    return sxy2.x;
-}
-
-int64_t GTE::get_sy2() const {
-    return sxy2.y;
-}
-
-int64_t GTE::get_sz2() const {
-    return sz2;
-}
-
-int64_t GTE::get_sz3() const {
-    return sz3;
-}
-
-int64_t GTE::get_ir1() const {
-    return ir1;
-}
-
-int64_t GTE::get_ir2() const {
-    return ir2;
-}
-
-int64_t GTE::get_ir3() const {
-    return ir3;
-}
-
-int64_t GTE::get_mac0() const {
-    return mac0;
-}
-
-int64_t GTE::get_mac1() const {
-    return mac1;
-}
-
-int64_t GTE::get_mac2() const {
-    return mac2;
-}
-
-int64_t GTE::get_mac3() const {
-    return mac3;
-}
-
-int64_t GTE::get_h() const {
-    return projection_plane_distance;
-}
-
-int64_t GTE::get_zsf3() const {
-    return average_z_scale_factors[0];
-}
-
 void GTE::execute(uint32_t instruction) {
     // Operation depends on function field
     this->instruction = instruction;
@@ -863,12 +787,6 @@ void GTE::execute(uint32_t instruction) {
 void GTE::UNKCP2() {
     // Currently not used
     //throw exceptions::UnknownFunctionError(std::format("Unknown CP2 opcode @0x{:x}: instruction 0x{:x} = 0b{:032b} (CP2), function 0b{:06b}", instructionPC, instruction, instruction, funct));
-}
-
-void GTE::NCLIP() {
-    // Normal Clipping
-    LOGT_GTE(std::format("NCLIP"));
-    set_mac0(get_sx0() * (get_sy1() - get_sy2()) + get_sx1() * (get_sy2() - get_sy0()) + get_sx2() * (get_sy0() - get_sy1()));
 }
 
 void GTE::RTPS() {
@@ -956,6 +874,54 @@ void GTE::RTPT() {
     set_ir0(get_mac0() / 0x1000);
 }
 
+void GTE::MVMVA() {
+    LOG_GTE(std::format("Unimplemented command: MVMVA"));
+    //TODO
+}
+
+void GTE::DCPL() {
+    LOG_GTE(std::format("Unimplemented command: DCPL"));
+    //TODO
+}
+
+void GTE::DPCS() {
+    LOG_GTE(std::format("Unimplemented command: DPCS"));
+    //TODO
+}
+
+void GTE::DPCT() {
+    LOG_GTE(std::format("Unimplemented command: DPCT"));
+    //TODO
+}
+
+void GTE::INTPL() {
+    LOG_GTE(std::format("Unimplemented command: INTPL"));
+    //TODO
+}
+
+void GTE::SQR() {
+    LOGT_GTE(std::format("GTE_SQR"));
+
+    set_mac1((get_ir1() * get_ir1()) >> (sf * 12));
+    set_mac2((get_ir2() * get_ir2()) >> (sf * 12));
+    set_mac3((get_ir3() * get_ir3()) >> (sf * 12));
+
+    set_ir1(get_mac1());
+    set_ir2(get_mac2());
+    set_ir3(get_mac3());
+}
+
+
+void GTE::NCS() {
+    LOG_GTE(std::format("Unimplemented command: NCS"));
+    //TODO
+}
+
+void GTE::NCT() {
+    LOG_GTE(std::format("Unimplemented command: NCT"));
+    //TODO
+}
+
 void GTE::NCDS() {
     // Normal Color Depth Cue (Single vector)
     LOGT_GTE(std::format("NCDS"));
@@ -994,6 +960,37 @@ void GTE::NCDS() {
     set_ir3(get_mac3());
 }
 
+void GTE::NCDT() {
+    LOG_GTE(std::format("Unimplemented command: NCDT"));
+    //TODO
+}
+
+void GTE::NCCS() {
+    LOG_GTE(std::format("Unimplemented command: NCCS"));
+    //TODO
+}
+
+void GTE::NCCT() {
+    LOG_GTE(std::format("Unimplemented command: NCCT"));
+    //TODO
+}
+
+void GTE::CDP() {
+    LOG_GTE(std::format("Unimplemented command: CDP"));
+    //TODO
+}
+
+void GTE::CC() {
+    LOG_GTE(std::format("Unimplemented command: CC"));
+    //TODO
+}
+
+void GTE::NCLIP() {
+    // Normal Clipping
+    LOGT_GTE(std::format("NCLIP"));
+    set_mac0(get_sx0() * (get_sy1() - get_sy2()) + get_sx1() * (get_sy2() - get_sy0()) + get_sx2() * (get_sy0() - get_sy1()));
+}
+
 void GTE::AVSZ3() {
     // Average of three Z values
     LOGT_GTE(std::format("AVSZ3"));
@@ -1002,100 +999,28 @@ void GTE::AVSZ3() {
     set_otz(get_mac0() / 0x1000);
 }
 
-void GTE::NCDT() {
-    LOGT_GTE(std::format("GTE_NCDT"));
-    //TODO
-}
-
 void GTE::AVSZ4() {
-    LOGT_GTE(std::format("GTE_AVSZ4"));
+    LOG_GTE(std::format("Unimplemented command: AVSZ4"));
     //TODO
-}
-
-void GTE::SQR() {
-    LOGT_GTE(std::format("GTE_SQR"));
-
-    set_mac1((get_ir1() * get_ir1()) >> (sf * 12));
-    set_mac2((get_ir2() * get_ir2()) >> (sf * 12));
-    set_mac3((get_ir3() * get_ir3()) >> (sf * 12));
-
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
 }
 
 void GTE::OP() {
-    LOGT_GTE(std::format("GTE_OP"));
+    LOG_GTE(std::format("Unimplemented command: OP"));
     //TODO
 }
 
 void GTE::GPF() {
-    LOGT_GTE(std::format("GTE_GPF"));
+    LOG_GTE(std::format("Unimplemented command: GPF"));
     //TODO
 }
 
 void GTE::GPL() {
-    LOGT_GTE(std::format("GTE_GPL"));
-    //TODO
-}
-
-void GTE::NCCS() {
-    LOGT_GTE(std::format("GTE_NCCS"));
-    //TODO
-}
-
-void GTE::NCCT() {
-    LOGT_GTE(std::format("GTE_NCCT"));
-    //TODO
-}
-
-void GTE::NCS() {
-    LOGT_GTE(std::format("GTE_NCS"));
-    //TODO
-}
-
-void GTE::NCT() {
-    LOGT_GTE(std::format("GTE_NCT"));
-    //TODO
-}
-
-void GTE::CC() {
-    LOGT_GTE(std::format("GTE_CC"));
-    //TODO
-}
-
-void GTE::DPCS() {
-    LOGT_GTE(std::format("GTE_DPCS"));
-    //TODO
-}
-
-void GTE::DPCT() {
-    LOGT_GTE(std::format("GTE_DPCT"));
-    //TODO
-}
-
-void GTE::INTPL() {
-    LOGT_GTE(std::format("GTE_INTPL"));
-    //TODO
-}
-
-void GTE::CDP() {
-    LOGT_GTE(std::format("GTE_CDP"));
-    //TODO
-}
-
-void GTE::DCPL() {
-    LOGT_GTE(std::format("GTE_DCPL"));
-    //TODO
-}
-
-void GTE::MVMVA() {
-    LOGT_GTE(std::format("GTE_MVMVA"));
+    LOG_GTE(std::format("Unimplemented command: GPL"));
     //TODO
 }
 
 void GTE::UNOFF() {
-    LOGT_GTE(std::format("GTE_UNOFF"));
+    LOG_GTE(std::format("Unimplemented command: UNOFF"));
     //TODO
 }
 
