@@ -18,6 +18,9 @@ namespace PSX {
 #define GTE_FLAGS_IR1 24
 #define GTE_FLAGS_IR2 23
 #define GTE_FLAGS_IR3 22
+#define GTE_FLAGS_COLOR_QUEUE_R_CLAMPED 21
+#define GTE_FLAGS_COLOR_QUEUE_G_CLAMPED 20
+#define GTE_FLAGS_COLOR_QUEUE_B_CLAMPED 19
 #define GTE_FLAGS_SZ3_OTZ_CLAMPED 18
 #define GTE_FLAGS_RTP_DIVISION_CLAMPED 17
 #define GTE_FLAGS_MAC0_POS_OVERFLOW 16
@@ -174,7 +177,8 @@ private:
     uint32_t get_control_register_as_uint32_t(uint8_t rt);
     void set_control_register_from_uint32_t(uint8_t rt, uint32_t value);
 
-    static int32_t clamp_to_16bit(int32_t value, bool lm);
+    static uint8_t clamp_to_u8bit(int64_t value);
+    static int64_t clamp_to_16bit(int64_t value, bool lm);
     static uint8_t convert_16bit_to_5bit_color(int32_t color);
     void push_sxy_queue();
     void push_sz_queue();
@@ -186,12 +190,12 @@ private:
     void set_sx2(int64_t value);
     void set_sy2(int64_t value);
     void set_ir0(int64_t value);
-    void set_ir1(int32_t value);
-    void set_ir2(int32_t value);
-    void set_ir3(int32_t value);
-    void set_ir1_without_clamping(int16_t value);
-    void set_ir2_without_clamping(int16_t value);
-    void set_ir3_without_clamping(int16_t value);
+    void set_ir1(int64_t value);
+    void set_ir2(int64_t value);
+    void set_ir3(int64_t value);
+    void set_ir1_without_clamping(int64_t value);
+    void set_ir2_without_clamping(int64_t value);
+    void set_ir3_without_clamping(int64_t value);
     void set_irgb(uint32_t value);
 
     void set_otz(int64_t value);
@@ -201,6 +205,11 @@ private:
     void set_mac1(int64_t value);
     void set_mac2(int64_t value);
     void set_mac3(int64_t value);
+
+    void set_r2(int64_t value);
+    void set_g2(int64_t value);
+    void set_b2(int64_t value);
+    void set_c2(int64_t value);
 
     /*
      * Getters for internal use
@@ -215,10 +224,10 @@ private:
     int64_t get_vy2() const { return v2.y; }
     int64_t get_vz2() const { return v2.z; }
 
-    int64_t get_r() const { return (rgbc >> 24) & 0xFF; }
-    int64_t get_g() const { return (rgbc >> 16) & 0xFF; }
-    int64_t get_b() const { return (rgbc >> 8) & 0xFF; }
-    int64_t get_c() const { return rgbc & 0xFF; }
+    int64_t get_r() const { return rgbc & 0xFF; }
+    int64_t get_g() const { return (rgbc >> 8) & 0xFF; }
+    int64_t get_b() const { return (rgbc >> 16) & 0xFF; }
+    int64_t get_c() const { return (rgbc >> 24) & 0xFF; }
 
     int64_t get_sx0() const { return sxy0.x; }
     int64_t get_sy0() const { return sxy0.y; }
