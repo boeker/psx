@@ -714,7 +714,7 @@ void GTE::set_otz(int64_t value) {
     if (clamped != value) {
         set_flag(GTE_FLAGS_SZ3_OTZ_CLAMPED);
     }
-    otz = static_cast<int32_t>(clamped);
+    otz = clamped;
 }
 
 void GTE::set_sz3(int64_t value) {
@@ -739,7 +739,7 @@ void GTE::set_mac0(int64_t value) {
         set_flag(GTE_FLAGS_MAC0_NEG_OVERFLOW);
     }
     // MAC0 does not get clamped! Value is just used for checking overflow
-    mac0 = static_cast<int32_t>(value);
+    mac0 = value;
 }
 
 void GTE::set_mac1(int64_t value) {
@@ -1002,8 +1002,7 @@ void GTE::AVSZ3() {
     LOGT_GTE(std::format("AVSZ3"));
 
     set_mac0(get_zsf3() * (get_sz1() + get_sz2() + get_sz3()));
-    set_otz(get_mac0() / 0x1000);
-    //LOG_GTE(std::format("AVSZ3 -> otz 0x{:04X}", otz));
+    set_otz(get_mac0() >> 12);
 }
 
 void GTE::AVSZ4() {
@@ -1011,7 +1010,7 @@ void GTE::AVSZ4() {
     LOGT_GTE(std::format("AVSZ4"));
 
     set_mac0(get_zsf4() * (get_sz0() + get_sz1() + get_sz2() + get_sz3()));
-    set_otz(get_mac0() / 0x1000);
+    set_otz(get_mac0() >> 12);
 }
 
 void GTE::OP() {
