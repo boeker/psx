@@ -168,6 +168,49 @@ void GTE::reset() {
     funct = 0;
 }
 
+uint32_t GTE::getRegister(uint8_t rt) {
+    assert (rt < 32);
+    uint32_t word = get_register_as_uint32_t(rt);
+
+    LOGT_GTE(std::format("{{register {:d} ({:s}) -> 0x{:08X}}}", rt, getRegisterName(rt), word));
+
+    return word;
+}
+
+void GTE::setRegister(uint8_t rt, uint32_t value) {
+    assert (rt < 32);
+    LOGT_GTE(std::format("{{0x{:08X} -> register {:d} ({:s})}}", value, rt, getRegisterName(rt)));
+
+    set_register_from_uint32_t(rt, value);
+}
+
+uint32_t GTE::getControlRegister(uint8_t rt) {
+    assert (rt < 32);
+    uint32_t word = get_control_register_as_uint32_t(rt);
+
+    LOGT_GTE(std::format("{{control register {:d} ({:s}) -> 0x{:08X}}}", rt, getControlRegisterName(rt), word));
+
+    return word;
+}
+
+void GTE::setControlRegister(uint8_t rt, uint32_t value) {
+    assert (rt < 32);
+    LOGT_GTE(std::format("{{0x{:08X} -> control register {:d} ({:s})}}", value, rt, getControlRegisterName(rt)));
+
+    set_control_register_from_uint32_t(rt, value);
+}
+
+void GTE::execute(uint32_t instruction) {
+    // Operation depends on function field
+    this->instruction = instruction;
+    this->sf = Bit::getBit(instruction, GTE_INST_SF);
+    this->lm = Bit::getBit(instruction, GTE_INST_LM);
+    funct = 0x3F & instruction;
+
+    reset_flags();
+    (this->*cp2[funct])();
+}
+
 void GTE::reset_flags() {
     flags = 0;
 }
@@ -557,37 +600,6 @@ void GTE::set_control_register_from_uint32_t(uint8_t rt, uint32_t value) {
     }
 }
 
-uint32_t GTE::getRegister(uint8_t rt) {
-    assert (rt < 32);
-    uint32_t word = get_register_as_uint32_t(rt);
-
-    LOGT_GTE(std::format("{{register {:d} ({:s}) -> 0x{:08X}}}", rt, getRegisterName(rt), word));
-
-    return word;
-}
-
-void GTE::setRegister(uint8_t rt, uint32_t value) {
-    assert (rt < 32);
-    LOGT_GTE(std::format("{{0x{:08X} -> register {:d} ({:s})}}", value, rt, getRegisterName(rt)));
-
-    set_register_from_uint32_t(rt, value);
-}
-
-uint32_t GTE::getControlRegister(uint8_t rt) {
-    assert (rt < 32);
-    uint32_t word = get_control_register_as_uint32_t(rt);
-
-    LOGT_GTE(std::format("{{control register {:d} ({:s}) -> 0x{:08X}}}", rt, getControlRegisterName(rt), word));
-
-    return word;
-}
-
-void GTE::setControlRegister(uint8_t rt, uint32_t value) {
-    assert (rt < 32);
-    LOGT_GTE(std::format("{{0x{:08X} -> control register {:d} ({:s})}}", value, rt, getControlRegisterName(rt)));
-
-    set_control_register_from_uint32_t(rt, value);
-}
 
 int32_t GTE::clamp_to_16bit(int32_t value, bool lm) {
     int32_t clamped = std::min(0x7FFF, value);
@@ -776,17 +788,6 @@ void GTE::set_mac3(int64_t value) {
     }
     // MAC3 does not get clamped! Value is just used for checking overflow
     mac3 = value & 0xFFF'FFFF'FFFF;
-}
-
-void GTE::execute(uint32_t instruction) {
-    // Operation depends on function field
-    this->instruction = instruction;
-    this->sf = Bit::getBit(instruction, GTE_INST_SF);
-    this->lm = Bit::getBit(instruction, GTE_INST_LM);
-    funct = 0x3F & instruction;
-
-    reset_flags();
-    (this->*cp2[funct])();
 }
 
 void GTE::UNKCP2() {
@@ -1006,8 +1007,11 @@ void GTE::AVSZ3() {
 }
 
 void GTE::AVSZ4() {
-    LOG_GTE(std::format("Unimplemented command: AVSZ4"));
-    //TODO
+    // Average of four Z values
+    LOGT_GTE(std::format("AVSZ4"));
+
+    set_mac0(get_zsf4() * (get_sz0() + get_sz1() + get_sz2() + get_sz3()));
+    set_otz(get_mac0() / 0x1000);
 }
 
 void GTE::OP() {

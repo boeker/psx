@@ -144,15 +144,27 @@ private:
 
     friend std::ostream& operator<<(std::ostream &os, const GTE &gte);
 
-public:
     static const char* REGISTER_NAMES[];
+
+public:
     std::string getRegisterName(uint8_t reg);
     std::string getControlRegisterName(uint8_t reg);
 
     GTE();
     void reset();
-    void reset_flags();
 
+    uint32_t getRegister(uint8_t reg);
+    void setRegister(uint8_t reg, uint32_t value);
+    uint32_t getControlRegister(uint8_t reg);
+    void setControlRegister(uint8_t reg, uint32_t value);
+
+    void execute(uint32_t instruction);
+
+private:
+    /*
+     * Helper functions for internal use
+     */
+    void reset_flags();
     void update_error_flag();
     void set_flag(uint8_t flag);
 
@@ -162,18 +174,15 @@ public:
     uint32_t get_control_register_as_uint32_t(uint8_t rt);
     void set_control_register_from_uint32_t(uint8_t rt, uint32_t value);
 
-    uint32_t getRegister(uint8_t reg);
-    void setRegister(uint8_t reg, uint32_t value);
-    uint32_t getControlRegister(uint8_t reg);
-    void setControlRegister(uint8_t reg, uint32_t value);
-
-    // Getters and setters for internal use
     static int32_t clamp_to_16bit(int32_t value, bool lm);
     static uint8_t convert_16bit_to_5bit_color(int32_t color);
     void push_sxy_queue();
     void push_sz_queue();
     void push_color_queue();
 
+    /*
+     * Setters for internal use
+     */
     void set_sx2(int64_t value);
     void set_sy2(int64_t value);
     void set_ir0(int64_t value);
@@ -193,6 +202,9 @@ public:
     void set_mac2(int64_t value);
     void set_mac3(int64_t value);
 
+    /*
+     * Getters for internal use
+     */
     int64_t get_vx0() const { return v0.x; }
     int64_t get_vy0() const { return v0.y; }
     int64_t get_vz0() const { return v0.z; }
@@ -278,10 +290,13 @@ public:
     int64_t get_dqa() const { return dqa; }
     int64_t get_dqb() const { return dqb; }
     int64_t get_zsf3() const { return zsf3; }
+    int64_t get_zsf4() const { return zsf4; }
 
+    /*
+     * Command implementations
+     */
     typedef void (GTE::*Opcode) ();
     static const Opcode cp2[];
-    void execute(uint32_t instruction);
     void UNKCP2();
     void RTPS();
     void RTPT();
