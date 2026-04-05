@@ -106,37 +106,36 @@ private:
     uint32_t unr_division(uint16_t h, uint16_t sz3);
 
     // Registers
-    util::Bit::int16_t_triple v0;        // VXY0, VZ0
-    util::Bit::int16_t_triple v1;        // VXY1, VZ1
-    util::Bit::int16_t_triple v2;        // VXY2, VZ2
-    uint32_t rgbc;                       // RGBC
-    uint16_t ordering_table_z;           // OTZ
-    int16_t ir0;                         // IR0
-    int16_t ir1, ir2, ir3;               // IR1, IR2, IR3
+    util::Bit::int16_t_triple v0;              // VXY0, VZ0
+    util::Bit::int16_t_triple v1;              // VXY1, VZ1
+    util::Bit::int16_t_triple v2;              // VXY2, VZ2
+    uint32_t rgbc;                             // RGBC
+    uint16_t otz;                              // OTZ
+    int16_t ir0;                               // IR0
+    int16_t ir1, ir2, ir3;                     // IR1, IR2, IR3
     util::Bit::int16_t_pair sxy0, sxy1, sxy2;  // SXY0, SXY1, SXY2, SXYP (pushing mirror of SXY2)
-    uint16_t sz0, sz1, sz2, sz3;         // SZ0, SZ1, SZ2, SZ3
-    uint32_t rgb0, rgb1, rgb2;           // RGB0, RGB1, RGB2
-    uint32_t reserved;                   // RES1
-    int32_t mac0;                        // MAC0
-    int64_t mac1, mac2, mac3;            // MAC1, MAC2, MAC3
-    uint32_t rgb;                        // IRGB, ORGB
-    uint32_t leading_zeros_count_source; // LZCS
-    uint32_t leading_zeros_count_result; // LZCR
+    uint16_t sz0, sz1, sz2, sz3;               // SZ0, SZ1, SZ2, SZ3
+    uint32_t rgb0, rgb1, rgb2;                 // RGB0, RGB1, RGB2
+    uint32_t reserved;                         // RES1
+    int32_t mac0;                              // MAC0
+    int64_t mac1, mac2, mac3;                  // MAC1, MAC2, MAC3
+    uint32_t rgb;                              // IRGB, ORGB
+    uint32_t lzcs;                             // LZCS, (LZCR is computed when reading)
 
 
     // Control registers
-    int16_t rotation_matrix[9];           // RT11, ..., RT33
-    int32_t translation_vector[3];        // TRX, TRY, TRZ
-    int16_t light_source_matrix[9];       // L11, ..., L33
-    int32_t background_color[3];          // RBK, GBK, BBK
-    int16_t light_color_matrix_source[9]; // LR1, ... ,LB3
-    int32_t far_color[3];                 // RFC, GFC ,BFC
-    int32_t screen_offset[2];             // OFX, OFY
-    uint16_t projection_plane_distance;   // H
-    int16_t depth_cueing_coefficient;     // DQA
-    int32_t depth_cueing_offset;          // DQB
-    int16_t average_z_scale_factors[2];   // ZSF3, ZSF4
-    uint32_t flags;                       // FLAG
+    int16_t rotation_matrix[9];                // RT11, ..., RT33
+    int32_t translation_vector[3];             // TRX, TRY, TRZ
+    int16_t light_source_matrix[9];            // L11, ..., L33
+    int32_t background_color[3];               // RBK, GBK, BBK
+    int16_t light_color_matrix_source[9];      // LR1, ... ,LB3
+    int32_t far_color[3];                      // RFC, GFC ,BFC
+    int32_t ofx, ofy;                          // OFX, OFY
+    uint16_t h;                                // H
+    int16_t dqa;                               // DQA
+    int32_t dqb;                               // DQB
+    int16_t zsf3, zsf4;                        // ZSF3, ZSF4
+    uint32_t flags;                            // FLAG
 
     uint32_t instruction;
     bool lm;
@@ -272,13 +271,13 @@ public:
     int64_t get_gfc() const { return far_color[1]; }
     int64_t get_bfc() const { return far_color[2]; }
 
-    int64_t get_ofx() const { return screen_offset[0]; }
-    int64_t get_ofy() const { return screen_offset[1]; }
+    int64_t get_ofx() const { return ofx; }
+    int64_t get_ofy() const { return ofy; }
 
-    int64_t get_h() const { return projection_plane_distance; }
-    int64_t get_dqa() const { return depth_cueing_coefficient; }
-    int64_t get_dqb() const { return depth_cueing_offset; }
-    int64_t get_zsf3() const { return average_z_scale_factors[0]; }
+    int64_t get_h() const { return h; }
+    int64_t get_dqa() const { return dqa; }
+    int64_t get_dqb() const { return dqb; }
+    int64_t get_zsf3() const { return zsf3; }
 
     typedef void (GTE::*Opcode) ();
     static const Opcode cp2[];

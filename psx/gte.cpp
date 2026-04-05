@@ -120,7 +120,7 @@ void GTE::reset() {
     v1.reset();
     v2.reset();
     rgbc = 0;
-    ordering_table_z = 0;
+    otz = 0;
     ir0 = 0;
     ir1 = 0;
     ir2 = 0;
@@ -141,8 +141,7 @@ void GTE::reset() {
     mac2 = 0;
     mac3 = 0;
     rgb = 0;
-    leading_zeros_count_source = 0;
-    leading_zeros_count_result = 0;
+    lzcs = 0;
 
     for (int i = 0; i < 9; ++i) {
         rotation_matrix[i] = 0;
@@ -154,13 +153,13 @@ void GTE::reset() {
         background_color[i] = 0;
         far_color[i] = 0;
     }
-    screen_offset[0] = 0;
-    screen_offset[1] = 0;
-    projection_plane_distance = 0;
-    depth_cueing_coefficient = 0;
-    depth_cueing_offset = 0;
-    average_z_scale_factors[0] = 0;
-    average_z_scale_factors[1] = 0;
+    ofx = 0;
+    ofy = 0;
+    h = 0;
+    dqa = 0;
+    dqb = 0;
+    zsf3 = 0;
+    zsf4 = 0;
     flags = 0;
 
     instruction = 0;
@@ -201,7 +200,7 @@ uint32_t GTE::get_register_as_uint32_t(uint8_t rt) {
         case GTE_REG_RGBC:
             return rgbc;
         case GTE_REG_OTZ:
-            return ordering_table_z;
+            return otz;
         case GTE_REG_IR0:
             return static_cast<int32_t>(ir0);
         case GTE_REG_IR1:
@@ -248,9 +247,9 @@ uint32_t GTE::get_register_as_uint32_t(uint8_t rt) {
         case GTE_REG_ORGB:
             return rgb;
         case GTE_REG_LZCS:
-            return leading_zeros_count_source;
+            return lzcs;
         case GTE_REG_LZCR:
-            return std::max(std::countl_one(leading_zeros_count_source), std::countl_zero(leading_zeros_count_source));
+            return std::max(std::countl_one(lzcs), std::countl_zero(lzcs));
             return 0;
         default:
             assert(false);
@@ -284,7 +283,7 @@ void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
             break;
         case GTE_REG_OTZ:
             // Apparently not read-only?
-            ordering_table_z = value;
+            otz = value;
             break;
         case GTE_REG_IR0:
             ir0 = value;
@@ -355,7 +354,7 @@ void GTE::set_register_from_uint32_t(uint8_t rt, uint32_t value) {
             // Read-only
             break;
         case GTE_REG_LZCS:
-            leading_zeros_count_source = value;
+            lzcs = value;
             break;
         case GTE_REG_LZCR:
             // Read-only
@@ -418,20 +417,20 @@ uint32_t GTE::get_control_register_as_uint32_t(uint8_t rt) {
         case GTE_REG_BFC:
             return far_color[2];
         case GTE_REG_OFX:
-            return screen_offset[0];
+            return ofx;
         case GTE_REG_OFY:
-            return screen_offset[1];
+            return ofy;
         case GTE_REG_H:
             // Hardware bug: sign-extend unsigned value
-            return static_cast<int32_t>(static_cast<int16_t>(projection_plane_distance));
+            return static_cast<int32_t>(static_cast<int16_t>(h));
         case GTE_REG_DQA:
-            return static_cast<int32_t>(depth_cueing_coefficient);
+            return static_cast<int32_t>(dqa);
         case GTE_REG_DQB:
-            return depth_cueing_offset;
+            return dqb;
         case GTE_REG_ZSF3:
-            return static_cast<int32_t>(average_z_scale_factors[0]);
+            return static_cast<int32_t>(zsf3);
         case GTE_REG_ZSF4:
-            return static_cast<int32_t>(average_z_scale_factors[1]);
+            return static_cast<int32_t>(zsf4);
         case GTE_REG_FLAGS:
             return flags;
         default:
@@ -529,25 +528,25 @@ void GTE::set_control_register_from_uint32_t(uint8_t rt, uint32_t value) {
             far_color[2] = value;
             break;
         case GTE_REG_OFX:
-            screen_offset[0] = value;
+            ofx = value;
             break;
         case GTE_REG_OFY:
-            screen_offset[1] = value;
+            ofy = value;
             break;
         case GTE_REG_H:
-            projection_plane_distance = value & 0xFFFF;
+            h = value & 0xFFFF;
             break;
         case GTE_REG_DQA:
-            depth_cueing_coefficient = value;
+            dqa = value;
             break;
         case GTE_REG_DQB:
-            depth_cueing_offset = value;
+            dqb = value;
             break;
         case GTE_REG_ZSF3:
-            average_z_scale_factors[0] = value;
+            zsf3 = value;
             break;
         case GTE_REG_ZSF4:
-            average_z_scale_factors[1] = value;
+            zsf4 = value;
             break;
         case GTE_REG_FLAGS:
             flags = value & 0x7FFF'F000;
@@ -703,7 +702,7 @@ void GTE::set_otz(int64_t value) {
     if (clamped != value) {
         set_flag(GTE_FLAGS_SZ3_OTZ_CLAMPED);
     }
-    ordering_table_z = static_cast<int32_t>(clamped);
+    otz = static_cast<int32_t>(clamped);
 }
 
 void GTE::set_sz3(int64_t value) {
@@ -732,45 +731,51 @@ void GTE::set_mac0(int64_t value) {
 }
 
 void GTE::set_mac1(int64_t value) {
-    mac1 = std::min(0x7FF'FFFF'FFFF, value);
-    if (mac1 != value) {
+    int64_t clamped = std::min(0x7FF'FFFF'FFFF, value);
+    if (clamped != value) {
         // positive 44bit overflow
         set_flag(GTE_FLAGS_MAC1_POS_OVERFLOW);
     }
-    int64_t temp = mac1;
-    mac1 = std::max(-0x800'0000'0000, mac1);
-    if (mac1 != temp) {
+    int64_t temp = clamped;
+    clamped = std::max(-0x800'0000'0000, clamped);
+    if (clamped != temp) {
         // negative 44bit overflow
         set_flag(GTE_FLAGS_MAC1_NEG_OVERFLOW);
     }
+    // MAC1 does not get clamped! Value is just used for checking overflow
+    mac1 = value & 0xFFF'FFFF'FFFF;
 }
 
 void GTE::set_mac2(int64_t value) {
-    mac2 = std::min(0x7FF'FFFF'FFFF, value);
-    if (mac2 != value) {
+    int64_t clamped = std::min(0x7FF'FFFF'FFFF, value);
+    if (clamped != value) {
         // positive 44bit overflow
         set_flag(GTE_FLAGS_MAC2_POS_OVERFLOW);
     }
-    int64_t temp = mac2;
-    mac2 = std::max(-0x800'0000'0000, mac2);
-    if (mac2 != temp) {
+    int64_t temp = clamped;
+    clamped = std::max(-0x800'0000'0000, clamped);
+    if (clamped != temp) {
         // negative 44bit overflow
         set_flag(GTE_FLAGS_MAC2_NEG_OVERFLOW);
     }
+    // MAC2 does not get clamped! Value is just used for checking overflow
+    mac2 = value & 0xFFF'FFFF'FFFF;
 }
 
 void GTE::set_mac3(int64_t value) {
-    mac3 = std::min(0x7FF'FFFF'FFFF, value);
-    if (mac3 != value) {
+    int64_t clamped = std::min(0x7FF'FFFF'FFFF, value);
+    if (clamped != value) {
         // positive 44bit overflow
         set_flag(GTE_FLAGS_MAC3_POS_OVERFLOW);
     }
-    int64_t temp = mac3;
-    mac3 = std::max(-0x800'0000'0000, mac3);
-    if (mac3 != temp) {
+    int64_t temp = clamped;
+    clamped = std::max(-0x800'0000'0000, clamped);
+    if (clamped != temp) {
         // negative 44bit overflow
         set_flag(GTE_FLAGS_MAC3_NEG_OVERFLOW);
     }
+    // MAC3 does not get clamped! Value is just used for checking overflow
+    mac3 = value & 0xFFF'FFFF'FFFF;
 }
 
 void GTE::execute(uint32_t instruction) {
@@ -802,7 +807,7 @@ void GTE::RTPS() {
 
     push_sz_queue();
     set_sz3(get_mac3() >> ((1-sf) * 12));
-    int64_t division = static_cast<int64_t>(unr_division(projection_plane_distance, sz3));
+    int64_t division = static_cast<int64_t>(unr_division(h, sz3));
     set_mac0(division * get_ir1() + get_ofx());
     push_sxy_queue();
     set_sx2(get_mac0() / 0x1'0000);
@@ -826,7 +831,7 @@ void GTE::RTPT() {
 
     push_sz_queue();
     set_sz3(get_mac3() >> ((1-sf) * 12));
-    int64_t division = static_cast<int64_t>(unr_division(projection_plane_distance, sz3));
+    int64_t division = static_cast<int64_t>(unr_division(h, sz3));
     set_mac0(division * get_ir1() + get_ofx());
     push_sxy_queue();
     set_sx2(get_mac0() / 0x1'0000);
@@ -845,7 +850,7 @@ void GTE::RTPT() {
 
     push_sz_queue();
     set_sz3(get_mac3() >> ((1-sf) * 12));
-    division = static_cast<int64_t>(unr_division(projection_plane_distance, sz3));
+    division = static_cast<int64_t>(unr_division(h, sz3));
     set_mac0(division * get_ir1() + get_ofx());
     push_sxy_queue();
     set_sx2(get_mac0() / 0x1'0000);
@@ -864,7 +869,7 @@ void GTE::RTPT() {
 
     push_sz_queue();
     set_sz3(get_mac3() >> ((1-sf) * 12));
-    division = static_cast<int64_t>(unr_division(projection_plane_distance, sz3));
+    division = static_cast<int64_t>(unr_division(h, sz3));
     set_mac0(division * get_ir1() + get_ofx());
     push_sxy_queue();
     set_sx2(get_mac0() / 0x1'0000);
@@ -997,6 +1002,7 @@ void GTE::AVSZ3() {
 
     set_mac0(get_zsf3() * (get_sz1() + get_sz2() + get_sz3()));
     set_otz(get_mac0() / 0x1000);
+    //LOG_GTE(std::format("AVSZ3 -> otz 0x{:04X}", otz));
 }
 
 void GTE::AVSZ4() {
