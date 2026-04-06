@@ -216,7 +216,7 @@ void GTE::reset_flags() {
 }
 
 void GTE::update_error_flag() {
-    uint32_t bits_in_error_flag = 0x7F87'E000; // 30 to 23, 18 to 13
+    uint32_t bits_in_error_flag = 0x7F87'E000; // 30 to 23, 18 to 13 (IR3 not included?!)
     Bit::setBit(flags, GTE_FLAGS_ERROR, flags & bits_in_error_flag);
 }
 
@@ -1124,7 +1124,7 @@ void GTE::OP() {
 }
 
 void GTE::GPF() {
-    LOG_GTE(std::format("GPF"));
+    LOGT_GTE(std::format("GPF"));
 
     set_mac1((get_ir1() * get_ir0()) >> (sf * 12));
     set_mac2((get_ir2() * get_ir0()) >> (sf * 12));
@@ -1135,9 +1135,9 @@ void GTE::GPF() {
     set_ir3(get_mac3());
 
     push_color_queue();
-    set_r2(get_mac1() / 16);
-    set_g2(get_mac2() / 16);
-    set_b2(get_mac3() / 16);
+    set_r2(get_mac1() >> 4);
+    set_g2(get_mac2() >> 4);
+    set_b2(get_mac3() >> 4);
     set_c2(get_c());
 }
 
