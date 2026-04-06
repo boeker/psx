@@ -190,9 +190,9 @@ private:
     void set_sx2(int64_t value);
     void set_sy2(int64_t value);
     void set_ir0(int64_t value);
-    void set_ir1(int64_t value);
-    void set_ir2(int64_t value);
-    void set_ir3(int64_t value);
+    void set_ir1(int64_t value, bool lm);
+    void set_ir2(int64_t value, bool lm);
+    void set_ir3(int64_t value, bool lm);
     void set_ir1_without_clamping(int64_t value);
     void set_ir2_without_clamping(int64_t value);
     void set_ir3_without_clamping(int64_t value);

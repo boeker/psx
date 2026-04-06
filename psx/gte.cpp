@@ -654,20 +654,15 @@ void GTE::set_sy2(int64_t value) {
 }
 
 void GTE::set_ir0(int64_t value) {
-    LOG_GTE(std::format("mac0        = 0x{:016X}", get_mac0()));
-    LOG_GTE(std::format("set_ir0     = 0x{:016X}", value));
-    LOG_GTE(std::format("mac0u       = 0x{:016X}", static_cast<uint64_t>(get_mac0())));
-    LOG_GTE(std::format("set_ir0u    = 0x{:016X}", static_cast<uint64_t>(value)));
     int64_t clamped = std::min(static_cast<int64_t>(0x1000), value);
     clamped = std::max(static_cast<int64_t>(0x0000), clamped);
     if (clamped != value) {
         set_flag(GTE_FLAGS_IR0_CLAMPED);
     }
-    LOG_GTE(std::format("set_ir0clamp= 0x{:016X}", clamped));
     ir0 = clamped;
 }
 
-void GTE::set_ir1(int64_t value) {
+void GTE::set_ir1(int64_t value, bool lm) {
     int32_t lower = static_cast<int32_t>(value);
     int64_t clamped = clamp_to_16bit(lower, lm);
     if (clamped != lower) {
@@ -676,7 +671,7 @@ void GTE::set_ir1(int64_t value) {
     set_ir1_without_clamping(clamped);
 }
 
-void GTE::set_ir2(int64_t value) {
+void GTE::set_ir2(int64_t value, bool lm) {
     int32_t lower = static_cast<int32_t>(value);
     int64_t clamped = clamp_to_16bit(lower, lm);
     if (clamped != lower) {
@@ -685,7 +680,7 @@ void GTE::set_ir2(int64_t value) {
     set_ir2_without_clamping(clamped);
 }
 
-void GTE::set_ir3(int64_t value) {
+void GTE::set_ir3(int64_t value, bool lm) {
     int32_t lower = static_cast<int32_t>(value);
     int64_t clamped = clamp_to_16bit(lower, lm);
     if (clamped != lower) {
@@ -852,14 +847,12 @@ void GTE::RTPS() {
     // Perspective Transformation (Single)
     LOGT_GTE(std::format("RTPS"));
 
-    lm = false;
-
     set_mac1(((get_trx() << 12) + get_rt11() * get_vx0() + get_rt12() * get_vy0() + get_rt13() * get_vz0()) >> (sf * 12));
     set_mac2(((get_try() << 12) + get_rt21() * get_vx0() + get_rt22() * get_vy0() + get_rt23() * get_vz0()) >> (sf * 12));
     set_mac3(((get_trz() << 12) + get_rt31() * get_vx0() + get_rt32() * get_vy0() + get_rt33() * get_vz0()) >> (sf * 12));
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), false);
+    set_ir2(get_mac2(), false);
+    set_ir3(get_mac3(), false);
 
     push_sz_queue();
     set_sz3(get_mac3() >> ((1 - sf) * 12));
@@ -885,9 +878,9 @@ void GTE::RTPT() {
     set_mac1(((get_trx() << 12) + get_rt11() * get_vx0() + get_rt12() * get_vy0() + get_rt13() * get_vz0()) >> (sf * 12));
     set_mac2(((get_try() << 12) + get_rt21() * get_vx0() + get_rt22() * get_vy0() + get_rt23() * get_vz0()) >> (sf * 12));
     set_mac3(((get_trz() << 12) + get_rt31() * get_vx0() + get_rt32() * get_vy0() + get_rt33() * get_vz0()) >> (sf * 12));
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), false);
+    set_ir2(get_mac2(), false);
+    set_ir3(get_mac3(), false);
 
     push_sz_queue();
     set_sz3(get_mac3() >> ((1 - sf) * 12));
@@ -908,9 +901,9 @@ void GTE::RTPT() {
     set_mac1(((get_trx() << 12) + get_rt11() * get_vx1() + get_rt12() * get_vy1() + get_rt13() * get_vz1()) >> (sf * 12));
     set_mac2(((get_try() << 12) + get_rt21() * get_vx1() + get_rt22() * get_vy1() + get_rt23() * get_vz1()) >> (sf * 12));
     set_mac3(((get_trz() << 12) + get_rt31() * get_vx1() + get_rt32() * get_vy1() + get_rt33() * get_vz1()) >> (sf * 12));
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), false);
+    set_ir2(get_mac2(), false);
+    set_ir3(get_mac3(), false);
 
     push_sz_queue();
     set_sz3(get_mac3() >> ((1 - sf) * 12));
@@ -931,9 +924,9 @@ void GTE::RTPT() {
     set_mac1(((get_trx() << 12) + get_rt11() * get_vx2() + get_rt12() * get_vy2() + get_rt13() * get_vz2()) >> (sf * 12));
     set_mac2(((get_try() << 12) + get_rt21() * get_vx2() + get_rt22() * get_vy2() + get_rt23() * get_vz2()) >> (sf * 12));
     set_mac3(((get_trz() << 12) + get_rt31() * get_vx2() + get_rt32() * get_vy2() + get_rt33() * get_vz2()) >> (sf * 12));
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), false);
+    set_ir2(get_mac2(), false);
+    set_ir3(get_mac3(), false);
 
     push_sz_queue();
     set_sz3(get_mac3() >> ((1 - sf) * 12));
@@ -983,9 +976,9 @@ void GTE::SQR() {
     set_mac2((get_ir2() * get_ir2()) >> (sf * 12));
     set_mac3((get_ir3() * get_ir3()) >> (sf * 12));
 
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
 }
 
 
@@ -996,26 +989,26 @@ void GTE::NCS() {
     set_mac1((get_l11() * get_vx0() + get_l12() * get_vy0() + get_l13() * get_vz0()) >> (sf * 12));
     set_mac2((get_l21() * get_vx0() + get_l22() * get_vy0() + get_l23() * get_vz0()) >> (sf * 12));
     set_mac3((get_l31() * get_vx0() + get_l32() * get_vy0() + get_l33() * get_vz0()) >> (sf * 12));
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
 
     set_mac1(((get_rbk() << 12) + get_lr1() * get_ir1() + get_lr2() * get_ir2() + get_lr3() * get_ir3()) >> (sf * 12));
     set_mac2(((get_gbk() << 12) + get_lg1() * get_ir1() + get_lg2() * get_ir2() + get_lg3() * get_ir3()) >> (sf * 12));
     set_mac3(((get_bbk() << 12) + get_lb1() * get_ir1() + get_lb2() * get_ir2() + get_lb3() * get_ir3()) >> (sf * 12));
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
 
     push_color_queue();
-    set_r2(get_mac1() / 16);
-    set_g2(get_mac2() / 16);
-    set_b2(get_mac3() / 16);
+    set_r2(get_mac1() >> 4);
+    set_g2(get_mac2() >> 4);
+    set_b2(get_mac3() >> 4);
     set_c2(get_c());
 
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
 }
 
 void GTE::NCT() {
@@ -1030,38 +1023,41 @@ void GTE::NCDS() {
     set_mac1((get_l11() * get_vx0() + get_l12() * get_vy0() + get_l13() * get_vz0()) >> (sf * 12));
     set_mac2((get_l21() * get_vx0() + get_l22() * get_vy0() + get_l23() * get_vz0()) >> (sf * 12));
     set_mac3((get_l31() * get_vx0() + get_l32() * get_vy0() + get_l33() * get_vz0()) >> (sf * 12));
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
 
     set_mac1(((get_rbk() << 12) + get_lr1() * get_ir1() + get_lr2() * get_ir2() + get_lr3() * get_ir3()) >> (sf * 12));
     set_mac2(((get_gbk() << 12) + get_lg1() * get_ir1() + get_lg2() * get_ir2() + get_lg3() * get_ir3()) >> (sf * 12));
     set_mac3(((get_bbk() << 12) + get_lb1() * get_ir1() + get_lb2() * get_ir2() + get_lb3() * get_ir3()) >> (sf * 12));
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
 
     set_mac1((get_r() * get_ir1()) << 4);
     set_mac2((get_g() * get_ir2()) << 4);
     set_mac3((get_b() * get_ir3()) << 4);
 
-    set_mac1(get_mac1() + (get_rfc() - get_mac1()) * get_ir0());
-    set_mac2(get_mac2() + (get_gfc() - get_mac2()) * get_ir0());
-    set_mac3(get_mac3() + (get_bfc() - get_mac3()) * get_ir0());
+    set_ir1((get_rfc() << 12) - get_mac1(), false);
+    set_ir2((get_gfc() << 12) - get_mac2(), false);
+    set_ir3((get_bfc() << 12) - get_mac3(), false);
+    set_mac1(get_mac1() + get_ir1() * get_ir0());
+    set_mac2(get_mac2() + get_ir2() * get_ir0());
+    set_mac3(get_mac3() + get_ir3() * get_ir0());
 
     set_mac1(get_mac1() >> (sf * 12));
     set_mac2(get_mac2() >> (sf * 12));
     set_mac3(get_mac3() >> (sf * 12));
 
     push_color_queue();
-    set_r2(get_mac1() / 16);
-    set_g2(get_mac2() / 16);
-    set_b2(get_mac3() / 16);
+    set_r2(get_mac1() >> 4);
+    set_g2(get_mac2() >> 4);
+    set_b2(get_mac3() >> 4);
     set_c2(get_c());
 
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
 }
 
 void GTE::NCDT() {
@@ -1118,9 +1114,9 @@ void GTE::OP() {
     set_mac2((get_ir1() * get_rt33() - get_ir3() * get_rt11()) >> (sf * 12));
     set_mac3((get_ir2() * get_rt11() - get_ir1() * get_rt22()) >> (sf * 12));
 
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
 }
 
 void GTE::GPF() {
@@ -1130,9 +1126,9 @@ void GTE::GPF() {
     set_mac2((get_ir2() * get_ir0()) >> (sf * 12));
     set_mac3((get_ir3() * get_ir0()) >> (sf * 12));
 
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
 
     push_color_queue();
     set_r2(get_mac1() >> 4);
@@ -1142,32 +1138,27 @@ void GTE::GPF() {
 }
 
 void GTE::GPL() {
-    LOG_GTE(std::format("GPL"));
+    LOGT_GTE(std::format("GPL"));
 
     set_mac1(get_mac1() << (sf * 12));
     set_mac2(get_mac2() << (sf * 12));
     set_mac3(get_mac3() << (sf * 12));
 
-    set_mac1((get_ir1() * get_ir0() + get_mac1()) >> (sf * 12));
-    set_mac2((get_ir2() * get_ir0() + get_mac2()) >> (sf * 12));
-    set_mac3((get_ir3() * get_ir0() + get_mac3()) >> (sf * 12));
+    set_mac1(get_mac1() + get_ir1() * get_ir0());
+    set_mac2(get_mac2() + get_ir2() * get_ir0());
+    set_mac3(get_mac3() + get_ir3() * get_ir0());
+    set_mac1(get_mac1() >> (sf * 12));
+    set_mac2(get_mac2() >> (sf * 12));
+    set_mac3(get_mac3() >> (sf * 12));
 
-    //set_mac1(get_ir1() * get_ir0() + get_mac1());
-    //set_mac2(get_ir2() * get_ir0() + get_mac2());
-    //set_mac3(get_ir3() * get_ir0() + get_mac3());
-
-    //set_mac1(get_mac1() >> (sf * 12));
-    //set_mac2(get_mac2() >> (sf * 12));
-    //set_mac3(get_mac3() >> (sf * 12));
-
-    set_ir1(get_mac1());
-    set_ir2(get_mac2());
-    set_ir3(get_mac3());
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
 
     push_color_queue();
-    set_r2(get_mac1() / 16);
-    set_g2(get_mac2() / 16);
-    set_b2(get_mac3() / 16);
+    set_r2(get_mac1() >> 4);
+    set_g2(get_mac2() >> 4);
+    set_b2(get_mac3() >> 4);
     set_c2(get_c());
 }
 
