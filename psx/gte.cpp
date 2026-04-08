@@ -83,6 +83,41 @@ const GTE::Opcode GTE::cp2[] = {
     &GTE::UNOFF,    &GTE::GPF,      &GTE::GPL,      &GTE::NCCT
 };
 
+//const GTE::Opcode GTE::cp2[] = {
+//    // 0b000000
+//    &GTE::UNOFF,    &GTE::RTPS,     &GTE::UNOFF,    &GTE::UNOFF,
+//    // 0b000100
+//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+//    // 0b001000
+//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+//    // 0b001100
+//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+//    // 0b010000
+//    &GTE::DPCS,     &GTE::INTPL,    &GTE::MVMVA,    &GTE::UNOFF,
+//    // 0b010100
+//    &GTE::CDP,      &GTE::UNOFF,    &GTE::NCDT,     &GTE::UNOFF,
+//    // 0b011000
+//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::NCCS,
+//    // 0b011100
+//    &GTE::CC,       &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+//    // 0b100000
+//    &GTE::NCT,      &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+//    // 0b100100
+//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+//    // 0b101000
+//    &GTE::UNOFF,    &GTE::DCPL,     &GTE::DPCT,     &GTE::UNOFF,
+//    // 0b101100
+//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+//    // 0b110000
+//    &GTE::RTPT,     &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+//    // 0b110100
+//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+//    // 0b111000
+//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
+//    // 0b111100
+//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::NCCT
+//};
+
 
 std::string GTE::getRegisterName(uint8_t reg) {
     return REGISTER_NAMES[reg];
@@ -750,14 +785,14 @@ void GTE::set_mac0(int64_t value) {
     mac0 = value;
 }
 
-void GTE::set_mac1(int64_t value) {
-    int64_t clamped = std::min(0x7FF'FFFF'FFFF, value);
+void GTE::set_mac1(int64_t value, uint8_t shift) {
+    int64_t clamped = std::min(static_cast<int64_t>(0x7FF'FFFF'FFFF), value);
     if (clamped != value) {
         // positive 44bit overflow
         set_flag(GTE_FLAGS_MAC1_POS_OVERFLOW);
     }
     int64_t temp = clamped;
-    clamped = std::max(-0x800'0000'0000, clamped);
+    clamped = std::max(-static_cast<int64_t>(0x800'0000'0000), clamped);
     if (clamped != temp) {
         // negative 44bit overflow
         set_flag(GTE_FLAGS_MAC1_NEG_OVERFLOW);
@@ -767,17 +802,18 @@ void GTE::set_mac1(int64_t value) {
     //if (mac1 & 0x800'0000'0000) {
     //    mac1 |= 0xFFFF'F000'0000'0000;
     //}
-    mac1 = value;
+    mac1 = static_cast<int32_t>(value >> shift);
+    //mac1 = value;
 }
 
-void GTE::set_mac2(int64_t value) {
-    int64_t clamped = std::min(0x7FF'FFFF'FFFF, value);
+void GTE::set_mac2(int64_t value, uint8_t shift) {
+    int64_t clamped = std::min(static_cast<int64_t>(0x7FF'FFFF'FFFF), value);
     if (clamped != value) {
         // positive 44bit overflow
         set_flag(GTE_FLAGS_MAC2_POS_OVERFLOW);
     }
     int64_t temp = clamped;
-    clamped = std::max(-0x800'0000'0000, clamped);
+    clamped = std::max(-static_cast<int64_t>(0x800'0000'0000), clamped);
     if (clamped != temp) {
         // negative 44bit overflow
         set_flag(GTE_FLAGS_MAC2_NEG_OVERFLOW);
@@ -787,17 +823,18 @@ void GTE::set_mac2(int64_t value) {
     //if (mac2 & 0x800'0000'0000) {
     //    mac2 |= 0xFFFF'F000'0000'0000;
     //}
-    mac2 = value;
+    mac2 = static_cast<int32_t>(value >> shift);
+    //mac2 = value;
 }
 
-void GTE::set_mac3(int64_t value) {
-    int64_t clamped = std::min(0x7FF'FFFF'FFFF, value);
+void GTE::set_mac3(int64_t value, uint8_t shift) {
+    int64_t clamped = std::min(static_cast<int64_t>(0x7FF'FFFF'FFFF), value);
     if (clamped != value) {
         // positive 44bit overflow
         set_flag(GTE_FLAGS_MAC3_POS_OVERFLOW);
     }
     int64_t temp = clamped;
-    clamped = std::max(-0x800'0000'0000, clamped);
+    clamped = std::max(-static_cast<int64_t>(0x800'0000'0000), clamped);
     if (clamped != temp) {
         // negative 44bit overflow
         set_flag(GTE_FLAGS_MAC3_NEG_OVERFLOW);
@@ -807,7 +844,68 @@ void GTE::set_mac3(int64_t value) {
     //if (mac3 & 0x800'0000'0000) {
     //    mac3 |= 0xFFFF'F000'0000'0000;
     //}
-    mac3 = value;
+    mac3 = static_cast<int32_t>(value >> shift);
+    //mac3 = value;
+}
+
+int64_t GTE::sign_extend1(int64_t value) {
+    int64_t clamped = std::min(static_cast<int64_t>(0x7FF'FFFF'FFFF), value);
+    if (clamped != value) {
+        // positive 44bit overflow
+        set_flag(GTE_FLAGS_MAC1_POS_OVERFLOW);
+    }
+    int64_t temp = clamped;
+    clamped = std::max(-static_cast<int64_t>(0x800'0000'0000), clamped);
+    if (clamped != temp) {
+        // negative 44bit overflow
+        set_flag(GTE_FLAGS_MAC1_NEG_OVERFLOW);
+    }
+    if (value & 0x0000'0800'0000'0000) {
+        value |= 0xFFFF'F000'0000'0000;
+    } else {
+        value &= 0x0000'07FF'FFFF'FFFF;
+    }
+    return value;
+}
+
+int64_t GTE::sign_extend2(int64_t value) {
+    int64_t clamped = std::min(static_cast<int64_t>(0x7FF'FFFF'FFFF), value);
+    if (clamped != value) {
+        // positive 44bit overflow
+        set_flag(GTE_FLAGS_MAC2_POS_OVERFLOW);
+    }
+    int64_t temp = clamped;
+    clamped = std::max(-static_cast<int64_t>(0x800'0000'0000), clamped);
+    if (clamped != temp) {
+        // negative 44bit overflow
+        set_flag(GTE_FLAGS_MAC2_NEG_OVERFLOW);
+    }
+    if (value & 0x0000'0800'0000'0000) {
+        value |= 0xFFFF'F000'0000'0000;
+    } else {
+        value &= 0x0000'07FF'FFFF'FFFF;
+    }
+    return value;
+}
+
+int64_t GTE::sign_extend3(int64_t value) {
+    int64_t clamped = std::min(static_cast<int64_t>(0x7FF'FFFF'FFFF), value);
+    if (clamped != value) {
+        // positive 44bit overflow
+        set_flag(GTE_FLAGS_MAC3_POS_OVERFLOW);
+    }
+    int64_t temp = clamped;
+    clamped = std::max(-static_cast<int64_t>(0x800'0000'0000), clamped);
+    if (clamped != temp) {
+        // negative 44bit overflow
+        set_flag(GTE_FLAGS_MAC3_NEG_OVERFLOW);
+    }
+    if (value & 0x0000'0800'0000'0000) {
+        value |= 0xFFFF'F000'0000'0000;
+    } else {
+        value &= 0x0000'07FF'FFFF'FFFF;
+    }
+    return value;
 }
 
 void GTE::set_r2(int64_t value) {
@@ -984,18 +1082,18 @@ void GTE::SQR() {
 
 void GTE::NCS() {
     // Normal Color (Single)
-    LOGT_GTE(std::format("NCS"));
+    LOG_GTE(std::format("NCS"));
 
-    set_mac1((get_l11() * get_vx0() + get_l12() * get_vy0() + get_l13() * get_vz0()) >> (sf * 12));
-    set_mac2((get_l21() * get_vx0() + get_l22() * get_vy0() + get_l23() * get_vz0()) >> (sf * 12));
-    set_mac3((get_l31() * get_vx0() + get_l32() * get_vy0() + get_l33() * get_vz0()) >> (sf * 12));
+    set_mac1(sign_extend1(get_l11() * get_vx0() + get_l12() * get_vy0()) + get_l13() * get_vz0(), sf * 12);
+    set_mac2(sign_extend2(get_l21() * get_vx0() + get_l22() * get_vy0()) + get_l23() * get_vz0(), sf * 12);
+    set_mac3(sign_extend3(get_l31() * get_vx0() + get_l32() * get_vy0()) + get_l33() * get_vz0(), sf * 12);
     set_ir1(get_mac1(), lm);
     set_ir2(get_mac2(), lm);
     set_ir3(get_mac3(), lm);
 
-    set_mac1(((get_rbk() << 12) + get_lr1() * get_ir1() + get_lr2() * get_ir2() + get_lr3() * get_ir3()) >> (sf * 12));
-    set_mac2(((get_gbk() << 12) + get_lg1() * get_ir1() + get_lg2() * get_ir2() + get_lg3() * get_ir3()) >> (sf * 12));
-    set_mac3(((get_bbk() << 12) + get_lb1() * get_ir1() + get_lb2() * get_ir2() + get_lb3() * get_ir3()) >> (sf * 12));
+    set_mac1(sign_extend1(sign_extend1((get_rbk() << 12) + get_lr1() * get_ir1()) + get_lr2() * get_ir2()) + get_lr3() * get_ir3(), sf * 12);
+    set_mac2(sign_extend2(sign_extend2((get_gbk() << 12) + get_lg1() * get_ir1()) + get_lg2() * get_ir2()) + get_lg3() * get_ir3(), sf * 12);
+    set_mac3(sign_extend3(sign_extend3((get_bbk() << 12) + get_lb1() * get_ir1()) + get_lb2() * get_ir2()) + get_lb3() * get_ir3(), sf * 12);
     set_ir1(get_mac1(), lm);
     set_ir2(get_mac2(), lm);
     set_ir3(get_mac3(), lm);
@@ -1005,10 +1103,6 @@ void GTE::NCS() {
     set_g2(get_mac2() >> 4);
     set_b2(get_mac3() >> 4);
     set_c2(get_c());
-
-    set_ir1(get_mac1(), lm);
-    set_ir2(get_mac2(), lm);
-    set_ir3(get_mac3(), lm);
 }
 
 void GTE::NCT() {
@@ -1020,44 +1114,43 @@ void GTE::NCDS() {
     // Normal Color Depth Cue (Single vector)
     LOGT_GTE(std::format("NCDS"));
 
-    set_mac1((get_l11() * get_vx0() + get_l12() * get_vy0() + get_l13() * get_vz0()) >> (sf * 12));
-    set_mac2((get_l21() * get_vx0() + get_l22() * get_vy0() + get_l23() * get_vz0()) >> (sf * 12));
-    set_mac3((get_l31() * get_vx0() + get_l32() * get_vy0() + get_l33() * get_vz0()) >> (sf * 12));
+    set_mac1(sign_extend1(get_l11() * get_vx0() + get_l12() * get_vy0()) + get_l13() * get_vz0(), sf * 12);
+    set_mac2(sign_extend2(get_l21() * get_vx0() + get_l22() * get_vy0()) + get_l23() * get_vz0(), sf * 12);
+    set_mac3(sign_extend3(get_l31() * get_vx0() + get_l32() * get_vy0()) + get_l33() * get_vz0(), sf * 12);
     set_ir1(get_mac1(), lm);
     set_ir2(get_mac2(), lm);
     set_ir3(get_mac3(), lm);
 
-    set_mac1(((get_rbk() << 12) + get_lr1() * get_ir1() + get_lr2() * get_ir2() + get_lr3() * get_ir3()) >> (sf * 12));
-    set_mac2(((get_gbk() << 12) + get_lg1() * get_ir1() + get_lg2() * get_ir2() + get_lg3() * get_ir3()) >> (sf * 12));
-    set_mac3(((get_bbk() << 12) + get_lb1() * get_ir1() + get_lb2() * get_ir2() + get_lb3() * get_ir3()) >> (sf * 12));
+    set_mac1(sign_extend1(sign_extend1((get_rbk() << 12) + get_lr1() * get_ir1()) + get_lr2() * get_ir2()) + get_lr3() * get_ir3(), sf * 12);
+    set_mac2(sign_extend2(sign_extend2((get_gbk() << 12) + get_lg1() * get_ir1()) + get_lg2() * get_ir2()) + get_lg3() * get_ir3(), sf * 12);
+    set_mac3(sign_extend3(sign_extend3((get_bbk() << 12) + get_lb1() * get_ir1()) + get_lb2() * get_ir2()) + get_lb3() * get_ir3(), sf * 12);
     set_ir1(get_mac1(), lm);
     set_ir2(get_mac2(), lm);
     set_ir3(get_mac3(), lm);
 
-    set_mac1((get_r() * get_ir1()) << 4);
-    set_mac2((get_g() * get_ir2()) << 4);
-    set_mac3((get_b() * get_ir3()) << 4);
+    int64_t temp1 = (get_r() * get_ir1()) << 4;
+    int64_t temp2 = (get_g() * get_ir2()) << 4;
+    int64_t temp3 = (get_b() * get_ir3()) << 4;
 
-    set_ir1((get_rfc() << 12) - get_mac1(), false);
-    set_ir2((get_gfc() << 12) - get_mac2(), false);
-    set_ir3((get_bfc() << 12) - get_mac3(), false);
-    set_mac1(get_mac1() + get_ir1() * get_ir0());
-    set_mac2(get_mac2() + get_ir2() * get_ir0());
-    set_mac3(get_mac3() + get_ir3() * get_ir0());
+    set_mac1(((get_rfc() << 12) - temp1), sf * 12);
+    set_mac2(((get_gfc() << 12) - temp2), sf * 12);
+    set_mac3(((get_bfc() << 12) - temp3), sf * 12);
+    set_ir1(get_mac1(), false);
+    set_ir2(get_mac2(), false);
+    set_ir3(get_mac3(), false);
 
-    set_mac1(get_mac1() >> (sf * 12));
-    set_mac2(get_mac2() >> (sf * 12));
-    set_mac3(get_mac3() >> (sf * 12));
+    set_mac1(temp1 + get_ir1() * get_ir0(), sf * 12);
+    set_mac2(temp2 + get_ir2() * get_ir0(), sf * 12);
+    set_mac3(temp3 + get_ir3() * get_ir0(), sf * 12);
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
 
     push_color_queue();
     set_r2(get_mac1() >> 4);
     set_g2(get_mac2() >> 4);
     set_b2(get_mac3() >> 4);
     set_c2(get_c());
-
-    set_ir1(get_mac1(), lm);
-    set_ir2(get_mac2(), lm);
-    set_ir3(get_mac3(), lm);
 }
 
 void GTE::NCDT() {
@@ -1138,19 +1231,11 @@ void GTE::GPF() {
 }
 
 void GTE::GPL() {
-    LOGT_GTE(std::format("GPL"));
+    LOG_GTE(std::format("GPL"));
 
-    set_mac1(get_mac1() << (sf * 12));
-    set_mac2(get_mac2() << (sf * 12));
-    set_mac3(get_mac3() << (sf * 12));
-
-    set_mac1(get_mac1() + get_ir1() * get_ir0());
-    set_mac2(get_mac2() + get_ir2() * get_ir0());
-    set_mac3(get_mac3() + get_ir3() * get_ir0());
-    set_mac1(get_mac1() >> (sf * 12));
-    set_mac2(get_mac2() >> (sf * 12));
-    set_mac3(get_mac3() >> (sf * 12));
-
+    set_mac1(((get_mac1() << (sf * 12)) + get_ir1() * get_ir0()), sf * 12);
+    set_mac2(((get_mac2() << (sf * 12)) + get_ir2() * get_ir0()), sf * 12);
+    set_mac3(((get_mac3() << (sf * 12)) + get_ir3() * get_ir0()), sf * 12);
     set_ir1(get_mac1(), lm);
     set_ir2(get_mac2(), lm);
     set_ir3(get_mac3(), lm);

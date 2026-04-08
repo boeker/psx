@@ -121,7 +121,7 @@ private:
     uint32_t rgb0, rgb1, rgb2;                 // RGB0, RGB1, RGB2
     uint32_t reserved;                         // RES1
     int64_t mac0;                              // MAC0 // larger than 32 bit internally
-    int64_t mac1, mac2, mac3;                  // MAC1, MAC2, MAC3 // 44 bit
+    int32_t mac1, mac2, mac3;                  // MAC1, MAC2, MAC3 // 44 bit
     uint32_t rgb;                              // IRGB, ORGB
     uint32_t lzcs;                             // LZCS, (LZCR is computed when reading)
 
@@ -202,9 +202,13 @@ private:
     void set_sz3(int64_t value);
 
     void set_mac0(int64_t value);
-    void set_mac1(int64_t value);
-    void set_mac2(int64_t value);
-    void set_mac3(int64_t value);
+    void set_mac1(int64_t value, uint8_t shift = 0);
+    void set_mac2(int64_t value, uint8_t shift = 0);
+    void set_mac3(int64_t value, uint8_t shift = 0);
+
+    int64_t sign_extend1(int64_t value);
+    int64_t sign_extend2(int64_t value);
+    int64_t sign_extend3(int64_t value);
 
     void set_r2(int64_t value);
     void set_g2(int64_t value);
