@@ -131,12 +131,12 @@ uint32_t GTE::unr_division(uint16_t h, uint16_t sz3) {
     //  n = ((h * 20000h / sz3) + 1) / 2
     if (h < 2 * sz3) {
         uint8_t z = std::countl_zero(sz3);
-        uint32_t n = h << z;
-        uint32_t d = sz3 << z;
+        uint64_t n = h << z;
+        uint64_t d = sz3 << z;
         uint16_t u = unr_table[(d - 0x7FC0) >> 7] + 0x101;
         d = (0x200'0080 - (d * u)) >> 8;
         d = (0x000'0080 + (d * u)) >> 8;
-        return std::min(0x1'FFFFU, ((n * d) + 0x8000) >> 16);
+        return std::min(0x1'FFFFU, static_cast<uint32_t>(((n * d) + 0x8000) >> 16));
     } else {
         set_flag(GTE_FLAGS_RTP_DIVISION_CLAMPED);
         return 0x1'FFFF;
@@ -671,18 +671,20 @@ void GTE::push_color_queue() {
 }
 
 void GTE::set_sx2(int64_t value) {
-    int64_t clamped = std::min(static_cast<int64_t>(0x03FF), value);
+    int32_t lower = static_cast<int32_t>(value);
+    int64_t clamped = std::min(static_cast<int32_t>(0x03FF), lower);
     clamped = std::max(-static_cast<int64_t>(0x0400), clamped); // Minus in front of static_cast
-    if (clamped != value) {
+    if (clamped != lower) {
         set_flag(GTE_FLAGS_SX2_CLAMPED);
     }
     sxy2.x = clamped;
 }
 
 void GTE::set_sy2(int64_t value) {
-    int64_t clamped = std::min(static_cast<int64_t>(0x03FF), value);
+    int32_t lower = static_cast<int32_t>(value);
+    int64_t clamped = std::min(static_cast<int32_t>(0x03FF), lower);
     clamped = std::max(-static_cast<int64_t>(0x0400), clamped); // Minus in front of static_cast
-    if (clamped != value) {
+    if (clamped != lower) {
         set_flag(GTE_FLAGS_SY2_CLAMPED);
     }
     sxy2.y = clamped;
@@ -724,6 +726,18 @@ void GTE::set_ir3(int64_t value, bool lm) {
     set_ir3_without_clamping(clamped);
 }
 
+void GTE::set_ir3_special(int64_t value, int64_t definitely_shifted_value, bool lm) {
+    int32_t lower_dsv = static_cast<int32_t>(definitely_shifted_value);
+    int64_t clamped_dsv = clamp_to_16bit(lower_dsv, false);
+    if (clamped_dsv != lower_dsv) {
+        set_flag(GTE_FLAGS_IR3);
+    }
+
+    int32_t lower = static_cast<int32_t>(value);
+    int64_t clamped = clamp_to_16bit(lower, lm);
+    set_ir3_without_clamping(clamped);
+}
+
 void GTE::set_ir1_without_clamping(int64_t value) {
     ir1 = value;
     rgb = (rgb & 0xFFFFFFE0) | convert_16bit_to_5bit_color(value);
@@ -761,9 +775,10 @@ void GTE::set_otz(int64_t value) {
 }
 
 void GTE::set_sz3(int64_t value) {
-    int64_t clamped = std::min(static_cast<int64_t>(0xFFFF), value);
-    clamped = std::max(static_cast<int64_t>(0x0000), clamped);
-    if (clamped != value) {
+    int32_t lower = static_cast<int32_t>(value);
+    int32_t clamped = std::min(static_cast<int32_t>(0xFFFF), lower);
+    clamped = std::max(static_cast<int32_t>(0x0000), clamped);
+    if (clamped != lower) {
         set_flag(GTE_FLAGS_SZ3_OTZ_CLAMPED);
     }
     sz3 = clamped;
@@ -846,6 +861,27 @@ void GTE::set_mac3(int64_t value, uint8_t shift) {
     //}
     mac3 = static_cast<int32_t>(value >> shift);
     //mac3 = value;
+}
+
+int64_t GTE::sign_extend0(int64_t value) {
+    int64_t clamped = std::min(static_cast<int64_t>(0x7FFF'FFFF), value);
+    if (clamped != value) {
+        // positive 32bit overflow
+        set_flag(GTE_FLAGS_MAC0_POS_OVERFLOW);
+    }
+    int64_t temp = clamped;
+    clamped = std::max(-static_cast<int64_t>(0x8000'0000), clamped); // Minus has to be in front of the cast!
+    if (clamped != temp) {
+        // negative 32bit overflow
+        set_flag(GTE_FLAGS_MAC0_NEG_OVERFLOW);
+    }
+
+    if (value & 0x0000'0000'8000'0000) {
+        value |= 0xFFFF'FFFF'0000'0000;
+    } else {
+        value &= 0x0000'0000'7FFF'FFFF;
+    }
+    return value;
 }
 
 int64_t GTE::sign_extend1(int64_t value) {
@@ -945,20 +981,19 @@ void GTE::RTPS() {
     // Perspective Transformation (Single)
     LOGT_GTE(std::format("RTPS"));
 
-    set_mac1(((get_trx() << 12) + get_rt11() * get_vx0() + get_rt12() * get_vy0() + get_rt13() * get_vz0()) >> (sf * 12));
-    set_mac2(((get_try() << 12) + get_rt21() * get_vx0() + get_rt22() * get_vy0() + get_rt23() * get_vz0()) >> (sf * 12));
-    set_mac3(((get_trz() << 12) + get_rt31() * get_vx0() + get_rt32() * get_vy0() + get_rt33() * get_vz0()) >> (sf * 12));
-    set_ir1(get_mac1(), false);
-    set_ir2(get_mac2(), false);
-    set_ir3(get_mac3(), false);
+    set_mac1(sign_extend1(sign_extend1((get_trx() << 12) + get_rt11() * get_vx0()) + get_rt12() * get_vy0()) + get_rt13() * get_vz0(), sf * 12);
+    set_mac2(sign_extend2(sign_extend2((get_try() << 12) + get_rt21() * get_vx0()) + get_rt22() * get_vy0()) + get_rt23() * get_vz0(), sf * 12);
+    int64_t temp_mac3 = sign_extend3(sign_extend3((get_trz() << 12) + get_rt31() * get_vx0()) + get_rt32() * get_vy0()) + get_rt33() * get_vz0();
+    set_mac3(temp_mac3, sf * 12);
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3_special(get_mac3(), temp_mac3 >> 12, lm);
 
     push_sz_queue();
-    set_sz3(get_mac3() >> ((1 - sf) * 12));
+    set_sz3(temp_mac3 >> 12);
 
     push_sxy_queue();
-    //int64_t accurate_div_result = (sz3 <= h / 2) ? 0x1'FFFF : (((get_h() * 0x2'0000) / get_sz3()) + 1) / 2;
-    int64_t unr_div_result = static_cast<int64_t>(unr_division(h, sz3));
-    int64_t division = unr_div_result;
+    int64_t division = static_cast<int64_t>(unr_division(h, sz3));
 
     set_mac0(division * get_ir1() + get_ofx());
     set_sx2(get_mac0() >> 16);
@@ -973,20 +1008,19 @@ void GTE::RTPT() {
     LOGT_GTE(std::format("RTPT"));
 
     // V0
-    set_mac1(((get_trx() << 12) + get_rt11() * get_vx0() + get_rt12() * get_vy0() + get_rt13() * get_vz0()) >> (sf * 12));
-    set_mac2(((get_try() << 12) + get_rt21() * get_vx0() + get_rt22() * get_vy0() + get_rt23() * get_vz0()) >> (sf * 12));
-    set_mac3(((get_trz() << 12) + get_rt31() * get_vx0() + get_rt32() * get_vy0() + get_rt33() * get_vz0()) >> (sf * 12));
-    set_ir1(get_mac1(), false);
-    set_ir2(get_mac2(), false);
-    set_ir3(get_mac3(), false);
+    set_mac1(sign_extend1(sign_extend1((get_trx() << 12) + get_rt11() * get_vx0()) + get_rt12() * get_vy0()) + get_rt13() * get_vz0(), sf * 12);
+    set_mac2(sign_extend2(sign_extend2((get_try() << 12) + get_rt21() * get_vx0()) + get_rt22() * get_vy0()) + get_rt23() * get_vz0(), sf * 12);
+    int64_t temp_mac3 = sign_extend3(sign_extend3((get_trz() << 12) + get_rt31() * get_vx0()) + get_rt32() * get_vy0()) + get_rt33() * get_vz0();
+    set_mac3(temp_mac3, sf * 12);
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3_special(get_mac3(), temp_mac3 >> 12, lm);
 
     push_sz_queue();
-    set_sz3(get_mac3() >> ((1 - sf) * 12));
+    set_sz3(temp_mac3 >> 12);
 
     push_sxy_queue();
-    //int64_t accurate_div_result = (sz3 <= h / 2) ? 0x1'FFFF : (((get_h() * 0x2'0000) / get_sz3()) + 1) / 2;
-    int64_t unr_div_result = static_cast<int64_t>(unr_division(h, sz3));
-    int64_t division = unr_div_result;
+    int64_t division = static_cast<int64_t>(unr_division(h, sz3));
 
     set_mac0(division * get_ir1() + get_ofx());
     set_sx2(get_mac0() >> 16);
@@ -996,20 +1030,19 @@ void GTE::RTPT() {
     //set_ir0(get_mac0() >> 12);
 
     // V1
-    set_mac1(((get_trx() << 12) + get_rt11() * get_vx1() + get_rt12() * get_vy1() + get_rt13() * get_vz1()) >> (sf * 12));
-    set_mac2(((get_try() << 12) + get_rt21() * get_vx1() + get_rt22() * get_vy1() + get_rt23() * get_vz1()) >> (sf * 12));
-    set_mac3(((get_trz() << 12) + get_rt31() * get_vx1() + get_rt32() * get_vy1() + get_rt33() * get_vz1()) >> (sf * 12));
-    set_ir1(get_mac1(), false);
-    set_ir2(get_mac2(), false);
-    set_ir3(get_mac3(), false);
+    set_mac1(sign_extend1(sign_extend1((get_trx() << 12) + get_rt11() * get_vx1()) + get_rt12() * get_vy1()) + get_rt13() * get_vz1(), sf * 12);
+    set_mac2(sign_extend2(sign_extend2((get_try() << 12) + get_rt21() * get_vx1()) + get_rt22() * get_vy1()) + get_rt23() * get_vz1(), sf * 12);
+    temp_mac3 = sign_extend3(sign_extend3((get_trz() << 12) + get_rt31() * get_vx1()) + get_rt32() * get_vy1()) + get_rt33() * get_vz1();
+    set_mac3(temp_mac3, sf * 12);
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3_special(get_mac3(), temp_mac3 >> 12, lm);
 
     push_sz_queue();
-    set_sz3(get_mac3() >> ((1 - sf) * 12));
+    set_sz3(temp_mac3 >> 12);
 
     push_sxy_queue();
-    //accurate_div_result = (sz3 <= h / 2) ? 0x1'FFFF : (((get_h() * 0x2'0000) / get_sz3()) + 1) / 2;
-    unr_div_result = static_cast<int64_t>(unr_division(h, sz3));
-    division = unr_div_result;
+    division = static_cast<int64_t>(unr_division(h, sz3));
 
     set_mac0(division * get_ir1() + get_ofx());
     set_sx2(get_mac0() >> 16);
@@ -1019,20 +1052,19 @@ void GTE::RTPT() {
     //set_ir0(get_mac0() >> 12);
 
     // V2
-    set_mac1(((get_trx() << 12) + get_rt11() * get_vx2() + get_rt12() * get_vy2() + get_rt13() * get_vz2()) >> (sf * 12));
-    set_mac2(((get_try() << 12) + get_rt21() * get_vx2() + get_rt22() * get_vy2() + get_rt23() * get_vz2()) >> (sf * 12));
-    set_mac3(((get_trz() << 12) + get_rt31() * get_vx2() + get_rt32() * get_vy2() + get_rt33() * get_vz2()) >> (sf * 12));
-    set_ir1(get_mac1(), false);
-    set_ir2(get_mac2(), false);
-    set_ir3(get_mac3(), false);
+    set_mac1(sign_extend1(sign_extend1((get_trx() << 12) + get_rt11() * get_vx2()) + get_rt12() * get_vy2()) + get_rt13() * get_vz2(), sf * 12);
+    set_mac2(sign_extend2(sign_extend2((get_try() << 12) + get_rt21() * get_vx2()) + get_rt22() * get_vy2()) + get_rt23() * get_vz2(), sf * 12);
+    temp_mac3 = sign_extend3(sign_extend3((get_trz() << 12) + get_rt31() * get_vx2()) + get_rt32() * get_vy2()) + get_rt33() * get_vz2();
+    set_mac3(temp_mac3, sf * 12);
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3_special(get_mac3(), temp_mac3 >> 12, lm);
 
     push_sz_queue();
-    set_sz3(get_mac3() >> ((1 - sf) * 12));
+    set_sz3(temp_mac3 >> 12);
 
     push_sxy_queue();
-    //accurate_div_result = (sz3 <= h / 2) ? 0x1'FFFF : (((get_h() * 0x2'0000) / get_sz3()) + 1) / 2;
-    unr_div_result = static_cast<int64_t>(unr_division(h, sz3));
-    division = unr_div_result;
+    division = static_cast<int64_t>(unr_division(h, sz3));
 
     set_mac0(division * get_ir1() + get_ofx());
     set_sx2(get_mac0() >> 16);

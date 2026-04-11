@@ -193,6 +193,7 @@ private:
     void set_ir1(int64_t value, bool lm);
     void set_ir2(int64_t value, bool lm);
     void set_ir3(int64_t value, bool lm);
+    void set_ir3_special(int64_t value, int64_t definitely_shifted_value, bool lm);
     void set_ir1_without_clamping(int64_t value);
     void set_ir2_without_clamping(int64_t value);
     void set_ir3_without_clamping(int64_t value);
@@ -206,6 +207,7 @@ private:
     void set_mac2(int64_t value, uint8_t shift = 0);
     void set_mac3(int64_t value, uint8_t shift = 0);
 
+    int64_t sign_extend0(int64_t value);
     int64_t sign_extend1(int64_t value);
     int64_t sign_extend2(int64_t value);
     int64_t sign_extend3(int64_t value);
