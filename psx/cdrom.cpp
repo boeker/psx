@@ -142,6 +142,9 @@ CDROM::CDROM(Bus *bus)
     : bus(bus) {
 
     reset();
+    if (cd) {
+        cd->reset();
+    }
 }
 
 void CDROM::reset() {
@@ -173,6 +176,7 @@ void CDROM::reset() {
     asect = 0;
 
     dataQueueBytesRemaining = 0;
+    mode = 0;
 }
 
 void CDROM::setCD(std::unique_ptr<CD> cd) {
@@ -368,7 +372,9 @@ void CDROM::write(uint32_t address, uint8_t value) {
                 requestRegister = value;
                 if (Bit::getBit(value, CDROM_REQUEST_BFRD)) {
                     LOG_CDROM(prependState(std::format("Serving data queue", value)));
-                    dataQueueBytesRemaining = cd->getSectorSize();
+                    if (cd) {
+                        dataQueueBytesRemaining = cd->get_remaining_bytes_in_sector();
+                    }
                 } else {
                     LOG_CDROM(prependState(std::format("Resetting data queue", value)));
                     dataQueueBytesRemaining = 0;
@@ -533,7 +539,8 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
     if (wasInterrupt && !isInterrupt) {
         LOG_CDROM(prependState("ACK"));
         // Clear response queue
-        responseQueue.clear();
+        // TODO Do we have to clear this or is the user responsible for this?
+        //responseQueue.clear();
 
         if (pending && (secondResponse.interrupt == 0 || secondResponse.delivered)) {
             sendCommand();
@@ -843,9 +850,13 @@ void CDROM::Init() {
 }
 
 void CDROM::Setmode() {
-    uint8_t mode = parameterQueue.pop();
+    mode = parameterQueue.pop();
     LOG_CDROM(prependState(std::format("========> Setmode(0x{:02X}) <========", mode)));
-    // TODO Implement properly
+
+    if (cd) {
+        cd->set_read_whole_sector(mode & (1U << CDROM_MODE_SECTOR_SIZE));
+    }
+    // TODO Handle all bits
 
     firstResponse.interrupt = 3;
     firstResponse.setAndPush(driveState);

@@ -47,6 +47,8 @@ namespace PSX {
 #define CDROM_REQUEST_BFWR 6 // Unknown
 #define CDROM_REQUEST_SMEN 5 // Start interrupt (INT10) on next command
 
+#define CDROM_MODE_SECTOR_SIZE 5 // Sector Size (0 = 0x800, data only, 1 = 0x924, whole sector except sync bytes)
+
 class Queue {
 private:
     uint8_t queue[16];
@@ -153,6 +155,7 @@ private:
     uint8_t asect;
 
     uint8_t dataQueueBytesRemaining;
+    uint8_t mode;
 
 public:
     CDROM(Bus *bus);
