@@ -1145,16 +1145,16 @@ void GTE::MVMVA() {
 
     if (mvmva_translation_vector == 2) {
         // Bugged Computation
-        set_mac1(sign_extend1((tvx << 12) + m11 * vx), sf * 12);
-        set_mac2(sign_extend2((tvy << 12) + m21 * vx), sf * 12);
-        set_mac3(sign_extend3((tvz << 12) + m31 * vx), sf * 12);
+        set_mac1((tvx << 12) + m11 * vx, sf * 12);
+        set_mac2((tvy << 12) + m21 * vx, sf * 12);
+        set_mac3((tvz << 12) + m31 * vx, sf * 12);
         set_ir1(get_mac1(), false);
         set_ir2(get_mac2(), false);
         set_ir3(get_mac3(), false);
 
-        set_mac1(sign_extend1(m12 * vy + m13 * vz), sf * 12);
-        set_mac2(sign_extend2(m22 * vy + m23 * vz), sf * 12);
-        set_mac3(sign_extend3(m32 * vy + m33 * vz), sf * 12);
+        set_mac1(m12 * vy + m13 * vz, sf * 12);
+        set_mac2(m22 * vy + m23 * vz, sf * 12);
+        set_mac3(m32 * vy + m33 * vz, sf * 12);
         set_ir1(get_mac1(), lm);
         set_ir2(get_mac2(), lm);
         set_ir3(get_mac3(), lm);
