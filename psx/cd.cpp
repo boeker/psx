@@ -32,9 +32,10 @@ void CD::reset() {
 void CD::seekTo(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
     LOG_CDROM(std::format("Seek to 0x{:02X},0x{:02X},0x{:02X}", minutes, seconds, sectors));
 
-    this->minutes = minutes;
-    this->seconds = seconds;
-    this->sectors = sectors;
+    // The values are in binary coded decimal
+    this->minutes = (minutes >> 4) * 10 + (minutes & 0x0F);
+    this->seconds = (seconds >> 4) * 10 + (seconds & 0x0F);
+    this->sectors = (sectors >> 4) * 10 + (sectors & 0x0F);
     offset_in_sector = read_whole_sector ? CD_MODE2_SYNC_BYTES : CD_MODE2_DATA_OFFSET;
     seek_in_file();
 }
