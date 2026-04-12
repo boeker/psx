@@ -1080,8 +1080,32 @@ void GTE::MVMVA() {
 }
 
 void GTE::DCPL() {
-    LOG_GTE(std::format("Unimplemented command: DCPL"));
-    //TODO
+    // Depth Cue Color Light
+    LOGT_GTE(std::format("DCPL"));
+
+    int64_t temp1 = (get_r() * get_ir1()) << 4;
+    int64_t temp2 = (get_g() * get_ir2()) << 4;
+    int64_t temp3 = (get_b() * get_ir3()) << 4;
+
+    set_mac1(((get_rfc() << 12) - temp1), sf * 12);
+    set_mac2(((get_gfc() << 12) - temp2), sf * 12);
+    set_mac3(((get_bfc() << 12) - temp3), sf * 12);
+    set_ir1(get_mac1(), false);
+    set_ir2(get_mac2(), false);
+    set_ir3(get_mac3(), false);
+
+    set_mac1(temp1 + get_ir1() * get_ir0(), sf * 12);
+    set_mac2(temp2 + get_ir2() * get_ir0(), sf * 12);
+    set_mac3(temp3 + get_ir3() * get_ir0(), sf * 12);
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
+
+    push_color_queue();
+    set_r2(get_mac1() >> 4);
+    set_g2(get_mac2() >> 4);
+    set_b2(get_mac3() >> 4);
+    set_c2(get_c());
 }
 
 void GTE::DPCS() {
