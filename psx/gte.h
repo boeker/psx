@@ -235,6 +235,10 @@ private:
     int64_t get_b() const { return (rgbc >> 16) & 0xFF; }
     int64_t get_c() const { return (rgbc >> 24) & 0xFF; }
 
+    int64_t get_r0() const { return rgb0 & 0xFF; }
+    int64_t get_g0() const { return (rgb0 >> 8) & 0xFF; }
+    int64_t get_b0() const { return (rgb0 >> 16) & 0xFF; }
+
     int64_t get_sx0() const { return sxy0.x; }
     int64_t get_sy0() const { return sxy0.y; }
     int64_t get_sz0() const { return sz0; }
