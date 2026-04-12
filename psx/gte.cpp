@@ -83,42 +83,6 @@ const GTE::Opcode GTE::cp2[] = {
     &GTE::UNOFF,    &GTE::GPF,      &GTE::GPL,      &GTE::NCCT
 };
 
-//const GTE::Opcode GTE::cp2[] = {
-//    // 0b000000
-//    &GTE::UNOFF,    &GTE::RTPS,     &GTE::UNOFF,    &GTE::UNOFF,
-//    // 0b000100
-//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
-//    // 0b001000
-//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
-//    // 0b001100
-//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
-//    // 0b010000
-//    &GTE::DPCS,     &GTE::INTPL,    &GTE::MVMVA,    &GTE::UNOFF,
-//    // 0b010100
-//    &GTE::CDP,      &GTE::UNOFF,    &GTE::NCDT,     &GTE::UNOFF,
-//    // 0b011000
-//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::NCCS,
-//    // 0b011100
-//    &GTE::CC,       &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
-//    // 0b100000
-//    &GTE::NCT,      &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
-//    // 0b100100
-//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
-//    // 0b101000
-//    &GTE::UNOFF,    &GTE::DCPL,     &GTE::DPCT,     &GTE::UNOFF,
-//    // 0b101100
-//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
-//    // 0b110000
-//    &GTE::RTPT,     &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
-//    // 0b110100
-//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
-//    // 0b111000
-//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,
-//    // 0b111100
-//    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::UNOFF,    &GTE::NCCT
-//};
-
-
 std::string GTE::getRegisterName(uint8_t reg) {
     return REGISTER_NAMES[reg];
 }
@@ -1075,8 +1039,134 @@ void GTE::RTPT() {
 }
 
 void GTE::MVMVA() {
-    LOG_GTE(std::format("Unimplemented command: MVMVA"));
-    //TODO
+    LOGT_GTE(std::format("MVMVA"));
+
+    int64_t m11, m12, m13, m21, m22, m23, m31, m32, m33;
+    uint8_t mvmva_matrix = (instruction >> 17) & 0x3; // 0 = Rotation, 1 = Light, 2 = Color, 3 = Reserved
+    switch (mvmva_matrix) {
+        case 0:
+            m11 = get_rt11();
+            m12 = get_rt12();
+            m13 = get_rt13();
+            m21 = get_rt21();
+            m22 = get_rt22();
+            m23 = get_rt23();
+            m31 = get_rt31();
+            m32 = get_rt32();
+            m33 = get_rt33();
+            break;
+        case 1:
+            m11 = get_l11();
+            m12 = get_l12();
+            m13 = get_l13();
+            m21 = get_l21();
+            m22 = get_l22();
+            m23 = get_l23();
+            m31 = get_l31();
+            m32 = get_l32();
+            m33 = get_l33();
+            break;
+        case 2:
+            m11 = get_lr1();
+            m12 = get_lr2();
+            m13 = get_lr3();
+            m21 = get_lg1();
+            m22 = get_lg2();
+            m23 = get_lg3();
+            m31 = get_lb1();
+            m32 = get_lb2();
+            m33 = get_lb3();
+            break;
+        default: {
+            // Garbage Matrix
+            uint8_t r = get_r();
+            m11 = -r * 0x10;
+            m12 = r * 0x10;
+            m13 = get_ir0();
+            m21 = get_rt13();
+            m22 = get_rt13();
+            m23 = get_rt13();
+            m31 = get_rt22();
+            m32 = get_rt22();
+            m33 = get_rt22();
+            break;
+         }
+    }
+
+    int64_t vx, vy, vz;
+    uint8_t mvmva_vector = (instruction >> 15) & 0x3; // 0 = V0, 1 = V1, 2 = V2, 3 = IR
+    switch (mvmva_vector) {
+        case 0:
+            vx = get_vx0();
+            vy = get_vy0();
+            vz = get_vz0();
+            break;
+        case 1:
+            vx = get_vx1();
+            vy = get_vy1();
+            vz = get_vz1();
+            break;
+        case 2:
+            vx = get_vx2();
+            vy = get_vy2();
+            vz = get_vz2();
+            break;
+        default:
+            vx = get_ir1();
+            vy = get_ir2();
+            vz = get_ir3();
+            break;
+    }
+
+    int64_t tvx, tvy, tvz;
+    uint8_t mvmva_translation_vector = (instruction >> 13) & 0x3; // 0 = TR, 1 = BK, 2 = FC (Bugged!), 3 = None
+    switch (mvmva_translation_vector) {
+        case 0:
+            tvx = get_trx();
+            tvy = get_try();
+            tvz = get_trz();
+            break;
+        case 1:
+            tvx = get_rbk();
+            tvy = get_gbk();
+            tvz = get_bbk();
+            break;
+        case 2:
+            tvx = get_rfc();
+            tvy = get_gfc();
+            tvz = get_bfc();
+            break;
+        default:
+            tvx = 0;
+            tvy = 0;
+            tvz = 0;
+            break;
+    }
+
+    if (mvmva_translation_vector == 2) {
+        // Bugged Computation
+        set_mac1(sign_extend1((tvx << 12) + m11 * vx), sf * 12);
+        set_mac2(sign_extend2((tvy << 12) + m21 * vx), sf * 12);
+        set_mac3(sign_extend3((tvz << 12) + m31 * vx), sf * 12);
+        set_ir1(get_mac1(), false);
+        set_ir2(get_mac2(), false);
+        set_ir3(get_mac3(), false);
+
+        set_mac1(sign_extend1(m12 * vy + m13 * vz), sf * 12);
+        set_mac2(sign_extend2(m22 * vy + m23 * vz), sf * 12);
+        set_mac3(sign_extend3(m32 * vy + m33 * vz), sf * 12);
+        set_ir1(get_mac1(), lm);
+        set_ir2(get_mac2(), lm);
+        set_ir3(get_mac3(), lm);
+
+    } else {
+        set_mac1(sign_extend1(sign_extend1((tvx << 12) + m11 * vx) + m12 * vy) + m13 * vz, sf * 12);
+        set_mac2(sign_extend2(sign_extend2((tvy << 12) + m21 * vx) + m22 * vy) + m23 * vz, sf * 12);
+        set_mac3(sign_extend3(sign_extend3((tvz << 12) + m31 * vx) + m32 * vy) + m33 * vz, sf * 12);
+        set_ir1(get_mac1(), lm);
+        set_ir2(get_mac2(), lm);
+        set_ir3(get_mac3(), lm);
+    }
 }
 
 void GTE::DCPL() {
@@ -1740,7 +1830,7 @@ void GTE::GPF() {
 }
 
 void GTE::GPL() {
-    LOG_GTE(std::format("GPL"));
+    LOGT_GTE(std::format("GPL"));
 
     set_mac1(((get_mac1() << (sf * 12)) + get_ir1() * get_ir0()), sf * 12);
     set_mac2(((get_mac2() << (sf * 12)) + get_ir2() * get_ir0()), sf * 12);
