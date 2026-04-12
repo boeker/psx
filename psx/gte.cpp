@@ -1519,8 +1519,28 @@ void GTE::CDP() {
 }
 
 void GTE::CC() {
-    LOG_GTE(std::format("Unimplemented command: CC"));
-    //TODO
+    // Color Color
+    LOGT_GTE(std::format("CC"));
+
+    set_mac1(sign_extend1(sign_extend1((get_rbk() << 12) + get_lr1() * get_ir1()) + get_lr2() * get_ir2()) + get_lr3() * get_ir3(), sf * 12);
+    set_mac2(sign_extend2(sign_extend2((get_gbk() << 12) + get_lg1() * get_ir1()) + get_lg2() * get_ir2()) + get_lg3() * get_ir3(), sf * 12);
+    set_mac3(sign_extend3(sign_extend3((get_bbk() << 12) + get_lb1() * get_ir1()) + get_lb2() * get_ir2()) + get_lb3() * get_ir3(), sf * 12);
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
+
+    set_mac1((get_r() * get_ir1()) << 4, sf * 12);
+    set_mac2((get_g() * get_ir2()) << 4, sf * 12);
+    set_mac3((get_b() * get_ir3()) << 4, sf * 12);
+    set_ir1(get_mac1(), lm);
+    set_ir2(get_mac2(), lm);
+    set_ir3(get_mac3(), lm);
+
+    push_color_queue();
+    set_r2(get_mac1() >> 4);
+    set_g2(get_mac2() >> 4);
+    set_b2(get_mac3() >> 4);
+    set_c2(get_c());
 }
 
 void GTE::NCLIP() {
