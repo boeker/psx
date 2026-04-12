@@ -210,6 +210,8 @@ private:
     void GP0ClearCache();
     // 0x02
     void GP0FillRectangleInVRAM();
+    // 0x20
+    void GP0MonochromeThreePointPolygonOpaque();
     // 0x28
     void GP0MonochromeFourPointPolygonOpaque();
     // 0x2C

@@ -526,7 +526,8 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x20
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0MonochromeThreePointPolygonOpaque,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x28
     &GPU::GP0MonochromeFourPointPolygonOpaque,
@@ -632,7 +633,7 @@ const uint8_t GPU::gp0ParameterNumbers[] = {
     // 0x10
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x20
-    0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 8, 8, 0, 8,
+    3, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 8, 8, 0, 8,
     // 0x30
     5, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0,
     // 0x40
@@ -692,6 +693,22 @@ void GPU::GP0FillRectangleInVRAM() {
                          c, topLeftX, topLeftY, width, height));
 
     renderer->fillRectangleInVRAM(c, topLeftX, topLeftY, width, height);
+}
+
+void GPU::GP0MonochromeThreePointPolygonOpaque() {
+    // 0x20
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[1]);
+    Vertex v3(gp0Parameters[2]);
+
+    LOGT_GPU(std::format("GP0 - MonochromeThreePointPolygonOpaque({}, {}, {}, {})",
+                         c, v1, v2, v3));
+
+    Triangle t(v1, c, v2, c, v3, c);
+
+    renderer->drawTriangle(t);
 }
 
 void GPU::GP0MonochromeFourPointPolygonOpaque() {
