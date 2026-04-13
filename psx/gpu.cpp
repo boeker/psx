@@ -531,7 +531,8 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x28
     &GPU::GP0MonochromeFourPointPolygonOpaque,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0MonochromeFourPointPolygonOpaque,
+    &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x2C
     &GPU::GP0TexturedFourPointPolygonOpaqueTextureBlending,
     // 0x2D
@@ -558,7 +559,8 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x60
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown,
+    // 0x64
+    &GPU::GP0TexturedRectangleVariableSizeOpaqueTextureBlending,
     // 0x65
     &GPU::GP0TexturedRectangleVariableSizeOpaqueRawTexture,
     &GPU::GP0Unknown, &GPU::GP0Unknown,
@@ -572,7 +574,8 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x80
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0CopyRectangle,
+    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
@@ -633,7 +636,7 @@ const uint8_t GPU::gp0ParameterNumbers[] = {
     // 0x10
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x20
-    3, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 8, 8, 0, 8,
+    3, 0, 0, 0, 0, 0, 0, 0, 4, 4, 0, 0, 8, 8, 0, 8,
     // 0x30
     5, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0,
     // 0x40
@@ -641,11 +644,11 @@ const uint8_t GPU::gp0ParameterNumbers[] = {
     // 0x50
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x60
-    0, 0, 0, 0, 0, 3, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 3, 3, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
     // 0x70
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x80
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x90
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0xA0
@@ -853,6 +856,37 @@ void GPU::GP0ShadedFourPointPolygonOpaque() {
     renderer->drawTriangle(t2);
 }
 
+void GPU::GP0TexturedRectangleVariableSizeOpaqueTextureBlending() {
+    // 0x64
+    // TODO texture blending
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]); // upper left edge
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t width = gp0Parameters[2] >> 16;
+    uint16_t height = gp0Parameters[2] & 0xFFFF;
+
+    LOGT_GPU(std::format("GP0 - TexturedRectangleVariableSizeOpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+                         c, v1, tc1, palette, width, height));
+
+    Vertex v2(v1.x + width, v1.y);
+    Vertex v3(v1.x, v1.y + height);
+    Vertex v4(v1.x + width, v1.y + height);
+
+    // TODO Handle texture coordinates larger than 255 (repeat instead of stretch)
+    TextureCoordinate tc2(tc1.x + width, tc1.y);
+    TextureCoordinate tc3(tc1.x, tc1.y + height);
+    TextureCoordinate tc4(tc1.x + width, tc1.y + height);
+
+    uint16_t texpage = gpuStatusRegister & 0x09FF; // Bits 0 to 8 and 11
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
 void GPU::GP0TexturedRectangleVariableSizeOpaqueRawTexture() {
     // 0x65
     Color c(gp0);
@@ -900,6 +934,33 @@ void GPU::GP0MonochromeRectangleDotOpaque() {
 
     renderer->drawTriangle(t);
     renderer->drawTriangle(t2);
+}
+
+void GPU::GP0CopyRectangle() {
+    // 0x80
+    uint32_t sourceCoord = gp0Parameters[0];
+    uint32_t destinationCoord = gp0Parameters[1];
+    uint32_t widthAndHeight = gp0Parameters[2];
+
+    uint32_t sourceX = sourceCoord & 0x0000FFFF;
+    uint32_t sourceY = sourceCoord >> 16;
+
+    uint32_t destinationX = destinationCoord & 0x0000FFFF;
+    uint32_t destinationY = destinationCoord >> 16;
+
+    // counted in half words
+    uint32_t sizeX = widthAndHeight & 0x0000FFFF;
+    uint32_t sizeY = widthAndHeight >> 16;
+
+    LOGT_GPU(std::format("GP0 - CopyRectangle({:d}, {:d}, {:d}, {:d}, {:d}x{:d})",
+                          sourceX, sourceY, destinationX, destinationY, destinationSizeX, destinationSizeY));
+
+    // TODO respect mask
+    for (uint32_t x = 0; x < sizeX; ++x) {
+        for (uint32_t y = 0; y < sizeY; ++y) {
+            renderer->writeToVRAM(destinationX + x, destinationY + y, renderer->readFromVRAM(sourceX + x, sourceY + y));
+        }
+    }
 }
 
 
