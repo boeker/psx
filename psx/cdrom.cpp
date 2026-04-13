@@ -566,12 +566,14 @@ const CDROM::Command CDROM::commands[] = {
     &CDROM::Pause, // 0x09
     &CDROM::Init, // 0x0A
     &CDROM::Unknown,
-    &CDROM::Unknown, &CDROM::Unknown,
+    &CDROM::Demute, // 0x0C
+    &CDROM::Unknown,
     &CDROM::Setmode, //0x0E
     &CDROM::Unknown,
     // 0x10
-    &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
-    &CDROM::Unknown,
+    &CDROM::Unknown, &CDROM::Unknown, &CDROM::Unknown,
+    &CDROM::GetTN, // 0x13
+    &CDROM::GetTD, // 0x14
     &CDROM::SeekL, // 0x15
     &CDROM::Unknown, &CDROM::Unknown,
     &CDROM::Unknown,
@@ -849,6 +851,15 @@ void CDROM::Init() {
     secondResponse.setAndPush(MOTOR_ON); // Not reading anymore
 }
 
+void CDROM::Demute() {
+    LOG_CDROM(prependState(std::format("========> Demute() <========")));
+
+    // TODO Do something?
+
+    firstResponse.interrupt = 3;
+    firstResponse.setAndPush(driveState);
+}
+
 void CDROM::Setmode() {
     mode = parameterQueue.pop();
     LOG_CDROM(prependState(std::format("========> Setmode(0x{:02X}) <========", mode)));
@@ -860,6 +871,35 @@ void CDROM::Setmode() {
 
     firstResponse.interrupt = 3;
     firstResponse.setAndPush(driveState);
+}
+
+void CDROM::GetTN() {
+    LOG_CDROM(prependState(std::format("========> GetTN() <========")));
+
+    if (!cd) {
+        firstResponse.setNoDisc();
+        return;
+    }
+
+    firstResponse.interrupt = 3;
+    firstResponse.setAndPush(driveState);
+    firstResponse.queue.push(0x01); // first TODO do not use hardcoded value
+    firstResponse.queue.push(0x01); // last TODO do not use hardcoded value
+}
+
+void CDROM::GetTD() {
+    uint8_t track = parameterQueue.pop();
+    LOG_CDROM(prependState(std::format("========> GetTD(0x{:02X}) <========", track)));
+
+    if (!cd) {
+        firstResponse.setNoDisc();
+        return;
+    }
+
+    firstResponse.interrupt = 3;
+    firstResponse.setAndPush(driveState);
+    firstResponse.queue.push(0x00); // first TODO do not use hardcoded value
+    firstResponse.queue.push(0x00); // last TODO do not use hardcoded value
 }
 
 void CDROM::SeekL() {

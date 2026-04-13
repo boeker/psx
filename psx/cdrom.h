@@ -198,8 +198,14 @@ private:
     void Pause();
     // 0x0A
     void Init();
+    // 0x0C
+    void Demute();
     // 0x0E
     void Setmode();
+    // 0x13
+    void GetTN();
+    // 0x14
+    void GetTD();
     // 0x15
     void SeekL();
     // 0x19
