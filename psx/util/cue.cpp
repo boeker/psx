@@ -1,5 +1,8 @@
 #include "cue.h"
 
+#include <format>
+#include <iomanip>
+
 namespace util {
 
 namespace cue {
@@ -70,13 +73,21 @@ Sheet Parser::parse() {
 }
 
 void Parser::read_line() {
-    if (!std::getline(file, line)) {
-        if (file.bad()) {
-            throw exceptions::FileReadError("I/O error while reading \"" + filename + "\"");
+    while (true) {
+        line.clear();
+        if (!std::getline(file, line)) {
+            if (file.bad()) {
+                throw exceptions::FileReadError("I/O error while reading \"" + filename + "\"");
+            }
+        }
+        ++line_num;
+
+        if (!std::all_of(line.begin(), line.end(), isspace) || file.eof()) {
+            break;
         }
     }
-    ++line_num;
     line_stream.str(line);
+    command.clear();
     line_stream >> command;
 }
 

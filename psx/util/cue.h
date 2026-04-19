@@ -2,9 +2,7 @@
 #define UTIL_CUE_H
 
 #include <cstdint>
-#include <format>
 #include <fstream>
-#include <iomanip>
 #include <string>
 #include <sstream>
 #include <vector>
