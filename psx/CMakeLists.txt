@@ -31,6 +31,7 @@ target_sources(psx PRIVATE
     spu.cpp
     timers.cpp
     util/disassembler.cpp
+    util/cue.cpp
     util/log.cpp
 )
 
