@@ -2,8 +2,11 @@
 #define PSX_CD_H
 
 #include <cstdint>
+#include <memory>
 #include <fstream>
 #include <string>
+
+#include "util/cue.h"
 
 #define CD_MODE2_SYNC_BYTES 0xC
 #define CD_MODE2_HEADER 0x4
@@ -15,11 +18,23 @@
 
 namespace PSX {
 
+
 class CD {
 private:
+    using Index = util::cue::Index;
+    using Mode = util::cue::Track::Mode;
+
+    struct Track {
+        std::shared_ptr<std::ifstream> file;
+
+        Mode mode;
+        std::vector<Index> indexes;
+    };
+
+    std::vector<Track> tracks; // Index is track number - 1
+
     static const uint32_t SECTOR_SIZE = 2352; // 0x930
 
-    std::ifstream image;
     bool read_whole_sector;
     uint8_t minutes;
     uint8_t seconds;
@@ -38,6 +53,8 @@ public:
     uint32_t get_remaining_bytes_in_sector() const;
 
 private:
+    void parse_cue_sheet(const std::string &filename);
+
     void seek_to_next_sector();
     void seek_in_file();
 };
