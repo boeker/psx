@@ -126,8 +126,9 @@ void CD::seek_to_dec(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
 }
 
 void CD::seek_to_next_sector() {
-    LOG_CDROM(std::format("Seek to next sector"));
+    LOG_CDROM(std::format("Seek to next sector from {}", current_position));
     seek_by(0, 0, 1);
+    LOG_CDROM(std::format("At {} now", current_position));
 }
 
 bool CD::at_end_of_disc() const {
@@ -135,6 +136,7 @@ bool CD::at_end_of_disc() const {
 }
 
 bool CD::read_sector_into_buffer() {
+    LOG_CDROM(std::format("Reading sector into buffer"));
     current_file->stream.read(reinterpret_cast<char*>(sector_buffer), SECTOR_SIZE);
     return !current_file->stream.eof();
 }

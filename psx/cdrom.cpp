@@ -175,8 +175,10 @@ void CDROM::reset() {
     ass = 0;
     asect = 0;
 
-    dataQueueBytesRemaining = 0;
     mode = 0;
+    sector_buffer = std::span<const uint8_t>();
+    sector_offset = 0;
+    sector_end = 0;
 }
 
 void CDROM::setCD(std::unique_ptr<CD> cd) {
@@ -373,11 +375,14 @@ void CDROM::write(uint32_t address, uint8_t value) {
                 if (Bit::getBit(value, CDROM_REQUEST_BFRD)) {
                     LOG_CDROM(prependState(std::format("Serving data queue", value)));
                     if (cd) {
-                        dataQueueBytesRemaining = cd->get_remaining_bytes_in_sector();
+                        sector_buffer = cd->get_sector_buffer();
+                        bool large_sector_size = mode & (1U << CDROM_MODE_SECTOR_SIZE);
+                        sector_offset = large_sector_size ? CD_MODE2_SYNC_BYTES : CD_MODE2_DATA_OFFSET;
+                        sector_end = large_sector_size ? CD::SECTOR_SIZE : (CD::SECTOR_SIZE - 0x118);
                     }
                 } else {
                     LOG_CDROM(prependState(std::format("Resetting data queue", value)));
-                    dataQueueBytesRemaining = 0;
+                    sector_buffer = std::span<const uint8_t>();
                 }
                 break;
             case 1: // Interrupt Flag Register
@@ -451,12 +456,11 @@ uint8_t CDROM::read(uint32_t address) {
             case 1: // Mirror of data queue
             case 2: // Mirror of data queue
             case 3: // Mirror of data queue
-                if (dataQueueBytesRemaining > 0) {
-                    value = cd->readByte();
+                if (has_data()) {
+                    value = read_byte();
                 } else {
                     LOG_CDROM("Read from empty data queue");
                 }
-                --dataQueueBytesRemaining;
                 LOGT_CDROM(std::format("data queue -> 0x{:02X}", value));
                 break;
             default:
@@ -496,7 +500,7 @@ uint8_t CDROM::getIndex() const {
 
 void CDROM::updateStatusRegister() {
     Bit::clearBit(statusRegister, CDROM_STATUS_BUSYSTS);
-    Bit::setBit(statusRegister, CDROM_STATUS_DRQSTS, dataQueueBytesRemaining > 0);
+    Bit::setBit(statusRegister, CDROM_STATUS_DRQSTS, has_data());
     Bit::setBit(statusRegister, CDROM_STATUS_RSLRRDY, !responseQueue.isEmpty());
     Bit::setBit(statusRegister, CDROM_STATUS_PRMWRDY, !parameterQueue.isFull());
     Bit::setBit(statusRegister, CDROM_STATUS_PRMEMPT, parameterQueue.isEmpty());
@@ -551,6 +555,20 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
             }
         }
     }
+}
+
+bool CDROM::has_data() {
+    return !sector_buffer.empty() && sector_offset < sector_end;
+}
+
+uint8_t CDROM::read_byte() {
+    return sector_buffer[sector_offset++];
+}
+
+uint32_t CDROM::read_word() {
+    uint32_t value = *(reinterpret_cast<const uint32_t*>(&sector_buffer[sector_offset]));
+    sector_offset += 4;
+    return value;
 }
 
 const CDROM::Command CDROM::commands[] = {
@@ -800,6 +818,9 @@ void CDROM::ReadN() {
         return;
     }
 
+    cd->read_sector_into_buffer();
+    cd->seek_to_next_sector();
+
     firstResponse.interrupt = 3;
     firstResponse.setAndPush(READING);
 
@@ -864,9 +885,6 @@ void CDROM::Setmode() {
     mode = parameterQueue.pop();
     LOG_CDROM(prependState(std::format("========> Setmode(0x{:02X}) <========", mode)));
 
-    if (cd) {
-        cd->set_read_whole_sector(mode & (1U << CDROM_MODE_SECTOR_SIZE));
-    }
     // TODO Handle all bits
 
     firstResponse.interrupt = 3;
@@ -910,7 +928,7 @@ void CDROM::SeekL() {
         return;
     }
 
-    cd->seekTo(amm, ass, asect);
+    cd->seek_to_bcd(amm, ass, asect);
 
     firstResponse.interrupt = 3;
     firstResponse.setAndPush(SEEKING);

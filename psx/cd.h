@@ -21,6 +21,9 @@
 namespace PSX {
 
 class CD {
+public:
+static const uint32_t SECTOR_SIZE = 2352; // 0x930
+
 private:
     using Index = util::cue::Index;
     using NumberedIndex = util::cue::NumberedIndex;
@@ -38,7 +41,6 @@ private:
     Index current_position;
     Index current_position_in_file;
 
-    static const uint32_t SECTOR_SIZE = 2352; // 0x930
     uint8_t sector_buffer[SECTOR_SIZE];
 
     // Legacy

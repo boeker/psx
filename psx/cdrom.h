@@ -5,6 +5,7 @@
 #include <deque>
 #include <memory>
 #include <ostream>
+#include <span>
 
 namespace PSX {
 
@@ -154,8 +155,10 @@ private:
     uint8_t ass;
     uint8_t asect;
 
-    uint8_t dataQueueBytesRemaining;
     uint8_t mode;
+    std::span<const uint8_t> sector_buffer;
+    uint32_t sector_offset;
+    uint32_t sector_end;
 
 public:
     CDROM(Bus *bus);
@@ -179,6 +182,10 @@ public:
     uint8_t getIndex() const;
     void updateStatusRegister();
     void updateInterruptFlagRegister(uint8_t value);
+
+    bool has_data();
+    uint8_t read_byte();
+    uint32_t read_word();
 
 private:
     // Command table and implementations
