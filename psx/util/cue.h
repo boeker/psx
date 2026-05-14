@@ -14,6 +14,35 @@ namespace util {
 namespace cue {
 
 struct Index {
+    uint32_t minutes;
+    uint32_t seconds;
+    uint32_t sectors;
+
+    Index();
+    Index(uint32_t minutes, uint32_t seconds, uint32_t sectors);
+    void reset();
+
+    friend bool operator==(const Index &l, const Index &r);
+    friend bool operator!=(const Index &l, const Index &r);
+    friend bool operator<(const Index &l, const Index &r);
+    friend bool operator<=(const Index &l, const Index &r);
+    friend bool operator>(const Index &l, const Index &r);
+    friend bool operator>=(const Index &l, const Index &r);
+
+    Index& operator++();
+
+    Index& operator+=(const Index& rhs);
+    friend Index operator+(Index lhs, const Index& rhs);
+
+    Index& operator-=(const Index& rhs);
+    friend Index operator-(Index lhs, const Index& rhs);
+
+private:
+    void handle_overflows();
+    std::tuple<uint32_t, uint32_t, uint32_t> tie() const;
+};
+
+struct NumberedIndex {
     static constexpr std::string COMMAND = "INDEX";
 
     uint32_t number;
@@ -24,21 +53,25 @@ struct Index {
 
 struct Track {
     static constexpr std::string COMMAND = "TRACK";
-    enum Mode {
+    enum class Mode {
         AUDIO,
         MODE2_2352
     };
+    static constexpr const char* MODE_STRINGS[] = { "AUDIO", "MODE2/2352" };
+    static const char* mode_to_string(Mode mode) { return MODE_STRINGS[(int)mode]; }
 
     uint32_t number;
     Mode mode;
-    std::vector<Index> indexes;
+    std::vector<NumberedIndex> indexes;
 };
 
 struct File {
     static constexpr std::string COMMAND = "FILE";
-    enum Type {
+    enum class Type {
         BINARY
     };
+    static constexpr const char* TYPE_STRINGS[] = { "BINARY" };
+    static const char* type_to_string(Type type) { return TYPE_STRINGS[(int)type]; }
 
     std::string filename;
     Type type;
@@ -49,7 +82,7 @@ struct Sheet {
     std::vector<File> files;
 };
 
-std::ostream& operator<<(std::ostream &os, const Index &index);
+std::ostream& operator<<(std::ostream &os, const NumberedIndex &index);
 std::ostream& operator<<(std::ostream &os, const Track &track);
 std::ostream& operator<<(std::ostream &os, const File &file);
 std::ostream& operator<<(std::ostream &os, const Sheet &sheet);
@@ -64,10 +97,12 @@ private:
     uint32_t line_num;
 
 public:
+    static Sheet parse(const std::string &filename);
+
+private:
     Parser(const std::string &filename);
     Sheet parse();
 
-private:
     void read_line();
     bool eof();
     void assert_command(const std::string& expected);
@@ -79,7 +114,7 @@ private:
 
 template<> File Parser::parse_command<File>();
 template<> Track Parser::parse_command<Track>();
-template<> Index Parser::parse_command<Index>();
+template<> NumberedIndex Parser::parse_command<NumberedIndex>();
 
 }
 

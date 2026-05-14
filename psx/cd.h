@@ -4,7 +4,9 @@
 #include <cstdint>
 #include <memory>
 #include <fstream>
+#include <span>
 #include <string>
+#include <tuple>
 
 #include "util/cue.h"
 
@@ -18,23 +20,25 @@
 
 namespace PSX {
 
-
 class CD {
 private:
     using Index = util::cue::Index;
-    using Mode = util::cue::Track::Mode;
-
-    struct Track {
-        std::shared_ptr<std::ifstream> file;
-
-        Mode mode;
-        std::vector<Index> indexes;
+    using Track = util::cue::Track;
+    struct File {
+        std::ifstream stream;
+        // Type implicitly is BINARY
+        std::vector<Track> tracks;
     };
 
-    std::vector<Track> tracks; // Index is track number - 1
+    std::vector<File> files;
+    std::vector<File>::iterator current_file;
+    Index current_position;
+    Index current_position_in_track;
 
     static const uint32_t SECTOR_SIZE = 2352; // 0x930
+    uint8_t sector_buffer[SECTOR_SIZE];
 
+    // Legacy
     bool read_whole_sector;
     uint8_t minutes;
     uint8_t seconds;
@@ -43,19 +47,31 @@ private:
 
 public:
     CD(const std::string &filename);
+    void open_cue_sheet(const std::string &filename);
     void reset();
+
+    void seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors);
+    void seek_to_dec(uint8_t minutes, uint8_t seconds, uint8_t sectors);
+    void seek_to_next_sector();
+    bool at_end_of_disc() const;
+    bool read_sector_into_buffer();
+    std::span<uint8_t> get_sector_buffer();
+
+private:
+    void seek_to(uint8_t minutes, uint8_t seconds, uint8_t sectors);
+    void seek_by(uint8_t minutes, uint8_t seconds, uint8_t sectors);
+
+public:
+    // Legacy TODO: Remove
+    void set_read_whole_sector(bool read_whole_sector);
+    uint32_t get_remaining_bytes_in_sector() const;
 
     void seekTo(uint8_t minutes, uint8_t seconds, uint8_t sectors);
     uint8_t readByte();
     uint32_t readWord();
 
-    void set_read_whole_sector(bool read_whole_sector);
-    uint32_t get_remaining_bytes_in_sector() const;
-
 private:
-    void parse_cue_sheet(const std::string &filename);
-
-    void seek_to_next_sector();
+    void leg_seek_to_next_sector();
     void seek_in_file();
 };
 

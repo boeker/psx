@@ -7,7 +7,112 @@ namespace util {
 
 namespace cue {
 
-std::ostream& operator<<(std::ostream &os, const Index &index) {
+Index::Index()
+    : minutes(0),
+      seconds(0),
+      sectors(0) {
+}
+
+Index::Index(uint32_t minutes, uint32_t seconds, uint32_t sectors)
+    : minutes(minutes),
+      seconds(seconds),
+      sectors(sectors) {
+}
+
+void Index::reset() {
+    minutes = 0;
+    seconds = 0;
+    sectors = 0;
+}
+
+bool operator==(const Index &l, const Index &r) {
+    return (l.minutes == r.minutes)
+           && (l.seconds == r.seconds)
+           && (l.sectors == r.sectors);
+}
+
+bool operator!=(const Index &l, const Index &r) {
+    return !(l == r);
+}
+
+bool operator<(const Index &l, const Index &r) {
+    return l.tie() < r.tie();
+}
+
+bool operator<=(const Index &l, const Index &r) {
+    return l.tie() <= r.tie();
+}
+
+bool operator>(const Index &l, const Index &r) {
+    return l.tie() > r.tie();
+}
+
+bool operator>=(const Index &l, const Index &r) {
+    return l.tie() >= r.tie();
+}
+
+Index& Index::operator++() {
+    ++sectors;
+    handle_overflows();
+    return *this;
+}
+
+Index& Index::operator+=(const Index& rhs) {
+    minutes += rhs.minutes;
+    seconds += rhs.seconds;
+    sectors += rhs.sectors;
+    handle_overflows();
+    return *this;
+}
+
+Index operator+(Index lhs, const Index& rhs) {
+    lhs += rhs;
+    return lhs;
+}
+
+Index& Index::operator-=(const Index& rhs) {
+    if (minutes < rhs.minutes) {
+        minutes = 0;
+        seconds = 0;
+        sectors = 0;
+        return *this;
+    }
+    minutes -= rhs.minutes;
+
+    if (seconds < rhs.seconds) {
+        seconds = 0;
+        sectors = 0;
+        return *this;
+    }
+    seconds -= rhs.seconds;
+
+    if (sectors < rhs.sectors) {
+        sectors = 0;
+        return *this;
+    }
+    sectors -= rhs.sectors;
+
+    return *this;
+}
+
+Index operator-(Index lhs, const Index& rhs) {
+    lhs -= rhs;
+    return lhs;
+}
+
+std::tuple<uint32_t, uint32_t, uint32_t> Index::tie() const {
+    return std::tie(minutes, seconds, sectors);
+}
+
+void Index::handle_overflows() {
+    seconds += sectors / 75;
+    sectors = sectors % 75;
+
+    minutes += seconds / 60;
+    seconds = seconds % 60;
+}
+
+std::ostream& operator<<(std::ostream &os, const NumberedIndex &index) {
     return os << std::format("    INDEX {:02d} {:02d}:{:02d}:{:02d}",
                              index.number, index.minute, index.second, index.sector);
 }
@@ -17,7 +122,7 @@ std::ostream& operator<<(std::ostream &os, const Track &track) {
                       track.number, track.mode == Track::Mode::AUDIO ? "AUDIO" : "MODE2/2352");
     os << std::endl;
     bool first = true;
-    for (const Index &index : track.indexes) {
+    for (const NumberedIndex &index : track.indexes) {
         if (first) {
             first = false;
         } else {
@@ -54,6 +159,11 @@ std::ostream& operator<<(std::ostream &os, const Sheet &sheet) {
         os << file;
     }
     return os;
+}
+
+Sheet Parser::parse(const std::string &filename) {
+    Parser parser(filename);
+    return parser.parse();
 }
 
 Parser::Parser(const std::string &filename)
@@ -166,14 +276,14 @@ Track Parser::parse_command() {
 
     read_line();
 
-    track.indexes = std::move(parse_block<Index>());
+    track.indexes = std::move(parse_block<NumberedIndex>());
 
     return track;
 }
 
 template<>
-Index Parser::parse_command() {
-    Index index;
+NumberedIndex Parser::parse_command() {
+    NumberedIndex index;
 
     // TODO Sanitize
     line_stream >> index.number;
