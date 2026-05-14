@@ -32,20 +32,28 @@ void CD::open_cue_sheet(const std::string &filename) {
         if (file.type != cue::File::Type::BINARY) {
             throw exceptions::FileReadError(std::format("Unsupported type for file \"{:s}\": {:s}", file.filename, cue::File::type_to_string(file.type)));
         }
+
+        if (file.tracks.empty()) {
+            throw exceptions::FileReadError(std::format("File \"{:s}\" has no tracks", file.filename));
+        }
+
         for (const cue::Track& track : file.tracks) {
             if (track.number != previous_track_number + 1) {
                 throw exceptions::FileReadError(std::format("Non-consecutive track numbers: Encountered track {:d} in file \"{:s}\", but previous track was {:d}", track.number, file.filename, previous_track_number));
             }
             previous_track_number = track.number;
 
+            if (track.indexes.empty()) {
+                throw exceptions::FileReadError(std::format("Track {:d} in file \"{:s}\" has no indexes", track.number, file.filename));
+            }
+
             uint32_t previous_index_number = 0;
             Index previous_index(0, 0, 0);
-            bool has_zero_index = false;
+            bool first = true;
             for (const cue::NumberedIndex& index : track.indexes) {
                 // A file might have a zero index
-                if (index.number == 0 && !has_zero_index) {
-                    has_zero_index = true;
-                    previous_index = index.index;
+                if (first && index.number == 0) {
+                    first = false;
                     continue;
                 }
                 if (index.number != previous_index_number + 1) {
@@ -53,10 +61,11 @@ void CD::open_cue_sheet(const std::string &filename) {
                 }
                 previous_index_number = index.number;
 
-                if (index.index < previous_index) {
-                    throw exceptions::FileReadError(std::format("Non-consecutive indexes: Encountered index {:s} in track {:d} in file \"{:s}\", but previous index was {:s}", index.index, track.number, file.filename, previous_index));
+                if (!first && index.index <= previous_index) {
+                    throw exceptions::FileReadError(std::format("Non-strictly increasing indexes: Encountered index {:s} in track {:d} in file \"{:s}\", but previous index was {:s}", index.index, track.number, file.filename, previous_index));
                 }
                 previous_index = index.index;
+                first = false;
             }
         }
     }
@@ -76,12 +85,7 @@ void CD::open_cue_sheet(const std::string &filename) {
 }
 
 void CD::reset() {
-    for (File &file: files) {
-        file.stream.seekg(0, std::ios::beg);
-    }
-    current_file = files.begin();
-    current_position.reset();
-    current_position_in_track.reset();
+    reset_position();
 
     read_whole_sector = false;
 
@@ -89,6 +93,21 @@ void CD::reset() {
     seconds = 0;
     sectors = 0;
     offset_in_sector = 0;
+}
+
+void CD::reset_position() {
+    current_position = { 0, 2, 0 }; // First track always has a 2-second pregap
+    current_position_in_file = current_position;
+
+    current_file = files.begin();
+    if (current_file != files.end()) {
+        current_file->stream.seekg(0, std::ios::beg);
+        current_track = current_file->tracks.begin();
+
+        if (current_track != current_file->tracks.end()) {
+            current_index = current_track->indexes.begin();
+        }
+    }
 }
 
 void CD::seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors) {
@@ -125,7 +144,7 @@ std::span<uint8_t> CD::get_sector_buffer() {
 }
 
 void CD::seek_to(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
-    current_position = { 0, 2, 0 }; // First track always has a 2-second pregap
+    reset_position();
 
     Index target_position(minutes, seconds, sectors);
     Index relative_target_position = target_position - current_position;
@@ -136,17 +155,34 @@ void CD::seek_to(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
 }
 
 void CD::seek_by(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
-    Index relative_position(minutes, seconds, sectors);
-    Index target_position = current_position + relative_position;
+    Index target_position = current_position + Index(minutes, seconds, sectors);
 
-    current_file = files.begin();
-    for (current_file = files.begin(); current_file != files.end(); ++current_file) {
+    while (current_file != files.end()) {
         std::ifstream& stream = current_file->stream;
-        stream.seekg(0, std::ios::beg);
 
         while (current_position < target_position) {
             stream.seekg(SECTOR_SIZE, std::ios::cur);
             ++current_position;
+            ++current_position_in_file;
+
+            // Keep track of the track and index we currently are in
+            auto next_track = current_track;
+            auto next_index = current_index + 1;
+            bool has_next_index = true;
+            if (next_index == next_track->indexes.end()) {
+                next_track = current_track + 1;
+                if (next_track != current_file->tracks.end()) {
+                    next_index = next_track->indexes.begin();
+
+                } else {
+                    has_next_index = false;
+                }
+            }
+
+            if (has_next_index && current_position_in_file >= next_index->index) {
+                current_track = next_track;
+                current_index = next_index;
+            }
         }
 
         if ((current_position == target_position)
@@ -154,7 +190,16 @@ void CD::seek_by(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
             break;
         }
 
-        // TODO Track track and index numbers
+        ++current_file;
+        if (current_file != files.end()) {
+            current_file->stream.seekg(0, std::ios::beg);
+            current_position_in_file = {0, 2, 0};
+
+            current_track = current_file->tracks.begin();
+            if (current_track != current_file->tracks.end()) {
+                current_index = current_track->indexes.begin();
+            }
+        }
     }
 }
 
