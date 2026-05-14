@@ -114,7 +114,7 @@ void Index::handle_overflows() {
 
 std::ostream& operator<<(std::ostream &os, const NumberedIndex &index) {
     return os << std::format("    INDEX {:02d} {:02d}:{:02d}:{:02d}",
-                             index.number, index.minute, index.second, index.sector);
+                             index.number, index.index.minutes, index.index.seconds, index.index.sectors);
 }
 
 std::ostream& operator<<(std::ostream &os, const Track &track) {
@@ -288,18 +288,18 @@ NumberedIndex Parser::parse_command() {
     // TODO Sanitize
     line_stream >> index.number;
 
-    line_stream >> index.minute;
+    line_stream >> index.index.minutes;
     char colon;
     line_stream >> colon;
     if (colon != ':') {
         exit_with_parsing_error(std::format("Unexpected character: Expected ':', but got '{}'", colon));
     }
-    line_stream >> index.second;
+    line_stream >> index.index.seconds;
     line_stream >> colon;
     if (colon != ':') {
         exit_with_parsing_error(std::format("Unexpected character: Expected ':', but got '{}'", colon));
     }
-    line_stream >> index.sector;
+    line_stream >> index.index.sectors;
 
     read_line();
 

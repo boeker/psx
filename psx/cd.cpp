@@ -39,19 +39,24 @@ void CD::open_cue_sheet(const std::string &filename) {
             previous_track_number = track.number;
 
             uint32_t previous_index_number = 0;
+            Index previous_index(0, 0, 0);
             bool has_zero_index = false;
             for (const cue::NumberedIndex& index : track.indexes) {
                 // A file might have a zero index
                 if (index.number == 0 && !has_zero_index) {
                     has_zero_index = true;
+                    previous_index = index.index;
                     continue;
                 }
                 if (index.number != previous_index_number + 1) {
-                    throw exceptions::FileReadError(std::format("Non-consecutive index numbers: Encountered index {:d} in track {:d} in file \"{:s}\", but previous index was {:d}", index.number, track.number, file.filename, previous_index_number));
+                    throw exceptions::FileReadError(std::format("Non-consecutive index numbers: Encountered index number {:d} in track {:d} in file \"{:s}\", but previous index number was {:d}", index.number, track.number, file.filename, previous_index_number));
                 }
                 previous_index_number = index.number;
 
-                // TODO Validate indexes
+                if (index.index < previous_index) {
+                    throw exceptions::FileReadError(std::format("Non-consecutive indexes: Encountered index {:s} in track {:d} in file \"{:s}\", but previous index was {:s}", index.index, track.number, file.filename, previous_index));
+                }
+                previous_index = index.index;
             }
         }
     }

@@ -2,6 +2,7 @@
 #define UTIL_CUE_H
 
 #include <cstdint>
+#include <format>
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -46,9 +47,7 @@ struct NumberedIndex {
     static constexpr std::string COMMAND = "INDEX";
 
     uint32_t number;
-    uint32_t minute;
-    uint32_t second;
-    uint32_t sector;
+    Index index;
 };
 
 struct Track {
@@ -119,6 +118,16 @@ template<> NumberedIndex Parser::parse_command<NumberedIndex>();
 }
 
 }
+
+template <>
+struct std::formatter<util::cue::Index> : std::formatter<string_view> {
+    auto format(const util::cue::Index& index, std::format_context& ctx) const {
+        std::string temp;
+        std::format_to(std::back_inserter(temp), "{:02d}:{:02d}:{:02d}", index.minutes, index.seconds, index.sectors);
+        return std::formatter<string_view>::format(temp, ctx);
+    }
+};
+
 
 #endif
 
