@@ -66,6 +66,7 @@ public:
 private:
     void seek_to(uint8_t minutes, uint8_t seconds, uint8_t sectors);
     void seek_by(uint8_t minutes, uint8_t seconds, uint8_t sectors);
+    void move_to_next_file();
 
 public:
     // Legacy TODO: Remove
