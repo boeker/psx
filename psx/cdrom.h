@@ -103,8 +103,8 @@ private:
 
     std::string prependState(const std::string &str) const;
 
-    bool pending;
     uint8_t command;
+    bool command_is_pending;
     uint8_t function;
     // The PSX's parameter queue containing the command parameter bytes
     Queue parameter_queue;
@@ -156,10 +156,8 @@ public:
     CD& getCD();
     void catchUpToCPU(uint32_t cycles);
 
-    void sendCommand();
-    void scheduleFirstResponse();
-    void scheduleSecondResponse();
     void deliverResponse(Response &response);
+    void send_command();
     void notifyAboutINT1to7(uint8_t interruptNumber);
     void notifyAboutINT10();
 

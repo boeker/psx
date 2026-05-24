@@ -81,8 +81,8 @@ std::string CDROM::controllerStateToString(ControllerState controllerState) {
     switch (controllerState) {
         case IDLE:
             return "IDLE";
-        case BUSY:
-            return "BUSY";
+        case ACTIVE:
+            return "ACTV";
         default:
             return "INVL";
     }
@@ -168,11 +168,7 @@ void CDROM::reset() {
     pending = false;
     command = 0;
     function = 0;
-    parameterQueue.clear();
     parameter_queue.clear();
-
-    firstResponse.reset();
-    secondResponse.reset();
 
     controller_state = IDLE;
     drive_state = MOTOR_OFF;
@@ -199,66 +195,21 @@ CD& CDROM::getCD() {
 }
 
 void CDROM::catchUpToCPU(uint32_t cycles) {
-    cyclesLeft -= std::min(cyclesLeft, cycles);
-    if (cyclesLeft > 0) {
-        return;
-    }
-
     switch (controller_state) {
         case IDLE:
             break;
-        case BUSY:
-            break;
-        case FIRST_RESPONSE:
-            LOG_CDROM(prependState(std::format("========> Producing first response {:d}", firstResponse.interrupt)));
-            deliverResponse(firstResponse);
-            break;
-        case SECOND_RESPONSE:
-            LOG_CDROM(prependState(std::format("========> Producing second response {:d}", secondResponse.interrupt)));
-            deliverResponse(secondResponse);
+        case ACTIVE:
+            cycles_left -= std::min(cycles_left, cycles);
+            if (cycles_left > 0) {
+                return;
+            }
+
+            LOG_CDROM(prependState(std::format("========> Delivering Response")));
+            assert(!scheduled_responses.empty());
+            deliver_response(*(scheduled_responses.begin()));
+            scheduled_responses.pop_front();
             break;
     }
-}
-
-
-void CDROM::sendCommand() {
-    if (controller_state == IDLE || (controller_state == SECOND_RESPONSE && secondResponse.delivered)) {
-        pending = false;
-        LOG_CDROM(prependState(std::format("Sending command 0x{:02X}", command)));
-        if (Bit::getBit(requestRegister, CDROM_REQUEST_SMEN)) {
-            notifyAboutINT10();
-        }
-
-        // Reset existing responses
-        firstResponse.reset();
-        secondResponse.reset();
-
-        // Actually send command / schedule response
-        LOG_CDROM(prependState(std::format("========> Scheduling Response: 0x{:02X}() <========", command)));
-        scheduled_responses.emplace_back(commands[command]);
-
-        controller_state = BUSY;
-        Bit::setBit(statusRegister, CDROM_STATUS_BUSYSTS);
-        // TODO Set cycles_left to that of response
-
-        //scheduleFirstResponse();
-    }
-}
-
-void CDROM::scheduleFirstResponse() {
-    LOG_CDROM(prependState(std::format("========> Scheduling first response {:d}", firstResponse.interrupt)));
-
-    controller_state = FIRST_RESPONSE;
-    Bit::setBit(statusRegister, CDROM_STATUS_BUSYSTS);
-    cyclesLeft = firstResponse.cycles;
-}
-
-void CDROM::scheduleSecondResponse() {
-    LOG_CDROM(prependState(std::format("========> Scheduling second response {:d}", secondResponse.interrupt)));
-
-    controller_state = SECOND_RESPONSE;
-    Bit::setBit(statusRegister, CDROM_STATUS_BUSYSTS);
-    cyclesLeft = secondResponse.cycles;
 }
 
 void CDROM::deliver_response(ScheduledResponse &response) {
@@ -267,8 +218,6 @@ void CDROM::deliver_response(ScheduledResponse &response) {
 
     // Execute response function
     uint8_t interrupt = (this->*response.function)();
-
-    Bit::clearBit(statusRegister, CDROM_STATUS_BUSYSTS);
 
     if (interrupt == 0) {
         LOG_CDROM(std::format("Warning: Response function returned 0"));
@@ -279,15 +228,33 @@ void CDROM::deliver_response(ScheduledResponse &response) {
 
     // Executing the response function might have scheduled a new response
     if (!scheduled_responses.empty()) {
-        controller_state = BUSY;
-        Bit::setBit(statusRegister, CDROM_STATUS_BUSYSTS);
-        // TODO set cycles_left
+        controller_state = ACTIVE;
+        cycles_left = schedules_responses.begin()->cycles;
     } else {
         controller_state = IDLE;
     }
 
     if (drive_state != old_state) {
         LOG_CDROM(std::format("[{:s}] -> [{:s}]", driveStateToString(old_state), driveStateToString(drive_state)));
+    }
+}
+
+
+void CDROM::send_command() {
+    if (command_is_pending && controller_state == IDLE) {
+        command_is_pending = false;
+
+        LOG_CDROM(prependState(std::format("Sending command 0x{:02X} to controller", command)));
+        if (Bit::getBit(requestRegister, CDROM_REQUEST_SMEN)) {
+            notifyAboutINT10();
+        }
+
+        // Actually send command / schedule response
+        LOG_CDROM(prependState(std::format("========> Scheduling Response: 0x{:02X}() <========", command)));
+        scheduled_responses.emplace_back(commands[command]);
+
+        controller_state = ACTIVE;
+        cycles_left = schedules_responses.begin()->cycles;
     }
 }
 
@@ -342,8 +309,8 @@ void CDROM::write(uint32_t address, uint8_t value) {
             case 0: // Command Register
                 LOGV_CDROM(prependState(std::format("@0x{:08X}: 0x{:02X} -> command register", bus->cpu.instructionPC, value)));
                 command = value;
-                pending = true;
-                sendCommand();
+                command_is_pending = true;
+                send_command();
                 break;
             case 1: // Sound Map Data Out
                 LOG_CDROM(std::format("Unimplemented write to Sound Map Data Out: 0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex()));
@@ -365,7 +332,6 @@ void CDROM::write(uint32_t address, uint8_t value) {
         switch (getIndex()) {
             case 0: // Parameter Queue
                 LOGV_CDROM(prependState(std::format("0x{:02X} -> parameter queue", value)));
-                parameterQueue.push(value);
                 parameter_queue.push(value);
                 break;
             case 1: // Interrupt Enable Register
@@ -458,12 +424,12 @@ uint8_t CDROM::read(uint32_t address) {
             case 1: // Response queue
             case 2: // Mirror of response queue
             case 3: // Mirror of response queue
-                if (responseQueue.isEmpty()) {
+                if (response_queue.isEmpty()) {
                     LOG_CDROM(std::format("Response queue is empty!"));
                     value = 0;
 
                 } else {
-                    value = responseQueue.pop();
+                    value = response_queue.pop();
                 }
                 // TODO Implement wrap-around of response queue
 
@@ -523,11 +489,11 @@ uint8_t CDROM::getIndex() const {
 }
 
 void CDROM::updateStatusRegister() {
-    Bit::clearBit(statusRegister, CDROM_STATUS_BUSYSTS);
+    Bit::setBit(statusRegister, CDROM_STATUS_BUSYSTS, command_is_pending);
     Bit::setBit(statusRegister, CDROM_STATUS_DRQSTS, has_data());
-    Bit::setBit(statusRegister, CDROM_STATUS_RSLRRDY, !responseQueue.isEmpty());
-    Bit::setBit(statusRegister, CDROM_STATUS_PRMWRDY, !parameterQueue.isFull());
-    Bit::setBit(statusRegister, CDROM_STATUS_PRMEMPT, parameterQueue.isEmpty());
+    Bit::setBit(statusRegister, CDROM_STATUS_RSLRRDY, !response_queue.isEmpty());
+    Bit::setBit(statusRegister, CDROM_STATUS_PRMWRDY, !parameter_queue.isFull());
+    Bit::setBit(statusRegister, CDROM_STATUS_PRMEMPT, parameter_queue.isEmpty());
     Bit::setBit(statusRegister, CDROM_STATUS_ADPBUSY, 0); // TODO XA-ADPCM
 }
 
@@ -538,7 +504,7 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
     // 6 - CLRPRM: Reset Parameter Queue
     if (Bit::getBit(value, CDROM_INTERRUPT_FLAG_CLRPRM)) {
         LOG_CDROM(prependState(std::format("Resetting parameter queue")));
-        parameterQueue.clear();
+        parameter_queue.clear();
         parameter_queue.clear();
     }
 
@@ -569,29 +535,27 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
         LOG_CDROM(prependState(std::format("Acknowledged interrupt: pending = {:s}", pending)));
         // Clear response queue
         // TODO Do we have to clear this or is the user responsible for this?
-        //responseQueue.clear();
+        //response_queue.clear();
 
-        if (pending && (secondResponse.interrupt == 0 || secondResponse.delivered)) {
-            sendCommand();
-        } else {
-            // Check if there is a second response waiting
-            if (secondResponse.interrupt != 0 && !secondResponse.delivered) {
-                scheduleSecondResponse();
-            }
+        // Check if there is a pending command
+        // Note that command_is_pending determines/corresponds to CDROM_STATUS_BUSYSTS
+        // (If we have a pending command, we want to send it now and clear CDROM_STATUS_BUSYSTS)
+        if (command_is_pending) {
+            send_command();
         }
     }
 }
 
 bool CDROM::has_data() {
-    return !sector_buffer.empty() && sector_offset < sector_end;
+    return sector_offset < sector_end;
 }
 
 uint8_t CDROM::read_byte() {
-    return sector_buffer[sector_offset++];
+    return current_sector_buffer[sector_offset++];
 }
 
 uint32_t CDROM::read_word() {
-    uint32_t value = *(reinterpret_cast<const uint32_t*>(&sector_buffer[sector_offset]));
+    uint32_t value = *(reinterpret_cast<const uint32_t*>(&current_sector_buffer[sector_offset]));
     sector_offset += 4;
     return value;
 }
@@ -953,7 +917,7 @@ uint8_t CDROM::demute() {
 }
 
 uint8_t CDROM::setmode() {
-    mode = parameterQueue.pop();
+    mode = parameter_queue.pop();
     LOG_CDROM(prependState(std::format("========> Setmode(0x{:02X}) <========", mode)));
 
     // TODO Handle all bits
@@ -976,7 +940,7 @@ uint8_t CDROM::get_tn() {
 }
 
 uint8_t CDROM::get_td() {
-    uint8_t track = parameterQueue.pop();
+    uint8_t track = parameter_queue.pop();
     LOG_CDROM(prependState(std::format("========> GetTD(0x{:02X}) <========", track)));
 
     if (!cd) {
@@ -1016,7 +980,7 @@ uint8_t CDROM::seek_l_second() {
 
 uint8_t CDROM::test() {
     LOG_CDROM(prependState(std::format("========> Test() <========")));
-    function = parameterQueue.pop();
+    function = parameter_queue.pop();
 
     // Execute sub-function
     return (this->*subFunctions[function])();
