@@ -41,8 +41,6 @@ private:
     Index current_position;
     Index current_position_in_file;
 
-    uint8_t sector_buffer[SECTOR_SIZE];
-
     // Legacy
     bool read_whole_sector;
     uint8_t minutes;
@@ -60,13 +58,13 @@ public:
     void seek_to_dec(uint8_t minutes, uint8_t seconds, uint8_t sectors);
     void seek_to_next_sector();
     bool at_end_of_disc() const;
-    bool read_sector_into_buffer();
-    std::span<uint8_t> get_sector_buffer();
+    bool read_sector_and_advance(uint8_t* buffer);
 
 private:
     void seek_to(uint8_t minutes, uint8_t seconds, uint8_t sectors);
     void seek_by(uint8_t minutes, uint8_t seconds, uint8_t sectors);
     void move_to_next_file();
+    void increment_current_position();
 
 public:
     // Legacy TODO: Remove

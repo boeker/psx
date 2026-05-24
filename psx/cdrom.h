@@ -83,11 +83,10 @@ private:
 
     enum ControllerState {
         IDLE,
-        FIRST_RESPONSE,
-        SECOND_RESPONSE
+        BUSY
     };
     static std::string controllerStateToString(ControllerState controllerState);
-    ControllerState controllerState;
+    ControllerState controller_state;
 
     enum DriveState {
         STAY,
@@ -100,68 +99,58 @@ private:
     };
     static std::string driveStateToString(DriveState driveState);
     static uint8_t driveStateToStatByte(DriveState driveState);
-    DriveState driveState;
+    DriveState drive_state;
 
     std::string prependState(const std::string &str) const;
-
-    uint32_t cyclesLeft;
 
     bool pending;
     uint8_t command;
     uint8_t function;
-    Queue parameterQueue;
-
-    struct Response {
-        uint8_t interrupt;
-        Queue queue;
-        DriveState driveState;
-        uint32_t cycles;
-        bool spam;
-        bool delivered;
-
-        Response() {
-            reset();
-        }
-        void reset() {
-            interrupt = 0;
-            queue.clear();
-            driveState = STAY;
-            cycles = 0xC4E1;
-            spam = false;
-            delivered = false;
-        }
-        void setAndPush(DriveState driveState) {
-            this->driveState = driveState;
-            pushStatByte();
-        }
-        void pushStatByte() {
-            queue.push(driveStateToStatByte(driveState));
-        }
-        void setNoDisc() {
-            interrupt = 5;
-            queue.push(0x01);
-            queue.push(0x80);
-        }
-    };
-
-    Queue responseQueue;
-    Response firstResponse;
-    Response secondResponse;
+    // The PSX's parameter queue containing the command parameter bytes
+    Queue parameter_queue;
 
     std::unique_ptr<CD> cd;
 
+    // Two buffers
+    // One for the sector being served
+    uint8_t *current_sector_buffer;
+    // And one for the next sector being read into
+    uint8_t *next_sector_buffer;
+    // Whether a sector was read after serving the last
+    bool next_sector_buffer_ready;
 
     uint8_t amm;
     uint8_t ass;
     uint8_t asect;
 
     uint8_t mode;
-    std::span<const uint8_t> sector_buffer;
     uint32_t sector_offset;
     uint32_t sector_end;
 
+    typedef uint8_t (CDROM::*ResponseFunction) ();
+    struct ScheduledResponse {
+        ResponseFunction function;
+        uint32_t cycles;
+
+        ScheduledResponse(ResponseFunction function, uint32_t cycles)
+            : function(function), cycles(cycles) {
+        }
+
+        ScheduledResponse(ResponseFunction function)
+            : ScheduledResponse(function, 0xC4E1) {
+        }
+    };
+
+    // The emulated responses from the CDROM controller
+    std::deque<ScheduledResponse> scheduled_responses;
+    // Number of cycles until next response will be served
+    uint32_t cycles_left;
+    // The PSX's response queue containing the response bytes
+    Queue response_queue;
+
 public:
     CDROM(Bus *bus);
+    ~CDROM();
     void reset();
     void setCD(std::unique_ptr<CD> cd);
     CD& getCD();
@@ -191,40 +180,52 @@ private:
     // Command table and implementations
     typedef void (CDROM::*Command) ();
 
-    static const Command commands[];
-    void Unknown();
-    // 0x01
-    void Getstat();
-    // 0x02
-    void Setloc();
-    // 0x06
-    void ReadN();
-    // 0x08
-    void Stop();
-    // 0x09
-    void Pause();
-    // 0x0A
-    void Init();
-    // 0x0C
-    void Demute();
-    // 0x0E
-    void Setmode();
-    // 0x13
-    void GetTN();
-    // 0x14
-    void GetTD();
-    // 0x15
-    void SeekL();
-    // 0x19
-    void Test();
-    // 0x1A
-    void GetID();
-    // 0x1E
-    void ReadTOC();
+    void push_drive_state_to_response_queue();
+    // Generic response when no disc is inserted
+    uint8_t no_disc_response();
 
-    static const Command subFunctions[];
-    void UnknownSF();
-    void Function0x20();
+    static const Command commands[];
+    void unknown();
+    // 0x01
+    uint8_t get_stat();
+    // 0x02
+    uint8_t set_loc();
+    // 0x06
+    uint8_t read_n();
+    uint8_t read_n_second();
+    // 0x08
+    uint8_t stop();
+    uint8_t stop_second();
+    // 0x09
+    uint8_t pause();
+    uint8_t pause_second();
+    // 0x0A
+    uint8_t init();
+    uint8_t init_second();
+    // 0x0C
+    uint8_t demute();
+    // 0x0E
+    uint8_t setmode();
+    // 0x13
+    uint8_t get_tn();
+    // 0x14
+    uint8_t get_td();
+    // 0x15
+    uint8_t seek_l();
+    uint8_t seek_l_second();
+    // 0x19
+    uint8_t test();
+    // 0x1A
+    uint8_t get_id();
+    uint8_t get_id_second_motor_off();
+    uint8_t get_id_second_mode_2();
+    // 0x1E
+    uint8_t read_toc();
+    uint8_t read_toc_second();
+
+    static const ResponseFunction sub_functions[];
+    void unknown_sf();
+    uint8_t function_0x20();
 };
 
 }

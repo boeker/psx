@@ -135,25 +135,24 @@ bool CD::at_end_of_disc() const {
     return current_file == files.end();
 }
 
-bool CD::read_sector_into_buffer() {
+bool CD::read_sector_and_advance(uint8_t* buffer) {
     LOG_CDROM(std::format("Reading sector into buffer"));
     while (current_file != files.end()) {
-        current_file->stream.read(reinterpret_cast<char*>(sector_buffer), SECTOR_SIZE);
+        current_file->stream.read(reinterpret_cast<char*>(buffer), SECTOR_SIZE);
 
-        if (!current_file->stream.eof()) {
-            return true;
+        // We might have been at the end of the file, have to jump to the next file
+        if (current_file->stream.eof()) {
+            LOG_CDROM(std::format("Reached eof, moving to next file and reading from there instead"));
+            move_to_next_file();
+            continue;
         }
 
-        LOG_CDROM(std::format("Moving to next file"));
-        move_to_next_file();
+        increment_current_position();
+        return true;
     }
 
     LOG_CDROM(std::format("Read from end of disc"));
     return false;
-}
-
-std::span<uint8_t> CD::get_sector_buffer() {
-    return { &sector_buffer[0], SECTOR_SIZE };
 }
 
 void CD::seek_to(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
@@ -173,33 +172,13 @@ void CD::seek_by(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
     while (current_file != files.end() && current_position < target_position) {
         current_file->stream.seekg(SECTOR_SIZE, std::ios::cur);
 
-        // We are at the end of the file, have to jump to the next file
+        // We might have been at the end of the file, have to jump to the next file
         if (current_file->stream.eof()) {
             move_to_next_file();
             continue;
         }
 
-        ++current_position;
-        ++current_position_in_file;
-
-        // Keep track of the track and index we currently are in
-        auto next_track = current_track;
-        auto next_index = current_index + 1;
-        bool has_next_index = true;
-        if (next_index == next_track->indexes.end()) {
-            next_track = current_track + 1;
-            if (next_track != current_file->tracks.end()) {
-                next_index = next_track->indexes.begin();
-
-            } else {
-                has_next_index = false;
-            }
-        }
-
-        if (has_next_index && current_position_in_file >= next_index->index) {
-            current_track = next_track;
-            current_index = next_index;
-        }
+        increment_current_position();
     }
 }
 
@@ -213,6 +192,30 @@ void CD::move_to_next_file() {
         if (current_track != current_file->tracks.end()) {
             current_index = current_track->indexes.begin();
         }
+    }
+}
+
+void CD::increment_current_position() {
+    ++current_position;
+    ++current_position_in_file;
+
+    // Keep track of the track and index we currently are in
+    auto next_track = current_track;
+    auto next_index = current_index + 1;
+    bool has_next_index = true;
+    if (next_index == next_track->indexes.end()) {
+        next_track = current_track + 1;
+        if (next_track != current_file->tracks.end()) {
+            next_index = next_track->indexes.begin();
+
+        } else {
+            has_next_index = false;
+        }
+    }
+
+    if (has_next_index && current_position_in_file >= next_index->index) {
+        current_track = next_track;
+        current_index = next_index;
     }
 }
 
