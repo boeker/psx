@@ -81,13 +81,6 @@ private:
     uint8_t interruptFlagRegister;
     uint8_t requestRegister;
 
-    enum ControllerState {
-        IDLE,
-        BUSY
-    };
-    static std::string controllerStateToString(ControllerState controllerState);
-    ControllerState controller_state;
-
     enum DriveState {
         STAY,
         OPEN,
@@ -104,7 +97,7 @@ private:
     std::string prependState(const std::string &str) const;
 
     uint8_t command;
-    bool command_is_pending;
+    bool pending_command;
     uint8_t function;
     // The PSX's parameter queue containing the command parameter bytes
     Queue parameter_queue;
@@ -156,7 +149,7 @@ public:
     CD& getCD();
     void catchUpToCPU(uint32_t cycles);
 
-    void deliverResponse(Response &response);
+    void deliver_response(ScheduledResponse &response);
     void send_command();
     void notifyAboutINT1to7(uint8_t interruptNumber);
     void notifyAboutINT10();
@@ -182,8 +175,8 @@ private:
     // Generic response when no disc is inserted
     uint8_t no_disc_response();
 
-    static const Command commands[];
-    void unknown();
+    static const ResponseFunction commands[];
+    uint8_t unknown();
     // 0x01
     uint8_t get_stat();
     // 0x02
@@ -203,7 +196,7 @@ private:
     // 0x0C
     uint8_t demute();
     // 0x0E
-    uint8_t setmode();
+    uint8_t set_mode();
     // 0x13
     uint8_t get_tn();
     // 0x14
@@ -222,7 +215,7 @@ private:
     uint8_t read_toc_second();
 
     static const ResponseFunction sub_functions[];
-    void unknown_sf();
+    uint8_t unknown_sf();
     uint8_t function_0x20();
 };
 

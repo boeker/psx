@@ -74,18 +74,7 @@ bool Queue::isFull() {
 }
 
 std::string CDROM::prependState(const std::string &str) const {
-    return std::format("[{:s}-{:s}] {:s}", controllerStateToString(controllerState), driveStateToString(drive_state), str);
-}
-
-std::string CDROM::controllerStateToString(ControllerState controllerState) {
-    switch (controllerState) {
-        case IDLE:
-            return "IDLE";
-        case ACTIVE:
-            return "ACTV";
-        default:
-            return "INVL";
-    }
+    return std::format("[{:s}] {:s}", driveStateToString(drive_state), str);
 }
 
 std::string CDROM::driveStateToString(DriveState driveState) {
@@ -139,8 +128,8 @@ uint8_t CDROM::driveStateToStatByte(DriveState driveState) {
 CDROM::CDROM(Bus *bus)
     : bus(bus) {
 
-    current_sector_buffer = new uint8_t[SECTOR_SIZE];
-    next_sector_buffer = new uint8_t[SECTOR_SIZE];
+    current_sector_buffer = new uint8_t[CD::SECTOR_SIZE];
+    next_sector_buffer = new uint8_t[CD::SECTOR_SIZE];
 
     reset();
     if (cd) {
@@ -165,12 +154,11 @@ void CDROM::reset() {
     interruptFlagRegister = 0;
     requestRegister = 0;
 
-    pending = false;
     command = 0;
+    pending_command = false;
     function = 0;
     parameter_queue.clear();
 
-    controller_state = IDLE;
     drive_state = MOTOR_OFF;
     cycles_left= 0;
 
@@ -195,20 +183,16 @@ CD& CDROM::getCD() {
 }
 
 void CDROM::catchUpToCPU(uint32_t cycles) {
-    switch (controller_state) {
-        case IDLE:
-            break;
-        case ACTIVE:
-            cycles_left -= std::min(cycles_left, cycles);
-            if (cycles_left > 0) {
-                return;
-            }
+    cycles_left -= std::min(cycles_left, cycles);
+    if (cycles_left > 0) {
+        return;
+    }
 
-            LOG_CDROM(prependState(std::format("========> Delivering Response")));
-            assert(!scheduled_responses.empty());
-            deliver_response(*(scheduled_responses.begin()));
-            scheduled_responses.pop_front();
-            break;
+    if (!scheduled_responses.empty()) {
+        LOG_CDROM(prependState(std::format("========> Delivering Response")));
+        ScheduledResponse response = scheduled_responses.front();
+        scheduled_responses.pop_front();
+        deliver_response(response);
     }
 }
 
@@ -219,19 +203,18 @@ void CDROM::deliver_response(ScheduledResponse &response) {
     // Execute response function
     uint8_t interrupt = (this->*response.function)();
 
+    // Zero signals an aborted command in our emulation
     if (interrupt == 0) {
-        LOG_CDROM(std::format("Warning: Response function returned 0"));
-        return;
+        LOG_CDROM(std::format("Warning: Response function returned 0. Aborted command?"));
+
+    } else {
+        notifyAboutINT1to7(interrupt);
     }
 
-    notifyAboutINT1to7(interrupt);
-
     // Executing the response function might have scheduled a new response
+    // Or there might be some responses left
     if (!scheduled_responses.empty()) {
-        controller_state = ACTIVE;
-        cycles_left = schedules_responses.begin()->cycles;
-    } else {
-        controller_state = IDLE;
+        cycles_left = scheduled_responses.begin()->cycles;
     }
 
     if (drive_state != old_state) {
@@ -241,8 +224,8 @@ void CDROM::deliver_response(ScheduledResponse &response) {
 
 
 void CDROM::send_command() {
-    if (command_is_pending && controller_state == IDLE) {
-        command_is_pending = false;
+    if (pending_command && (scheduled_responses.empty() || drive_state == READING)) { // Let Pause() get through
+        pending_command = false;
 
         LOG_CDROM(prependState(std::format("Sending command 0x{:02X} to controller", command)));
         if (Bit::getBit(requestRegister, CDROM_REQUEST_SMEN)) {
@@ -253,8 +236,7 @@ void CDROM::send_command() {
         LOG_CDROM(prependState(std::format("========> Scheduling Response: 0x{:02X}() <========", command)));
         scheduled_responses.emplace_back(commands[command]);
 
-        controller_state = ACTIVE;
-        cycles_left = schedules_responses.begin()->cycles;
+        cycles_left = scheduled_responses.begin()->cycles;
     }
 }
 
@@ -309,7 +291,7 @@ void CDROM::write(uint32_t address, uint8_t value) {
             case 0: // Command Register
                 LOGV_CDROM(prependState(std::format("@0x{:08X}: 0x{:02X} -> command register", bus->cpu.instructionPC, value)));
                 command = value;
-                command_is_pending = true;
+                pending_command = true;
                 send_command();
                 break;
             case 1: // Sound Map Data Out
@@ -489,7 +471,7 @@ uint8_t CDROM::getIndex() const {
 }
 
 void CDROM::updateStatusRegister() {
-    Bit::setBit(statusRegister, CDROM_STATUS_BUSYSTS, command_is_pending);
+    Bit::setBit(statusRegister, CDROM_STATUS_BUSYSTS, pending_command);
     Bit::setBit(statusRegister, CDROM_STATUS_DRQSTS, has_data());
     Bit::setBit(statusRegister, CDROM_STATUS_RSLRRDY, !response_queue.isEmpty());
     Bit::setBit(statusRegister, CDROM_STATUS_PRMWRDY, !parameter_queue.isFull());
@@ -532,15 +514,15 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
     // And what about INT10 and INT8?
     // Let's assume that we only consider INT1...7 and that it has to be cleared completely
     if (wasInterrupt && !isInterrupt) {
-        LOG_CDROM(prependState(std::format("Acknowledged interrupt: pending = {:s}", pending)));
+        LOG_CDROM(prependState(std::format("Acknowledged interrupt: pending_command = {:s}", pending_command)));
         // Clear response queue
         // TODO Do we have to clear this or is the user responsible for this?
         //response_queue.clear();
 
         // Check if there is a pending command
-        // Note that command_is_pending determines/corresponds to CDROM_STATUS_BUSYSTS
+        // Note that pending_command determines/corresponds to CDROM_STATUS_BUSYSTS
         // (If we have a pending command, we want to send it now and clear CDROM_STATUS_BUSYSTS)
-        if (command_is_pending) {
+        if (pending_command) {
             send_command();
         }
     }
@@ -560,7 +542,7 @@ uint32_t CDROM::read_word() {
     return value;
 }
 
-const CDROM::Command CDROM::commands[] = {
+const CDROM::ResponseFunction CDROM::commands[] = {
     // 0x00
     &CDROM::unknown,
     &CDROM::get_stat, // 0x01
@@ -756,8 +738,9 @@ uint8_t CDROM::no_disc_response() {
     return 5;
 }
 
-void CDROM::unknown() {
+uint8_t CDROM::unknown() {
     throw exceptions::UnknownCDROMCommandError(std::format("Unknown command 0x{:02X}", command));
+    return 0;
 }
 
 uint8_t CDROM::get_stat() {
@@ -826,23 +809,28 @@ uint8_t CDROM::read_n() {
 uint8_t CDROM::read_n_second() {
     LOG_CDROM(prependState(std::format("========> ReadN(): Second Response <========")));
 
-    // Read sector from CD
-    if (next_sector_buffer_ready) {
-        LOG_CDROM(prependState(std::format("Warning: About to overwrite unserved sector!")));
+    // We use the drive state to communicate whether to continue reading
+    // That is, the Pause() command sets the drive state to something else to abort reading
+    if (drive_state == READING) {
+        // Read sector from CD
+        if (next_sector_buffer_ready) {
+            LOG_CDROM(prependState(std::format("Warning: About to overwrite unserved sector!")));
+        }
+        cd->read_sector_and_advance(next_sector_buffer);
+        next_sector_buffer_ready = true;
+
+        push_drive_state_to_response_queue();
+
+        // Schedule reading of next sector (since we are automatically reading that)
+        // Software has to be fast enough to keep up!
+        // That is, the next_sector_buffer has to be read or we will overwrite it.
+        scheduled_responses.emplace_back(&CDROM::read_n_second, 0x36CD2);
+
+        return 1;
     }
-    cd->read_sector_and_advance(next_sector_buffer);
-    next_sector_buffer_ready = true;
 
-    // Update drive state
-    drive_state = READING;
-    push_drive_state_to_response_queue();
-
-    // Schedule reading of next sector (since we are automatically reading that)
-    // Software has to be fast enough to keep up!
-    // That is, the next_sector_buffer has to be read or we will overwrite it.
-    scheduled_responses.emplace_back(&CDROM::read_n_second, 0x36CD2);
-
-    return 1;
+    // Communicate aborted command
+    return 0;
 }
 
 uint8_t CDROM::stop() {
@@ -916,7 +904,7 @@ uint8_t CDROM::demute() {
     return 3;
 }
 
-uint8_t CDROM::setmode() {
+uint8_t CDROM::set_mode() {
     mode = parameter_queue.pop();
     LOG_CDROM(prependState(std::format("========> Setmode(0x{:02X}) <========", mode)));
 
@@ -957,8 +945,7 @@ uint8_t CDROM::seek_l() {
     LOG_CDROM(prependState(std::format("========> SeekL(): Initial Response <========")));
 
     if (!cd) {
-        firstResponse.setNoDisc();
-        return;
+        return no_disc_response();
     }
 
     scheduled_responses.emplace_back(&CDROM::seek_l_second);
@@ -983,7 +970,7 @@ uint8_t CDROM::test() {
     function = parameter_queue.pop();
 
     // Execute sub-function
-    return (this->*subFunctions[function])();
+    return (this->*sub_functions[function])();
 }
 
 uint8_t CDROM::get_id() {
@@ -1058,11 +1045,12 @@ uint8_t CDROM::read_toc_second() {
     return 2;
 }
 
-void CDROM::unknown_sf() {
+uint8_t CDROM::unknown_sf() {
     throw exceptions::UnknownCDROMFunctionError(std::format("Unknown function 0x{:02X}", function));
+    return 0;
 }
 
-void CDROM::function_0x20() {
+uint8_t CDROM::function_0x20() {
     LOG_CDROM(prependState(std::format("========> Function: 0x20 <========")));
 
     // hard-coded answer
