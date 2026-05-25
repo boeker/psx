@@ -128,9 +128,6 @@ uint8_t CDROM::driveStateToStatByte(DriveState driveState) {
 CDROM::CDROM(Bus *bus)
     : bus(bus) {
 
-    current_sector_buffer = new uint8_t[CD::SECTOR_SIZE];
-    next_sector_buffer = new uint8_t[CD::SECTOR_SIZE];
-
     reset();
     if (cd) {
         cd->reset();
@@ -138,8 +135,6 @@ CDROM::CDROM(Bus *bus)
 }
 
 CDROM::~CDROM() {
-    delete[] current_sector_buffer;
-    delete[] next_sector_buffer;
 }
 
 void CDROM::reset() {
@@ -162,7 +157,14 @@ void CDROM::reset() {
     drive_state = MOTOR_OFF;
     cycles_left= 0;
 
-    next_sector_buffer_ready = false;
+    current_sector_buffer.reset(nullptr);
+    read_sector_buffers.clear();
+    unused_sector_buffers.clear();
+
+    // Let us start with three sector buffers
+    unused_sector_buffers.emplace_back(std::make_unique<uint8_t[]>(CD::SECTOR_SIZE));
+    unused_sector_buffers.emplace_back(std::make_unique<uint8_t[]>(CD::SECTOR_SIZE));
+    unused_sector_buffers.emplace_back(std::make_unique<uint8_t[]>(CD::SECTOR_SIZE));
 
     amm = 0;
     ass = 0;
@@ -342,9 +344,14 @@ void CDROM::write(uint32_t address, uint8_t value) {
                 if (Bit::getBit(value, CDROM_REQUEST_BFRD)) {
                     LOG_CDROM(prependState(std::format("Serving data queue", value)));
                     if (cd) {
-                        if (next_sector_buffer_ready) {
-                            next_sector_buffer_ready = false;
-                            std::swap(current_sector_buffer, next_sector_buffer);
+                        if (!read_sector_buffers.empty()) {
+                            if (current_sector_buffer) {
+                                unused_sector_buffers.emplace_back(std::move(current_sector_buffer));
+                            }
+
+                            current_sector_buffer = std::move(read_sector_buffers.front());
+                            read_sector_buffers.pop_front();
+
                             bool large_sector_size = mode & (1U << CDROM_MODE_SECTOR_SIZE);
                             sector_offset = large_sector_size ? CD_MODE2_SYNC_BYTES : CD_MODE2_DATA_OFFSET;
                             sector_end = large_sector_size ? CD::SECTOR_SIZE : (CD::SECTOR_SIZE - 0x118);
@@ -828,11 +835,19 @@ uint8_t CDROM::read_n_second_response() {
     // That is, the Pause() command sets the drive state to something else to abort reading
     if (drive_state == READING) {
         // Read sector from CD
-        if (next_sector_buffer_ready) {
-            LOG_CDROM(prependState(std::format("Warning: About to overwrite unserved sector!")));
+        std::unique_ptr<uint8_t[]> buffer;
+        if (!unused_sector_buffers.empty()) {
+            buffer = std::move(unused_sector_buffers.front());
+            unused_sector_buffers.pop_front();
+
+        } else {
+            LOG_CDROM(prependState(std::format("Warning: No unused sector buffer for read, allocating new buffer!")));
+            buffer = std::make_unique<uint8_t[]>(CD::SECTOR_SIZE);
         }
-        cd->read_sector_and_advance(next_sector_buffer);
-        next_sector_buffer_ready = true;
+
+        LOG_CDROM(prependState(std::format("CD is at {}", cd->get_current_position())));
+        cd->read_sector_and_advance(buffer.get());
+        read_sector_buffers.emplace_back(std::move(buffer));
 
         push_drive_state_to_response_queue();
 

@@ -54,6 +54,8 @@ public:
     void reset();
     void reset_position();
 
+    Index get_current_position();
+
     void seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors);
     void seek_to_dec(uint8_t minutes, uint8_t seconds, uint8_t sectors);
     void seek_to_next_sector();

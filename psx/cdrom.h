@@ -104,13 +104,11 @@ private:
 
     std::unique_ptr<CD> cd;
 
-    // Two buffers
-    // One for the sector being served
-    uint8_t *current_sector_buffer;
-    // And one for the next sector being read into
-    uint8_t *next_sector_buffer;
-    // Whether a sector was read after serving the last
-    bool next_sector_buffer_ready;
+    // The current sector being served
+    std::unique_ptr<uint8_t[]> current_sector_buffer;
+    // Buffers that already have been read
+    std::deque<std::unique_ptr<uint8_t[]>> read_sector_buffers;
+    std::deque<std::unique_ptr<uint8_t[]>> unused_sector_buffers;
 
     uint8_t amm;
     uint8_t ass;

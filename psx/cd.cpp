@@ -110,6 +110,10 @@ void CD::reset_position() {
     }
 }
 
+CD::Index CD::get_current_position() {
+    return current_position;
+}
+
 void CD::seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors) {
     LOG_CDROM(std::format("Absolute seek to 0x{:02X},0x{:02X},0x{:02X} (BCD)", bcd_minutes, bcd_seconds, bcd_sectors));
 
