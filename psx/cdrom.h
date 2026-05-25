@@ -217,7 +217,6 @@ private:
     uint8_t seek_l_second_response();
     // 0x19
     void test();
-    uint8_t test_response();
     // 0x1A
     void get_id();
     uint8_t get_id_response();
@@ -228,8 +227,9 @@ private:
     uint8_t read_toc_response();
     uint8_t read_toc_second_response();
 
-    static const ResponseFunction sub_functions[];
-    uint8_t unknown_sf_response();
+    static const Command sub_functions[];
+    void unknown_sf();
+    void function_0x20();
     uint8_t function_0x20_response();
 };
 

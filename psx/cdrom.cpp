@@ -645,88 +645,88 @@ const CDROM::Command CDROM::commands[] = {
     &CDROM::unknown, &CDROM::unknown, &CDROM::unknown, &CDROM::unknown
 };
 
-const CDROM::ResponseFunction CDROM::sub_functions[] = {
+const CDROM::Command CDROM::sub_functions[] = {
     // 0x00
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0x10
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0x20
-    &CDROM::function_0x20_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::function_0x20,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0x30
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0x40
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0x50
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0x60
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0x70
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0x80
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0x90
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0xA0
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0xB0
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0xC0
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0xD0
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0xE0
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
     // 0xF0
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
-    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf
 };
 
 void CDROM::push_drive_state_to_response_queue() {
@@ -1023,16 +1023,9 @@ uint8_t CDROM::seek_l_second_response() {
 }
 
 void CDROM::test() {
-    LOG_CDROM(prependState(std::format("========> Test(): Command <========")));
-    scheduled_responses.emplace_back(&CDROM::test_response);
-}
-
-uint8_t CDROM::test_response() {
-    LOG_CDROM(prependState(std::format("========> Test(): Response <========")));
     function = parameter_queue.pop();
-
-    // Execute sub-function
-    return (this->*sub_functions[function])();
+    LOG_CDROM(prependState(std::format("========> Test(0x{:02X}): Command <========", function)));
+    (this->*sub_functions[function])();
 }
 
 void CDROM::get_id() {
@@ -1117,13 +1110,17 @@ uint8_t CDROM::read_toc_second_response() {
     return 2;
 }
 
-uint8_t CDROM::unknown_sf_response() {
+void CDROM::unknown_sf() {
     throw exceptions::UnknownCDROMFunctionError(std::format("Unknown function 0x{:02X}", function));
-    return 0;
+}
+
+void CDROM::function_0x20() {
+    LOG_CDROM(prependState(std::format("========> Function 0x20: Command <========")));
+    scheduled_responses.emplace_back(&CDROM::function_0x20_response);
 }
 
 uint8_t CDROM::function_0x20_response() {
-    LOG_CDROM(prependState(std::format("========> Function: 0x20 <========")));
+    LOG_CDROM(prependState(std::format("========> Function 0x20: Response <========")));
 
     // hard-coded answer
     response_queue.push(0x99); // Year
