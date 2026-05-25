@@ -13,7 +13,7 @@ Index::Index()
       sectors(0) {
 }
 
-Index::Index(uint32_t minutes, uint32_t seconds, uint32_t sectors)
+Index::Index(uint8_t minutes, uint8_t seconds, uint8_t sectors)
     : minutes(minutes),
       seconds(seconds),
       sectors(sectors) {
@@ -52,16 +52,14 @@ bool operator>=(const Index &l, const Index &r) {
 }
 
 Index& Index::operator++() {
-    ++sectors;
-    handle_overflows();
+    set_and_handle_overflows(minutes, seconds, sectors + 1);
     return *this;
 }
 
 Index& Index::operator+=(const Index& rhs) {
-    minutes += rhs.minutes;
-    seconds += rhs.seconds;
-    sectors += rhs.sectors;
-    handle_overflows();
+    set_and_handle_overflows(static_cast<int32_t>(minutes) + rhs.minutes,
+                             static_cast<int32_t>(seconds) + rhs.seconds,
+                             static_cast<int32_t>(sectors) + rhs.sectors);
     return *this;
 }
 
@@ -71,27 +69,9 @@ Index operator+(Index lhs, const Index& rhs) {
 }
 
 Index& Index::operator-=(const Index& rhs) {
-    if (minutes < rhs.minutes) {
-        minutes = 0;
-        seconds = 0;
-        sectors = 0;
-        return *this;
-    }
-    minutes -= rhs.minutes;
-
-    if (seconds < rhs.seconds) {
-        seconds = 0;
-        sectors = 0;
-        return *this;
-    }
-    seconds -= rhs.seconds;
-
-    if (sectors < rhs.sectors) {
-        sectors = 0;
-        return *this;
-    }
-    sectors -= rhs.sectors;
-
+    set_and_handle_underflows(static_cast<int32_t>(minutes) - rhs.minutes,
+                              static_cast<int32_t>(seconds) - rhs.seconds,
+                              static_cast<int32_t>(sectors) - rhs.sectors);
     return *this;
 }
 
@@ -100,16 +80,40 @@ Index operator-(Index lhs, const Index& rhs) {
     return lhs;
 }
 
-std::tuple<uint32_t, uint32_t, uint32_t> Index::tie() const {
+std::tuple<uint8_t, uint8_t, uint8_t> Index::tie() const {
     return std::tie(minutes, seconds, sectors);
 }
 
-void Index::handle_overflows() {
+void Index::set_and_handle_overflows(int32_t minutes, int32_t seconds, int32_t sectors) {
     seconds += sectors / 75;
     sectors = sectors % 75;
 
     minutes += seconds / 60;
     seconds = seconds % 60;
+
+    this->minutes = minutes;
+    this->seconds = seconds;
+    this->sectors = sectors;
+}
+
+void Index::set_and_handle_underflows(int32_t minutes, int32_t seconds, int32_t sectors) {
+    if (sectors < 0) {
+        sectors += 75;
+        --seconds;
+    }
+
+    if (seconds < 0) {
+        seconds += 60;
+        --minutes;
+    }
+
+    if (minutes < 0) {
+        minutes += 74;
+    }
+
+    this->minutes = minutes;
+    this->seconds = seconds;
+    this->sectors = sectors;
 }
 
 std::ostream& operator<<(std::ostream &os, const NumberedIndex &index) {
@@ -288,18 +292,25 @@ NumberedIndex Parser::parse_command() {
     // TODO Sanitize
     line_stream >> index.number;
 
-    line_stream >> index.index.minutes;
+    uint32_t temp;
+    line_stream >> temp;
+    index.index.minutes = temp;
+
     char colon;
     line_stream >> colon;
     if (colon != ':') {
         exit_with_parsing_error(std::format("Unexpected character: Expected ':', but got '{}'", colon));
     }
-    line_stream >> index.index.seconds;
+
+    line_stream >> temp;
+    index.index.seconds = temp;
+
     line_stream >> colon;
     if (colon != ':') {
         exit_with_parsing_error(std::format("Unexpected character: Expected ':', but got '{}'", colon));
     }
-    line_stream >> index.index.sectors;
+    line_stream >> temp;
+    index.index.sectors = temp;
 
     read_line();
 

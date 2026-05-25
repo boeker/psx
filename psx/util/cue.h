@@ -15,12 +15,12 @@ namespace util {
 namespace cue {
 
 struct Index {
-    uint32_t minutes;
-    uint32_t seconds;
-    uint32_t sectors;
+    uint8_t minutes;
+    uint8_t seconds;
+    uint8_t sectors;
 
     Index();
-    Index(uint32_t minutes, uint32_t seconds, uint32_t sectors);
+    Index(uint8_t minutes, uint8_t seconds, uint8_t sectors);
     void reset();
 
     friend bool operator==(const Index &l, const Index &r);
@@ -39,8 +39,9 @@ struct Index {
     friend Index operator-(Index lhs, const Index& rhs);
 
 private:
-    void handle_overflows();
-    std::tuple<uint32_t, uint32_t, uint32_t> tie() const;
+    void set_and_handle_overflows(int32_t minutes, int32_t seconds, int32_t sectors);
+    void set_and_handle_underflows(int32_t minutes, int32_t seconds, int32_t sectors);
+    std::tuple<uint8_t, uint8_t, uint8_t> tie() const;
 };
 
 struct NumberedIndex {
