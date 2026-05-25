@@ -232,11 +232,12 @@ void CDROM::send_command() {
             notifyAboutINT10();
         }
 
-        // Actually send command / schedule response
-        LOG_CDROM(prependState(std::format("========> Scheduling Response: 0x{:02X}() <========", command)));
-        scheduled_responses.emplace_back(commands[command]);
+        // Execute command
+        (this->*commands[command])();
 
-        cycles_left = scheduled_responses.begin()->cycles;
+        // Every command has to schedule a response
+        assert(!scheduled_responses.empty());
+        cycles_left = scheduled_responses.front().cycles;
     }
 }
 
@@ -542,7 +543,7 @@ uint32_t CDROM::read_word() {
     return value;
 }
 
-const CDROM::ResponseFunction CDROM::commands[] = {
+const CDROM::Command CDROM::commands[] = {
     // 0x00
     &CDROM::unknown,
     &CDROM::get_stat, // 0x01
@@ -646,86 +647,86 @@ const CDROM::ResponseFunction CDROM::commands[] = {
 
 const CDROM::ResponseFunction CDROM::sub_functions[] = {
     // 0x00
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0x10
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0x20
-    &CDROM::function_0x20,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::function_0x20_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0x30
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0x40
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0x50
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0x60
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0x70
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0x80
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0x90
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0xA0
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0xB0
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0xC0
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0xD0
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0xE0
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
     // 0xF0
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf,
-    &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf, &CDROM::unknown_sf
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response,
+    &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response, &CDROM::unknown_sf_response
 };
 
 void CDROM::push_drive_state_to_response_queue() {
@@ -738,13 +739,17 @@ uint8_t CDROM::no_disc_response() {
     return 5;
 }
 
-uint8_t CDROM::unknown() {
+void CDROM::unknown() {
     throw exceptions::UnknownCDROMCommandError(std::format("Unknown command 0x{:02X}", command));
-    return 0;
 }
 
-uint8_t CDROM::get_stat() {
-    LOG_CDROM(prependState(std::format("========> Getstat() <========")));
+void CDROM::get_stat() {
+    LOG_CDROM(prependState(std::format("========> Getstat(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::get_stat_response);
+}
+
+uint8_t CDROM::get_stat_response() {
+    LOG_CDROM(prependState(std::format("========> Getstat(): Response <========")));
     //7  Play          Playing CD-DA         ;\only ONE of these bits can be set
     //6  Seek          Seeking               ; at a time (ie. Read/Play won't get
     //5  Read          Reading data sectors  ;/set until after Seek completion)
@@ -774,12 +779,17 @@ uint8_t CDROM::get_stat() {
     return 3;
 }
 
-uint8_t CDROM::set_loc() {
+void CDROM::set_loc() {
+    LOG_CDROM(prependState(std::format("========> Setloc(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::set_loc_response);
+}
+
+uint8_t CDROM::set_loc_response() {
     amm = parameter_queue.pop();
     ass = parameter_queue.pop();
     asect = parameter_queue.pop();
 
-    LOG_CDROM(prependState(std::format("========> Setloc(0x{:02X}, 0x{:02X}, 0x{:02X}) <========", amm, ass, asect)));
+    LOG_CDROM(prependState(std::format("========> Setloc(0x{:02X}, 0x{:02X}, 0x{:02X}): Response <========", amm, ass, asect)));
 
     if (!cd) {
         return no_disc_response();
@@ -789,7 +799,12 @@ uint8_t CDROM::set_loc() {
     return 3;
 }
 
-uint8_t CDROM::read_n() {
+void CDROM::read_n() {
+    LOG_CDROM(prependState(std::format("========> ReadN(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::read_n_response);
+}
+
+uint8_t CDROM::read_n_response() {
     LOG_CDROM(prependState(std::format("========> ReadN(): Initial Response <========")));
 
     if (!cd) {
@@ -801,12 +816,12 @@ uint8_t CDROM::read_n() {
     push_drive_state_to_response_queue();
 
     // Schedule second response
-    scheduled_responses.emplace_back(&CDROM::read_n_second, 0x36CD2);
+    scheduled_responses.emplace_back(&CDROM::read_n_second_response, 0x36CD2);
 
     return 3;
 }
 
-uint8_t CDROM::read_n_second() {
+uint8_t CDROM::read_n_second_response() {
     LOG_CDROM(prependState(std::format("========> ReadN(): Second Response <========")));
 
     // We use the drive state to communicate whether to continue reading
@@ -824,7 +839,7 @@ uint8_t CDROM::read_n_second() {
         // Schedule reading of next sector (since we are automatically reading that)
         // Software has to be fast enough to keep up!
         // That is, the next_sector_buffer has to be read or we will overwrite it.
-        scheduled_responses.emplace_back(&CDROM::read_n_second, 0x36CD2);
+        scheduled_responses.emplace_back(&CDROM::read_n_second_response, 0x36CD2);
 
         return 1;
     }
@@ -833,7 +848,12 @@ uint8_t CDROM::read_n_second() {
     return 0;
 }
 
-uint8_t CDROM::stop() {
+void CDROM::stop() {
+    LOG_CDROM(prependState(std::format("========> Stop(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::stop_response);
+}
+
+uint8_t CDROM::stop_response() {
     LOG_CDROM(prependState(std::format("========> Stop(): Initial Response <========")));
 
     if (!cd) {
@@ -841,13 +861,13 @@ uint8_t CDROM::stop() {
     }
 
     // Schedule second response
-    scheduled_responses.emplace_back(&CDROM::stop_second);
+    scheduled_responses.emplace_back(&CDROM::stop_second_response);
 
     push_drive_state_to_response_queue(); // Respond with current state
     return 3;
 }
 
-uint8_t CDROM::stop_second() {
+uint8_t CDROM::stop_second_response() {
     LOG_CDROM(prependState(std::format("========> Stop(): Second Response <========")));
 
     drive_state = MOTOR_OFF;
@@ -855,7 +875,14 @@ uint8_t CDROM::stop_second() {
     return 2;
 }
 
-uint8_t CDROM::pause() {
+void CDROM::pause() {
+    LOG_CDROM(prependState(std::format("========> Pause(): Command <========")));
+    LOG_CDROM(prependState(std::format("========> Pause(): Clearing Response Queue <========", command)));
+    scheduled_responses.clear();
+    scheduled_responses.emplace_back(&CDROM::pause_response);
+}
+
+uint8_t CDROM::pause_response() {
     LOG_CDROM(prependState(std::format("========> Pause(): Initial Response <========")));
 
     if (!cd) {
@@ -863,13 +890,13 @@ uint8_t CDROM::pause() {
     }
 
     // Schedule second response
-    scheduled_responses.emplace_back(&CDROM::pause_second);
+    scheduled_responses.emplace_back(&CDROM::pause_second_response, 0x10BD93);
 
     push_drive_state_to_response_queue(); // Respond with current state
     return 3;
 }
 
-uint8_t CDROM::pause_second() {
+uint8_t CDROM::pause_second_response() {
     LOG_CDROM(prependState(std::format("========> Pause(): Second Response <========")));
 
     drive_state = MOTOR_ON;
@@ -877,17 +904,22 @@ uint8_t CDROM::pause_second() {
     return 2;
 }
 
-uint8_t CDROM::init() {
+void CDROM::init() {
+    LOG_CDROM(prependState(std::format("========> Init(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::init_response, 0x13CCE);
+}
+
+uint8_t CDROM::init_response() {
     LOG_CDROM(prependState(std::format("========> Init(): Initial Response <========")));
 
     // TODO set mode to 0x20
-    scheduled_responses.emplace_back(&CDROM::init_second);
+    scheduled_responses.emplace_back(&CDROM::init_second_response);
 
     push_drive_state_to_response_queue(); // Current/old state
     return 3;
 }
 
-uint8_t CDROM::init_second() {
+uint8_t CDROM::init_second_response() {
     LOG_CDROM(prependState(std::format("========> Init(): Second Response <========")));
 
     drive_state = MOTOR_ON;
@@ -895,8 +927,13 @@ uint8_t CDROM::init_second() {
     return 2;
 }
 
-uint8_t CDROM::demute() {
-    LOG_CDROM(prependState(std::format("========> Demute() <========")));
+void CDROM::demute() {
+    LOG_CDROM(prependState(std::format("========> Demute(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::demute_response);
+}
+
+uint8_t CDROM::demute_response() {
+    LOG_CDROM(prependState(std::format("========> Demute(): Response <========")));
 
     // TODO Do something?
 
@@ -904,9 +941,14 @@ uint8_t CDROM::demute() {
     return 3;
 }
 
-uint8_t CDROM::set_mode() {
+void CDROM::set_mode() {
+    LOG_CDROM(prependState(std::format("========> Setmode(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::set_mode_response);
+}
+
+uint8_t CDROM::set_mode_response() {
     mode = parameter_queue.pop();
-    LOG_CDROM(prependState(std::format("========> Setmode(0x{:02X}) <========", mode)));
+    LOG_CDROM(prependState(std::format("========> Setmode(0x{:02X}): Response <========", mode)));
 
     // TODO Handle all bits
 
@@ -914,8 +956,13 @@ uint8_t CDROM::set_mode() {
     return 3;
 }
 
-uint8_t CDROM::get_tn() {
-    LOG_CDROM(prependState(std::format("========> GetTN() <========")));
+void CDROM::get_tn() {
+    LOG_CDROM(prependState(std::format("========> GetTN(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::get_tn_response);
+}
+
+uint8_t CDROM::get_tn_response() {
+    LOG_CDROM(prependState(std::format("========> GetTN(): Response <========")));
 
     if (!cd) {
         return no_disc_response();
@@ -927,9 +974,14 @@ uint8_t CDROM::get_tn() {
     return 3;
 }
 
-uint8_t CDROM::get_td() {
+void CDROM::get_td() {
+    LOG_CDROM(prependState(std::format("========> GetTD(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::get_td_response);
+}
+
+uint8_t CDROM::get_td_response() {
     uint8_t track = parameter_queue.pop();
-    LOG_CDROM(prependState(std::format("========> GetTD(0x{:02X}) <========", track)));
+    LOG_CDROM(prependState(std::format("========> GetTD(0x{:02X}): Response <========", track)));
 
     if (!cd) {
         return no_disc_response();
@@ -941,21 +993,26 @@ uint8_t CDROM::get_td() {
     return 3;
 }
 
-uint8_t CDROM::seek_l() {
+void CDROM::seek_l() {
+    LOG_CDROM(prependState(std::format("========> SeekL(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::seek_l_response);
+}
+
+uint8_t CDROM::seek_l_response() {
     LOG_CDROM(prependState(std::format("========> SeekL(): Initial Response <========")));
 
     if (!cd) {
         return no_disc_response();
     }
 
-    scheduled_responses.emplace_back(&CDROM::seek_l_second);
+    scheduled_responses.emplace_back(&CDROM::seek_l_second_response);
 
     drive_state = SEEKING;
     push_drive_state_to_response_queue();
     return 3;
 }
 
-uint8_t CDROM::seek_l_second() {
+uint8_t CDROM::seek_l_second_response() {
     LOG_CDROM(prependState(std::format("========> SeekL(): Second Response <========")));
 
     cd->seek_to_bcd(amm, ass, asect);
@@ -965,15 +1022,25 @@ uint8_t CDROM::seek_l_second() {
     return 2;
 }
 
-uint8_t CDROM::test() {
-    LOG_CDROM(prependState(std::format("========> Test() <========")));
+void CDROM::test() {
+    LOG_CDROM(prependState(std::format("========> Test(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::test_response);
+}
+
+uint8_t CDROM::test_response() {
+    LOG_CDROM(prependState(std::format("========> Test(): Response <========")));
     function = parameter_queue.pop();
 
     // Execute sub-function
     return (this->*sub_functions[function])();
 }
 
-uint8_t CDROM::get_id() {
+void CDROM::get_id() {
+    LOG_CDROM(prependState(std::format("========> GetID(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::get_id_response);
+}
+
+uint8_t CDROM::get_id_response() {
     LOG_CDROM(prependState(std::format("========> GetID(): Initial Response <========")));
 
     if (drive_state == OPEN) {
@@ -983,25 +1050,25 @@ uint8_t CDROM::get_id() {
     }
 
     if (!cd) {
-        scheduled_responses.emplace_back(&CDROM::get_id_second_motor_off);
+        scheduled_responses.emplace_back(&CDROM::get_id_second_response_motor_off);
         response_queue.push(0x00);
         return 3;
     }
 
     if (drive_state == MOTOR_OFF) {
-        scheduled_responses.emplace_back(&CDROM::get_id_second_motor_off);
+        scheduled_responses.emplace_back(&CDROM::get_id_second_response_motor_off);
         response_queue.push(0x00);
         return 3;
 
     }
 
     // Licensed Mode 2
-    scheduled_responses.emplace_back(&CDROM::get_id_second_mode_2);
+    scheduled_responses.emplace_back(&CDROM::get_id_second_response_mode_2);
     response_queue.push(0x02);
     return 3;
 }
 
-uint8_t CDROM::get_id_second_motor_off() {
+uint8_t CDROM::get_id_second_response_motor_off() {
     LOG_CDROM(prependState(std::format("========> GetID(): Second Response (Motor Off) <========")));
 
     response_queue.push(0x08); // Also for no disc?
@@ -1015,7 +1082,7 @@ uint8_t CDROM::get_id_second_motor_off() {
     return 5;
 }
 
-uint8_t CDROM::get_id_second_mode_2() {
+uint8_t CDROM::get_id_second_response_mode_2() {
     LOG_CDROM(prependState(std::format("========> GetID(): Second Response (Licensed Disc, Mode 2) <========")));
 
     response_queue.push(0x02); // stat
@@ -1029,28 +1096,33 @@ uint8_t CDROM::get_id_second_mode_2() {
     return 2;
 }
 
-uint8_t CDROM::read_toc() {
+void CDROM::read_toc() {
+    LOG_CDROM(prependState(std::format("========> ReadTOC(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::read_toc_response);
+}
+
+uint8_t CDROM::read_toc_response() {
     LOG_CDROM(prependState(std::format("========> ReadTOC(): Initial Response <========")));
     // INT3 with status first, then INT2 with status
 
-    scheduled_responses.emplace_back(&CDROM::read_toc_second, 0x1F78A40);
+    scheduled_responses.emplace_back(&CDROM::read_toc_second_response, 0x1F78A40);
     push_drive_state_to_response_queue();
     return 3;
 }
 
-uint8_t CDROM::read_toc_second() {
+uint8_t CDROM::read_toc_second_response() {
     LOG_CDROM(prependState(std::format("========> ReadTOC(): Second Response <========")));
 
     push_drive_state_to_response_queue();
     return 2;
 }
 
-uint8_t CDROM::unknown_sf() {
+uint8_t CDROM::unknown_sf_response() {
     throw exceptions::UnknownCDROMFunctionError(std::format("Unknown function 0x{:02X}", function));
     return 0;
 }
 
-uint8_t CDROM::function_0x20() {
+uint8_t CDROM::function_0x20_response() {
     LOG_CDROM(prependState(std::format("========> Function: 0x20 <========")));
 
     // hard-coded answer

@@ -175,48 +175,62 @@ private:
     // Generic response when no disc is inserted
     uint8_t no_disc_response();
 
-    static const ResponseFunction commands[];
-    uint8_t unknown();
+    static const Command commands[];
+    void unknown();
     // 0x01
-    uint8_t get_stat();
+    void get_stat();
+    uint8_t get_stat_response();
     // 0x02
-    uint8_t set_loc();
+    void set_loc();
+    uint8_t set_loc_response();
     // 0x06
-    uint8_t read_n();
-    uint8_t read_n_second();
+    void read_n();
+    uint8_t read_n_response();
+    uint8_t read_n_second_response();
     // 0x08
-    uint8_t stop();
-    uint8_t stop_second();
+    void stop();
+    uint8_t stop_response();
+    uint8_t stop_second_response();
     // 0x09
-    uint8_t pause();
-    uint8_t pause_second();
+    void pause();
+    uint8_t pause_response();
+    uint8_t pause_second_response();
     // 0x0A
-    uint8_t init();
-    uint8_t init_second();
+    void init();
+    uint8_t init_response();
+    uint8_t init_second_response();
     // 0x0C
-    uint8_t demute();
+    void demute();
+    uint8_t demute_response();
     // 0x0E
-    uint8_t set_mode();
+    void set_mode();
+    uint8_t set_mode_response();
     // 0x13
-    uint8_t get_tn();
+    void get_tn();
+    uint8_t get_tn_response();
     // 0x14
-    uint8_t get_td();
+    void get_td();
+    uint8_t get_td_response();
     // 0x15
-    uint8_t seek_l();
-    uint8_t seek_l_second();
+    void seek_l();
+    uint8_t seek_l_response();
+    uint8_t seek_l_second_response();
     // 0x19
-    uint8_t test();
+    void test();
+    uint8_t test_response();
     // 0x1A
-    uint8_t get_id();
-    uint8_t get_id_second_motor_off();
-    uint8_t get_id_second_mode_2();
+    void get_id();
+    uint8_t get_id_response();
+    uint8_t get_id_second_response_motor_off();
+    uint8_t get_id_second_response_mode_2();
     // 0x1E
-    uint8_t read_toc();
-    uint8_t read_toc_second();
+    void read_toc();
+    uint8_t read_toc_response();
+    uint8_t read_toc_second_response();
 
     static const ResponseFunction sub_functions[];
-    uint8_t unknown_sf();
-    uint8_t function_0x20();
+    uint8_t unknown_sf_response();
+    uint8_t function_0x20_response();
 };
 
 }
