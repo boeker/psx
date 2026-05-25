@@ -809,6 +809,12 @@ uint8_t CDROM::set_loc_response() {
 void CDROM::read_n() {
     LOG_CDROM(prependState(std::format("========> ReadN(): Command <========")));
     scheduled_responses.emplace_back(&CDROM::read_n_response);
+
+    // Make sure we do not have any already read sectors remaining
+    while (!read_sector_buffers.empty()) {
+        unused_sector_buffers.emplace_back(std::move(read_sector_buffers.back()));
+        read_sector_buffers.pop_back();
+    }
 }
 
 uint8_t CDROM::read_n_response() {
@@ -834,6 +840,7 @@ uint8_t CDROM::read_n_second_response() {
     // We use the drive state to communicate whether to continue reading
     // That is, the Pause() command sets the drive state to something else to abort reading
     if (drive_state == READING) {
+
         // Read sector from CD
         std::unique_ptr<uint8_t[]> buffer;
         if (!unused_sector_buffers.empty()) {
