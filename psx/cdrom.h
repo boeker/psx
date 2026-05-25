@@ -132,6 +132,7 @@ private:
         }
     };
 
+    bool waiting_for_acknowledge;
     // The emulated responses from the CDROM controller
     std::deque<ScheduledResponse> scheduled_responses;
     // Number of cycles until next response will be served

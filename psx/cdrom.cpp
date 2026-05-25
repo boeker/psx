@@ -155,7 +155,11 @@ void CDROM::reset() {
     parameter_queue.clear();
 
     drive_state = MOTOR_OFF;
+
+    waiting_for_acknowledge = false;
+    scheduled_responses.clear();
     cycles_left= 0;
+    response_queue.clear();
 
     current_sector_buffer.reset(nullptr);
     read_sector_buffers.clear();
@@ -190,7 +194,7 @@ void CDROM::catchUpToCPU(uint32_t cycles) {
         return;
     }
 
-    if (!scheduled_responses.empty()) {
+    if (!scheduled_responses.empty() && !waiting_for_acknowledge) {
         LOG_CDROM(prependState(std::format("========> Delivering Response")));
         ScheduledResponse response = scheduled_responses.front();
         scheduled_responses.pop_front();
@@ -210,6 +214,7 @@ void CDROM::deliver_response(ScheduledResponse &response) {
         LOG_CDROM(std::format("Warning: Response function returned 0. Aborted command?"));
 
     } else {
+        waiting_for_acknowledge = true;
         notifyAboutINT1to7(interrupt);
     }
 
@@ -415,7 +420,7 @@ uint8_t CDROM::read(uint32_t address) {
             case 2: // Mirror of response queue
             case 3: // Mirror of response queue
                 if (response_queue.isEmpty()) {
-                    LOG_CDROM(std::format("Response queue is empty!"));
+                    LOG_CDROM(std::format("Warning: Response queue is empty!"));
                     value = 0;
 
                 } else {
@@ -523,6 +528,8 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
     // Let's assume that we only consider INT1...7 and that it has to be cleared completely
     if (wasInterrupt && !isInterrupt) {
         LOG_CDROM(prependState(std::format("Acknowledged interrupt: pending_command = {:s}", pending_command)));
+        waiting_for_acknowledge = false;
+
         // Clear response queue
         // TODO Do we have to clear this or is the user responsible for this?
         //response_queue.clear();
