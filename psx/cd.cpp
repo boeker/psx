@@ -15,6 +15,22 @@ using namespace util;
 
 namespace PSX {
 
+uint32_t CD::File::read_sectors() {
+    auto pos = stream.tellg();
+    assert(pos % SECTOR_SIZE == 0);
+    uint32_t read = pos / SECTOR_SIZE;
+    assert(read <= sectors);
+    return read;
+}
+
+uint32_t CD::File::remaining_sectors() {
+    return sectors - read_sectors();
+}
+
+uint32_t CD::File::current_sector() {
+    return read_sectors() + 2 * 75;
+}
+
 CD::CD(const std::string &cue_sheet_filename) {
     open_cue_sheet(cue_sheet_filename);
     reset();
@@ -75,6 +91,19 @@ void CD::open_cue_sheet(const std::string &filename) {
         LOG_CDROM(std::format("Opening file \"{:s}\"", path.native()));
 
         File file;
+        std::uintmax_t size = 0;
+        try {
+            size = std::filesystem::file_size(path);
+        } catch (std::filesystem::filesystem_error &e) {
+            throw exceptions::FileReadError("Failed to determine size of file \"" + path.native() + "\": " + e.what());
+        }
+        if (size % CD::SECTOR_SIZE != 0) {
+            throw exceptions::FileReadError("File does not divide evenly into sectors of size " + CD::SECTOR_SIZE);
+        }
+        file.sectors = size / CD::SECTOR_SIZE;
+        if (file.sectors == 0) {
+            throw exceptions::FileReadError("File contains no sectors");
+        }
         file.stream.open(path.c_str(), std::ios::binary);
         if (!file.stream.good()) {
             throw exceptions::FileReadError("Failed to open file \"" + path.native() + "\"");
@@ -86,21 +115,6 @@ void CD::open_cue_sheet(const std::string &filename) {
 
 void CD::reset() {
     reset_position();
-}
-
-void CD::reset_position() {
-    current_sector = 2 * 75; // First track always has a 2-second pregap
-    current_sector_in_file = current_sector;
-
-    current_file = files.begin();
-    if (current_file != files.end()) {
-        current_file->stream.seekg(0, std::ios::beg);
-        current_track = current_file->tracks.begin();
-
-        if (current_track != current_file->tracks.end()) {
-            current_index = current_track->indexes.begin();
-        }
-    }
 }
 
 CD::Index CD::get_current_position() {
@@ -132,7 +146,7 @@ bool CD::at_end_of_disc() const {
     return current_file == files.end();
 }
 
-bool CD::read_sector_and_advance(uint8_t* buffer) {
+bool CD::read_sector_and_advance(uint8_t *buffer) {
     LOG_CDROM(std::format("Reading sector into buffer"));
     while (current_file != files.end()) {
         current_file->stream.read(reinterpret_cast<char*>(buffer), SECTOR_SIZE);
@@ -144,7 +158,9 @@ bool CD::read_sector_and_advance(uint8_t* buffer) {
             continue;
         }
 
-        increment_current_position();
+        ++current_sector;
+        move_to_track_and_index();
+
         return true;
     }
 
@@ -156,26 +172,44 @@ void CD::seek_to(uint32_t sectors) {
     LOGV_CDROM(std::format("Seek to {}", Index(sectors)));
     reset_position();
 
-    Index target_position(sectors);
-    Index relative_target_position = target_position - get_current_position();
-
-    seek_by(relative_target_position.total_sectors());
+    seek_by(sectors - current_sector);
 }
 
 void CD::seek_by(uint32_t sectors) {
     LOGV_CDROM(std::format("Seek by {}", Index(sectors)));
-    Index target_position = get_current_position() + Index(sectors);
 
-    while (current_file != files.end() && get_current_position() < target_position) {
-        current_file->stream.seekg(SECTOR_SIZE, std::ios::cur);
+    while (current_file != files.end() && sectors > 0) {
+        uint32_t remaining_sectors = current_file->remaining_sectors();
+        if (sectors < remaining_sectors) { // Target sector is in current file
+            current_file->stream.seekg(sectors * SECTOR_SIZE, std::ios::cur);
+            current_sector += sectors;
+            move_to_track_and_index();
+            break;
 
-        // We might have been at the end of the file, have to jump to the next file
-        if (current_file->stream.eof()) {
+        } else { // Target sector is in upcoming file
+            current_sector += remaining_sectors;
+            sectors -= remaining_sectors;
+            // Every file has a 2-second pregap
+            // TODO: Handle this
+            assert(sectors >= 2 * 75);
+            current_sector += 2 * 75;
+            sectors -= 2 * 75;
             move_to_next_file();
-            continue;
         }
+    }
+}
 
-        increment_current_position();
+void CD::reset_position() {
+    current_sector = 2 * 75; // First track always has a 2-second pregap
+
+    current_file = files.begin();
+    if (current_file != files.end()) {
+        current_file->stream.seekg(0, std::ios::beg);
+        current_track = current_file->tracks.begin();
+
+        if (current_track != current_file->tracks.end()) {
+            current_index = current_track->indexes.begin();
+        }
     }
 }
 
@@ -183,7 +217,6 @@ void CD::move_to_next_file() {
     ++current_file;
     if (current_file != files.end()) {
         current_file->stream.seekg(0, std::ios::beg);
-        current_sector_in_file = 2 * 75;
 
         current_track = current_file->tracks.begin();
         if (current_track != current_file->tracks.end()) {
@@ -192,27 +225,30 @@ void CD::move_to_next_file() {
     }
 }
 
-void CD::increment_current_position() {
-    ++current_sector;
-    ++current_sector_in_file;
+void CD::move_to_track_and_index() {
+    bool try_next_index = true;
+    while (try_next_index) {
+        auto next_track = current_track;
+        auto next_index = current_index + 1;
+        bool has_next_index = true;
+        if (next_index == next_track->indexes.end()) {
+            next_track = current_track + 1;
+            if (next_track != current_file->tracks.end()) {
+                next_index = next_track->indexes.begin();
 
-    // Keep track of the track and index we currently are in
-    auto next_track = current_track;
-    auto next_index = current_index + 1;
-    bool has_next_index = true;
-    if (next_index == next_track->indexes.end()) {
-        next_track = current_track + 1;
-        if (next_track != current_file->tracks.end()) {
-            next_index = next_track->indexes.begin();
-
-        } else {
-            has_next_index = false;
+            } else {
+                has_next_index = false;
+            }
         }
-    }
 
-    if (has_next_index && Index(current_sector_in_file) >= next_index->index) {
-        current_track = next_track;
-        current_index = next_index;
+        bool advance_to_next_index = has_next_index && current_file->current_sector() >= next_index->index;
+        if (advance_to_next_index) {
+            current_track = next_track;
+            current_index = next_index;
+        }
+
+        // Also check the next index if we advanced
+        try_next_index = advance_to_next_index;
     }
 }
 

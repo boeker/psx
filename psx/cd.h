@@ -29,9 +29,18 @@ private:
     using NumberedIndex = util::cue::NumberedIndex;
     using Track = util::cue::Track;
     struct File {
+        uint32_t sectors;
         std::ifstream stream;
         // Type implicitly is BINARY
         std::vector<Track> tracks;
+
+        // Number of sectors from this file that have already been read
+        uint32_t read_sectors();
+        // Number of remaining sectors, including the one we currently are at
+        // Zero means that the whole file has been read
+        uint32_t remaining_sectors();
+        // Number of read sectors + two minutes
+        uint32_t current_sector();
     };
 
     std::vector<File> files;
@@ -45,7 +54,6 @@ public:
     CD(const std::string &filename);
     void open_cue_sheet(const std::string &filename);
     void reset();
-    void reset_position();
 
     Index get_current_position();
 
@@ -53,13 +61,14 @@ public:
     void seek_to_dec(uint8_t minutes, uint8_t seconds, uint8_t sectors);
     void seek_to_next_sector();
     bool at_end_of_disc() const;
-    bool read_sector_and_advance(uint8_t* buffer);
+    bool read_sector_and_advance(uint8_t *buffer);
 
 private:
     void seek_to(uint32_t sectors);
     void seek_by(uint32_t sectors);
+    void reset_position();
     void move_to_next_file();
-    void increment_current_position();
+    void move_to_track_and_index();
 };
 
 }
