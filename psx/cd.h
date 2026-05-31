@@ -56,8 +56,8 @@ public:
     bool read_sector_and_advance(uint8_t* buffer);
 
 private:
-    void seek_to(uint8_t minutes, uint8_t seconds, uint8_t sectors);
-    void seek_by(uint8_t minutes, uint8_t seconds, uint8_t sectors);
+    void seek_to(uint32_t sectors);
+    void seek_by(uint32_t sectors);
     void move_to_next_file();
     void increment_current_position();
 };

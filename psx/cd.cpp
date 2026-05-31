@@ -113,18 +113,18 @@ void CD::seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_secto
     uint8_t minutes = (bcd_minutes >> 4) * 10 + (bcd_minutes & 0x0F);
     uint8_t seconds = (bcd_seconds >> 4) * 10 + (bcd_seconds & 0x0F);
     uint8_t sectors = (bcd_sectors >> 4) * 10 + (bcd_sectors & 0x0F);
-    seek_to(minutes, seconds, sectors);
+    seek_to(Index(minutes, seconds, sectors).total_sectors());
 }
 
 void CD::seek_to_dec(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
     LOG_CDROM(std::format("Absolute seek to {:d},{:d},{:d} (decimal)", minutes, seconds, sectors));
 
-    seek_to(minutes, seconds, sectors);
+    seek_to(Index(minutes, seconds, sectors).total_sectors());
 }
 
 void CD::seek_to_next_sector() {
     LOG_CDROM(std::format("Seek to next sector from {}", get_current_position()));
-    seek_by(0, 0, 1);
+    seek_by(1);
     LOG_CDROM(std::format("At {} now", get_current_position()));
 }
 
@@ -152,19 +152,19 @@ bool CD::read_sector_and_advance(uint8_t* buffer) {
     return false;
 }
 
-void CD::seek_to(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
+void CD::seek_to(uint32_t sectors) {
+    LOGV_CDROM(std::format("Seek to {}", Index(sectors)));
     reset_position();
 
-    Index target_position(minutes, seconds, sectors);
+    Index target_position(sectors);
     Index relative_target_position = target_position - get_current_position();
 
-    seek_by(relative_target_position.minutes,
-            relative_target_position.seconds,
-            relative_target_position.sectors);
+    seek_by(relative_target_position.total_sectors());
 }
 
-void CD::seek_by(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
-    Index target_position = get_current_position() + Index(minutes, seconds, sectors);
+void CD::seek_by(uint32_t sectors) {
+    LOGV_CDROM(std::format("Seek by {}", Index(sectors)));
+    Index target_position = get_current_position() + Index(sectors);
 
     while (current_file != files.end() && get_current_position() < target_position) {
         current_file->stream.seekg(SECTOR_SIZE, std::ios::cur);

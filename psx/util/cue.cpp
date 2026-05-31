@@ -36,6 +36,7 @@ uint32_t Index::total_sectors() const {
     total *= 60;
     total += seconds;
     total *= 75;
+    total += sectors;
     return total;
 }
 
