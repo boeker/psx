@@ -215,6 +215,9 @@ private:
     // 0x28
     void GP0MonochromeFourPointPolygonOpaque();
     // 0x29 Same as 0x28?
+    // 0x2A
+    void GP0MonochromeFourPointPolygonSemiTransparent();
+    // 0x2B Same as 0x2A?
     // 0x2C
     void GP0TexturedFourPointPolygonOpaqueTextureBlending();
     // 0x2D
@@ -225,12 +228,24 @@ private:
     void GP0ShadedThreePointPolygonOpaque();
     // 0x38
     void GP0ShadedFourPointPolygonOpaque();
+    // 0x3C
+    void GP0ShadedTexturedFourPointPolygonOpaqueTextureBlending();
+    // 0x60
+    void GP0MonochromeRectangleVariableSizeOpaque();
+    // 0x62
+    void GP0MonochromeRectangleVariableSizeSemiTransparent();
     // 0x64
     void GP0TexturedRectangleVariableSizeOpaqueTextureBlending();
     // 0x65
     void GP0TexturedRectangleVariableSizeOpaqueRawTexture();
+    // 0x66
+    void GP0TexturedRectangleVariableSizeSemiTransparentTextureBlending();
     // 0x68
     void GP0MonochromeRectangleDotOpaque();
+    // 0x74
+    void GP0TexturedRectangle8x8OpaqueTextureBlending();
+    // 0x75
+    void GP0TexturedRectangle8x8OpaqueRawTexture();
     // 0x80
     void GP0CopyRectangle();
     // 0xA0
