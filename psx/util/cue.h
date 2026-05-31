@@ -21,7 +21,10 @@ struct Index {
 
     Index();
     Index(uint8_t minutes, uint8_t seconds, uint8_t sectors);
+    Index(uint32_t total_sectors);
+
     void reset();
+    uint32_t total_sectors() const;
 
     friend bool operator==(const Index &l, const Index &r);
     friend bool operator!=(const Index &l, const Index &r);

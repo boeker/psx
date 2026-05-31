@@ -19,10 +19,24 @@ Index::Index(uint8_t minutes, uint8_t seconds, uint8_t sectors)
       sectors(sectors) {
 }
 
+Index::Index(uint32_t total_sectors)
+    : minutes((total_sectors / 75) / 60),
+      seconds((total_sectors / 75) % 60),
+      sectors(total_sectors % 75) {
+}
+
 void Index::reset() {
     minutes = 0;
     seconds = 0;
     sectors = 0;
+}
+
+uint32_t Index::total_sectors() const {
+    uint32_t total = minutes;
+    total *= 60;
+    total += seconds;
+    total *= 75;
+    return total;
 }
 
 bool operator==(const Index &l, const Index &r) {

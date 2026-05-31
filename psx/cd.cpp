@@ -89,8 +89,8 @@ void CD::reset() {
 }
 
 void CD::reset_position() {
-    current_position = { 0, 2, 0 }; // First track always has a 2-second pregap
-    current_position_in_file = current_position;
+    current_sector = 2 * 75; // First track always has a 2-second pregap
+    current_sector_in_file = current_sector;
 
     current_file = files.begin();
     if (current_file != files.end()) {
@@ -104,7 +104,7 @@ void CD::reset_position() {
 }
 
 CD::Index CD::get_current_position() {
-    return current_position;
+    return Index(current_sector);
 }
 
 void CD::seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors) {
@@ -123,9 +123,9 @@ void CD::seek_to_dec(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
 }
 
 void CD::seek_to_next_sector() {
-    LOG_CDROM(std::format("Seek to next sector from {}", current_position));
+    LOG_CDROM(std::format("Seek to next sector from {}", get_current_position()));
     seek_by(0, 0, 1);
-    LOG_CDROM(std::format("At {} now", current_position));
+    LOG_CDROM(std::format("At {} now", get_current_position()));
 }
 
 bool CD::at_end_of_disc() const {
@@ -156,7 +156,7 @@ void CD::seek_to(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
     reset_position();
 
     Index target_position(minutes, seconds, sectors);
-    Index relative_target_position = target_position - current_position;
+    Index relative_target_position = target_position - get_current_position();
 
     seek_by(relative_target_position.minutes,
             relative_target_position.seconds,
@@ -164,9 +164,9 @@ void CD::seek_to(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
 }
 
 void CD::seek_by(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
-    Index target_position = current_position + Index(minutes, seconds, sectors);
+    Index target_position = get_current_position() + Index(minutes, seconds, sectors);
 
-    while (current_file != files.end() && current_position < target_position) {
+    while (current_file != files.end() && get_current_position() < target_position) {
         current_file->stream.seekg(SECTOR_SIZE, std::ios::cur);
 
         // We might have been at the end of the file, have to jump to the next file
@@ -183,7 +183,7 @@ void CD::move_to_next_file() {
     ++current_file;
     if (current_file != files.end()) {
         current_file->stream.seekg(0, std::ios::beg);
-        current_position_in_file = {0, 2, 0};
+        current_sector_in_file = 2 * 75;
 
         current_track = current_file->tracks.begin();
         if (current_track != current_file->tracks.end()) {
@@ -193,8 +193,8 @@ void CD::move_to_next_file() {
 }
 
 void CD::increment_current_position() {
-    ++current_position;
-    ++current_position_in_file;
+    ++current_sector;
+    ++current_sector_in_file;
 
     // Keep track of the track and index we currently are in
     auto next_track = current_track;
@@ -210,7 +210,7 @@ void CD::increment_current_position() {
         }
     }
 
-    if (has_next_index && current_position_in_file >= next_index->index) {
+    if (has_next_index && Index(current_sector_in_file) >= next_index->index) {
         current_track = next_track;
         current_index = next_index;
     }

@@ -38,8 +38,8 @@ private:
     std::vector<File>::iterator current_file;
     std::vector<Track>::iterator current_track;
     std::vector<NumberedIndex>::iterator current_index;
-    Index current_position;
-    Index current_position_in_file;
+    uint32_t current_sector;
+    uint32_t current_sector_in_file;
 
 public:
     CD(const std::string &filename);
