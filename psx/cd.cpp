@@ -36,6 +36,10 @@ CD::CD(const std::string &cue_sheet_filename) {
     reset();
 }
 
+void CD::reset() {
+    reset_position();
+}
+
 void CD::open_cue_sheet(const std::string &filename) {
     LOG_CDROM(std::format("Opening cue sheet \"{:s}\"", filename));
     std::filesystem::path path_to_cue_sheet(filename);
@@ -113,14 +117,6 @@ void CD::open_cue_sheet(const std::string &filename) {
     }
 }
 
-void CD::reset() {
-    reset_position();
-}
-
-CD::Index CD::get_current_position() {
-    return Index(current_sector);
-}
-
 void CD::seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors) {
     LOG_CDROM(std::format("Absolute seek to 0x{:02X},0x{:02X},0x{:02X} (BCD)", bcd_minutes, bcd_seconds, bcd_sectors));
 
@@ -128,22 +124,6 @@ void CD::seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_secto
     uint8_t seconds = (bcd_seconds >> 4) * 10 + (bcd_seconds & 0x0F);
     uint8_t sectors = (bcd_sectors >> 4) * 10 + (bcd_sectors & 0x0F);
     seek_to(Index(minutes, seconds, sectors).total_sectors());
-}
-
-void CD::seek_to_dec(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
-    LOG_CDROM(std::format("Absolute seek to {:d},{:d},{:d} (decimal)", minutes, seconds, sectors));
-
-    seek_to(Index(minutes, seconds, sectors).total_sectors());
-}
-
-void CD::seek_to_next_sector() {
-    LOG_CDROM(std::format("Seek to next sector from {}", get_current_position()));
-    seek_by(1);
-    LOG_CDROM(std::format("At {} now", get_current_position()));
-}
-
-bool CD::at_end_of_disc() const {
-    return current_file == files.end();
 }
 
 bool CD::read_sector_and_advance(uint8_t *buffer) {
@@ -166,6 +146,14 @@ bool CD::read_sector_and_advance(uint8_t *buffer) {
 
     LOG_CDROM(std::format("Read from end of disc"));
     return false;
+}
+
+CD::Index CD::get_current_position() {
+    return Index(current_sector);
+}
+
+bool CD::at_end_of_disc() const {
+    return current_file == files.end();
 }
 
 void CD::seek_to(uint32_t sectors) {

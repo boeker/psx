@@ -48,20 +48,17 @@ private:
     std::vector<Track>::iterator current_track;
     std::vector<NumberedIndex>::iterator current_index;
     uint32_t current_sector;
-    uint32_t current_sector_in_file;
 
 public:
     CD(const std::string &filename);
-    void open_cue_sheet(const std::string &filename);
     void reset();
 
-    Index get_current_position();
-
+    void open_cue_sheet(const std::string &filename);
     void seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors);
-    void seek_to_dec(uint8_t minutes, uint8_t seconds, uint8_t sectors);
-    void seek_to_next_sector();
-    bool at_end_of_disc() const;
     bool read_sector_and_advance(uint8_t *buffer);
+
+    Index get_current_position();
+    bool at_end_of_disc() const;
 
 private:
     void seek_to(uint32_t sectors);
