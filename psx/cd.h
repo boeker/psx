@@ -41,13 +41,6 @@ private:
     Index current_position;
     Index current_position_in_file;
 
-    // Legacy
-    bool read_whole_sector;
-    uint8_t minutes;
-    uint8_t seconds;
-    uint8_t sectors;
-    uint32_t offset_in_sector;
-
 public:
     CD(const std::string &filename);
     void open_cue_sheet(const std::string &filename);
@@ -67,19 +60,6 @@ private:
     void seek_by(uint8_t minutes, uint8_t seconds, uint8_t sectors);
     void move_to_next_file();
     void increment_current_position();
-
-public:
-    // Legacy TODO: Remove
-    void set_read_whole_sector(bool read_whole_sector);
-    uint32_t get_remaining_bytes_in_sector() const;
-
-    void seekTo(uint8_t minutes, uint8_t seconds, uint8_t sectors);
-    uint8_t readByte();
-    uint32_t readWord();
-
-private:
-    void leg_seek_to_next_sector();
-    void seek_in_file();
 };
 
 }

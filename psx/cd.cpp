@@ -86,13 +86,6 @@ void CD::open_cue_sheet(const std::string &filename) {
 
 void CD::reset() {
     reset_position();
-
-    read_whole_sector = false;
-
-    minutes = 0;
-    seconds = 0;
-    sectors = 0;
-    offset_in_sector = 0;
 }
 
 void CD::reset_position() {
@@ -220,79 +213,6 @@ void CD::increment_current_position() {
     if (has_next_index && current_position_in_file >= next_index->index) {
         current_track = next_track;
         current_index = next_index;
-    }
-}
-
-void CD::set_read_whole_sector(bool read_whole_sector) {
-    this->read_whole_sector = read_whole_sector;
-}
-
-uint32_t CD::get_remaining_bytes_in_sector() const {
-    return read_whole_sector ? (SECTOR_SIZE - offset_in_sector)
-                             : (SECTOR_SIZE - offset_in_sector - 0x118);
-}
-
-void CD::seekTo(uint8_t minutes, uint8_t seconds, uint8_t sectors) {
-    LOG_CDROM(std::format("Seek to 0x{:02X},0x{:02X},0x{:02X}", minutes, seconds, sectors));
-
-    // The values are in binary coded decimal
-    this->minutes = (minutes >> 4) * 10 + (minutes & 0x0F);
-    this->seconds = (seconds >> 4) * 10 + (seconds & 0x0F);
-    this->sectors = (sectors >> 4) * 10 + (sectors & 0x0F);
-    offset_in_sector = read_whole_sector ? CD_MODE2_SYNC_BYTES : CD_MODE2_DATA_OFFSET;
-    seek_in_file();
-}
-
-uint8_t CD::readByte() {
-    if (get_remaining_bytes_in_sector() == 0) {
-        // TODO Handle mix of readWord and readByte
-        leg_seek_to_next_sector();
-    }
-    uint8_t val;
-    files[0].stream.read(reinterpret_cast<char*>(&val), 1);
-    offset_in_sector++;
-    if (get_remaining_bytes_in_sector() == 0) {
-        leg_seek_to_next_sector();
-    }
-    return val;
-}
-
-uint32_t CD::readWord() {
-    if (get_remaining_bytes_in_sector() == 0) {
-        // TODO Handle mix of readWord and readByte
-        leg_seek_to_next_sector();
-    }
-    uint32_t val;
-    files[0].stream.read(reinterpret_cast<char*>(&val), 4);
-    offset_in_sector += 4;
-    return val;
-}
-
-void CD::leg_seek_to_next_sector() {
-    sectors++;
-    if (sectors == 75) {
-        sectors = 0;
-        seconds++;
-        if (seconds == 60) {
-            seconds = 0;
-            minutes++;
-            // TODO Handle reaching end of disc
-        }
-    }
-    LOG_CDROM(std::format("Auto-seek to 0x{:02X},0x{:02X},0x{:02X}", minutes, seconds, sectors));
-    offset_in_sector = read_whole_sector ? CD_MODE2_SYNC_BYTES : CD_MODE2_DATA_OFFSET;
-    seek_in_file();
-    // TODO Handle correctly
-}
-
-void CD::seek_in_file() {
-    uint32_t pos = ((minutes * 60 + (seconds - 2)) * 75 + sectors) * SECTOR_SIZE + offset_in_sector;
-
-    LOG_CDROM(std::format("File seek to position 0x{:08X}", pos));
-
-    files[0].stream.seekg(pos, std::ios::beg);
-    if (!files[0].stream.good()) {
-        throw exceptions::FileReadError(std::format("File seek to 0x{:08X} failed", pos));
     }
 }
 
