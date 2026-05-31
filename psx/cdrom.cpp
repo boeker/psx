@@ -149,15 +149,8 @@ void CDROM::deliver_response(ScheduledResponse &response) {
 
     // Execute response function
     uint8_t interrupt = (this->*response.function)();
-
-    // Zero signals an aborted command in our emulation
-    if (interrupt == 0) {
-        LOG_CDROM(std::format("Warning: Response function returned 0. Aborted command?"));
-
-    } else {
-        waiting_for_acknowledge = true;
-        notifyAboutINT1to7(interrupt);
-    }
+    waiting_for_acknowledge = true;
+    notifyAboutINT1to7(interrupt);
 
     // Executing the response function might have scheduled a new response
     // Or there might be some responses left
@@ -238,7 +231,7 @@ void CDROM::write(uint32_t address, uint8_t value) {
     } else if (address == 0x1F801801) {
         switch (getIndex()) {
             case 0: // Command Register
-                LOGV_CDROM(prependState(std::format("@0x{:08X}: 0x{:02X} -> command register", bus->cpu.instructionPC, value)));
+                LOGT_CDROM(prependState(std::format("@0x{:08X}: 0x{:02X} -> command register", bus->cpu.instructionPC, value)));
                 command = value;
                 pending_command = true;
                 send_command();
@@ -252,7 +245,7 @@ void CDROM::write(uint32_t address, uint8_t value) {
                 // TODO Implement
                 break;
             case 3: // Audio Volume for Right-CD-Out to Right-SPU-Input
-                LOGV_CDROM(std::format("0x{:02X} -> Audio Volume for Right-CD-Out to Right-SPU-Input", value));
+                LOGT_CDROM(std::format("0x{:02X} -> Audio Volume for Right-CD-Out to Right-SPU-Input", value));
                 audioVolumeCDOutToSPUIn[3] = value;
                 break;
             default:
@@ -262,20 +255,20 @@ void CDROM::write(uint32_t address, uint8_t value) {
     } else if (address == 0x1F801802) {
         switch (getIndex()) {
             case 0: // Parameter Queue
-                LOGV_CDROM(prependState(std::format("0x{:02X} -> parameter queue", value)));
+                LOGT_CDROM(prependState(std::format("0x{:02X} -> parameter queue", value)));
                 parameter_queue.push(value);
                 break;
             case 1: // Interrupt Enable Register
-                LOGV_CDROM(prependState(std::format("0x{:02X} -> interrupt enable register", value)));
+                LOGT_CDROM(prependState(std::format("0x{:02X} -> interrupt enable register", value)));
                 interruptEnableRegister = value & 0x1F; // Bit 7 to 5 should be zero. Only use 4 to 0.
                 // Should we check and issue pending interrupts here?
                 break;
             case 2: // Audio Volume for Left-CD-Out to Left-SPU-Input
-                LOGV_CDROM(std::format("0x{:02X} -> Audio Volume for Left-CD-Out to Left-SPU-Input", value));
+                LOGT_CDROM(std::format("0x{:02X} -> Audio Volume for Left-CD-Out to Left-SPU-Input", value));
                 audioVolumeCDOutToSPUIn[0] = value;
                 break;
             case 3: // Audio Volume for Right-CD-Out to Left-SPU-Input
-                LOGV_CDROM(std::format("0x{:02X} -> Audio Volume for Right-CD-Out to Left-SPU-Input", value));
+                LOGT_CDROM(std::format("0x{:02X} -> Audio Volume for Right-CD-Out to Left-SPU-Input", value));
                 audioVolumeCDOutToSPUIn[2] = value;
                 break;
             default:
@@ -285,10 +278,10 @@ void CDROM::write(uint32_t address, uint8_t value) {
     } else if (address == 0x1F801803) {
         switch (getIndex()) {
             case 0: // Request Register
-                LOG_CDROM(prependState(std::format("0x{:02X} -> request register", value)));
+                LOGT_CDROM(prependState(std::format("0x{:02X} -> request register", value)));
                 requestRegister = value;
                 if (Bit::getBit(value, CDROM_REQUEST_BFRD)) {
-                    LOG_CDROM(prependState(std::format("Serving data queue", value)));
+                    LOGV_CDROM(prependState(std::format("Serving data queue", value)));
                     if (cd) {
                         if (!read_sector_buffers.empty()) {
                             if (current_sector_buffer) {
@@ -306,17 +299,17 @@ void CDROM::write(uint32_t address, uint8_t value) {
                         }
                     }
                 } else {
-                    LOG_CDROM(prependState(std::format("Resetting data queue", value)));
+                    LOGV_CDROM(prependState(std::format("Resetting data queue", value)));
                     sector_offset = 0;
                     sector_end = 0;
                 }
                 break;
             case 1: // Interrupt Flag Register
-                LOG_CDROM(prependState(std::format("0x{:02X} -> interrupt flag register", value)));
+                LOGT_CDROM(prependState(std::format("0x{:02X} -> interrupt flag register", value)));
                 updateInterruptFlagRegister(value);
                 break;
             case 2: // Audio Volume for Left-CD-Out to Right-SPU-Input
-                LOGV_CDROM(std::format("0x{:02X} -> Audio Volume for Left-CD-Out to Right-SPU-Input", value));
+                LOGT_CDROM(std::format("0x{:02X} -> Audio Volume for Left-CD-Out to Right-SPU-Input", value));
                 audioVolumeCDOutToSPUIn[1] = value;
                 break;
             case 3: // Audio Volume Apply Changes
@@ -352,7 +345,7 @@ uint8_t CDROM::read(uint32_t address) {
     if (address == 0x1F801800) { // status register
         updateStatusRegister();
         value = statusRegister;
-        LOGV_CDROM(prependState(std::format("status register -> 0x{:02X}", value)));
+        LOGT_CDROM(prependState(std::format("status register -> 0x{:02X}", value)));
 
     } else if (address == 0x1F801801) {
         switch (getIndex()) {
@@ -369,7 +362,7 @@ uint8_t CDROM::read(uint32_t address) {
                 }
                 // TODO Implement wrap-around of response queue
 
-                LOGV_CDROM(prependState(std::format("@0x{:08X}: response queue -> 0x{:02X}", bus->cpu.instructionPC, value)));
+                LOGT_CDROM(prependState(std::format("@0x{:08X}: response queue -> 0x{:02X}", bus->cpu.instructionPC, value)));
                 break;
             default:
                 assert(false);
@@ -776,6 +769,10 @@ uint8_t CDROM::read_n_response() {
     drive_state = READING;
     push_drive_state_to_response_queue();
 
+    // Read does also seek
+    // TODO Move this to second response, separate spam response
+    cd->seek_to_bcd(amm, ass, asect);
+
     // Schedule second response
     scheduled_responses.emplace_back(&CDROM::read_n_second_response, 0x36CD2);
 
@@ -785,37 +782,29 @@ uint8_t CDROM::read_n_response() {
 uint8_t CDROM::read_n_second_response() {
     LOG_CDROM(prependState(std::format("========> ReadN(): Second Response <========")));
 
-    // We use the drive state to communicate whether to continue reading
-    // That is, the Pause() command sets the drive state to something else to abort reading
-    if (drive_state == READING) {
+    // Read sector from CD
+    std::unique_ptr<uint8_t[]> buffer;
+    if (!unused_sector_buffers.empty()) {
+        buffer = std::move(unused_sector_buffers.front());
+        unused_sector_buffers.pop_front();
 
-        // Read sector from CD
-        std::unique_ptr<uint8_t[]> buffer;
-        if (!unused_sector_buffers.empty()) {
-            buffer = std::move(unused_sector_buffers.front());
-            unused_sector_buffers.pop_front();
-
-        } else {
-            LOG_CDROM(prependState(std::format("Warning: No unused sector buffer for read, allocating new buffer!")));
-            buffer = std::make_unique<uint8_t[]>(CD::SECTOR_SIZE);
-        }
-
-        LOG_CDROM(prependState(std::format("CD is at {}", cd->get_current_position())));
-        cd->read_sector_and_advance(buffer.get());
-        read_sector_buffers.emplace_back(std::move(buffer));
-
-        push_drive_state_to_response_queue();
-
-        // Schedule reading of next sector (since we are automatically reading that)
-        // Software has to be fast enough to keep up!
-        // That is, the next_sector_buffer has to be read or we will overwrite it.
-        scheduled_responses.emplace_back(&CDROM::read_n_second_response, 0x36CD2);
-
-        return 1;
+    } else {
+        LOG_CDROM(prependState(std::format("Warning: No unused sector buffer for read, allocating new buffer!")));
+        buffer = std::make_unique<uint8_t[]>(CD::SECTOR_SIZE);
     }
 
-    // Communicate aborted command
-    return 0;
+    LOG_CDROM(prependState(std::format("CD is at {}", cd->get_current_position())));
+    cd->read_sector_and_advance(buffer.get());
+    read_sector_buffers.emplace_back(std::move(buffer));
+
+    push_drive_state_to_response_queue();
+
+    // Schedule reading of next sector (since we are automatically reading that)
+    // Software has to be fast enough to keep up!
+    // That is, the next_sector_buffer has to be read or we will overwrite it.
+    scheduled_responses.emplace_back(&CDROM::read_n_second_response, 0x36CD2);
+
+    return 1;
 }
 
 void CDROM::stop() {
