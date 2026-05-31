@@ -72,7 +72,9 @@ void OpenGLWindow::createContext() {
 
     LOG_MISC("Creating OpenGL context");
     globalContext = new QOpenGLContext(this);
-    globalContext->setFormat(requestedFormat());
+    QSurfaceFormat format(requestedFormat());
+    format.setSwapInterval(0); // Disable vertical sync
+    globalContext->setFormat(format);
     globalContext->create();
     globalContext->makeCurrent(this);
 
