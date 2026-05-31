@@ -1,5 +1,6 @@
 #include "cue.h"
 
+#include <cassert>
 #include <format>
 #include <iomanip>
 
@@ -17,18 +18,15 @@ Index::Index(uint8_t minutes, uint8_t seconds, uint8_t sectors)
     : minutes(minutes),
       seconds(seconds),
       sectors(sectors) {
+    // Do not enforce a bound on minutes
+    assert(seconds < 60);
+    assert(sectors < 75);
 }
 
 Index::Index(uint32_t total_sectors)
     : minutes((total_sectors / 75) / 60),
       seconds((total_sectors / 75) % 60),
       sectors(total_sectors % 75) {
-}
-
-void Index::reset() {
-    minutes = 0;
-    seconds = 0;
-    sectors = 0;
 }
 
 uint32_t Index::total_sectors() const {
@@ -51,30 +49,28 @@ bool operator!=(const Index &l, const Index &r) {
 }
 
 bool operator<(const Index &l, const Index &r) {
-    return l.tie() < r.tie();
+    return l.total_sectors() < r.total_sectors();
 }
 
 bool operator<=(const Index &l, const Index &r) {
-    return l.tie() <= r.tie();
+    return l.total_sectors() <= r.total_sectors();
 }
 
 bool operator>(const Index &l, const Index &r) {
-    return l.tie() > r.tie();
+    return !(l <= r);
 }
 
 bool operator>=(const Index &l, const Index &r) {
-    return l.tie() >= r.tie();
+    return !(l < r);
 }
 
 Index& Index::operator++() {
-    set_and_handle_overflows(minutes, seconds, sectors + 1);
+    *this = Index(total_sectors() + 1);
     return *this;
 }
 
 Index& Index::operator+=(const Index& rhs) {
-    set_and_handle_overflows(static_cast<int32_t>(minutes) + rhs.minutes,
-                             static_cast<int32_t>(seconds) + rhs.seconds,
-                             static_cast<int32_t>(sectors) + rhs.sectors);
+    *this = Index(total_sectors() + rhs.total_sectors());
     return *this;
 }
 
@@ -84,51 +80,15 @@ Index operator+(Index lhs, const Index& rhs) {
 }
 
 Index& Index::operator-=(const Index& rhs) {
-    set_and_handle_underflows(static_cast<int32_t>(minutes) - rhs.minutes,
-                              static_cast<int32_t>(seconds) - rhs.seconds,
-                              static_cast<int32_t>(sectors) - rhs.sectors);
+    uint32_t ts = total_sectors();
+    uint32_t rhs_ts = rhs.total_sectors();
+    *this = Index(rhs_ts > ts ? 0 : (ts - rhs_ts));
     return *this;
 }
 
 Index operator-(Index lhs, const Index& rhs) {
     lhs -= rhs;
     return lhs;
-}
-
-std::tuple<uint8_t, uint8_t, uint8_t> Index::tie() const {
-    return std::tie(minutes, seconds, sectors);
-}
-
-void Index::set_and_handle_overflows(int32_t minutes, int32_t seconds, int32_t sectors) {
-    seconds += sectors / 75;
-    sectors = sectors % 75;
-
-    minutes += seconds / 60;
-    seconds = seconds % 60;
-
-    this->minutes = minutes;
-    this->seconds = seconds;
-    this->sectors = sectors;
-}
-
-void Index::set_and_handle_underflows(int32_t minutes, int32_t seconds, int32_t sectors) {
-    if (sectors < 0) {
-        sectors += 75;
-        --seconds;
-    }
-
-    if (seconds < 0) {
-        seconds += 60;
-        --minutes;
-    }
-
-    if (minutes < 0) {
-        minutes += 74;
-    }
-
-    this->minutes = minutes;
-    this->seconds = seconds;
-    this->sectors = sectors;
 }
 
 std::ostream& operator<<(std::ostream &os, const NumberedIndex &index) {

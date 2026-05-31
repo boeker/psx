@@ -22,8 +22,6 @@ struct Index {
     Index();
     Index(uint8_t minutes, uint8_t seconds, uint8_t sectors);
     Index(uint32_t total_sectors);
-
-    void reset();
     uint32_t total_sectors() const;
 
     friend bool operator==(const Index &l, const Index &r);
@@ -40,11 +38,6 @@ struct Index {
 
     Index& operator-=(const Index& rhs);
     friend Index operator-(Index lhs, const Index& rhs);
-
-private:
-    void set_and_handle_overflows(int32_t minutes, int32_t seconds, int32_t sectors);
-    void set_and_handle_underflows(int32_t minutes, int32_t seconds, int32_t sectors);
-    std::tuple<uint8_t, uint8_t, uint8_t> tie() const;
 };
 
 struct NumberedIndex {
