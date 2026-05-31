@@ -2,13 +2,12 @@
 #define PSX_CD_H
 
 #include <cstdint>
-#include <memory>
 #include <fstream>
-#include <span>
 #include <string>
-#include <tuple>
 
 #include "util/cue.h"
+
+namespace PSX {
 
 #define CD_MODE2_SYNC_BYTES 0xC
 #define CD_MODE2_HEADER 0x4
@@ -18,12 +17,7 @@
 #define CD_MODE2_HEADER_OFFSET 0xC
 #define CD_MODE2_DATA_OFFSET 0x18
 
-namespace PSX {
-
 class CD {
-public:
-static const uint32_t SECTOR_SIZE = 2352; // 0x930
-
 private:
     using Index = util::cue::Index;
     using NumberedIndex = util::cue::NumberedIndex;
@@ -50,6 +44,8 @@ private:
     uint32_t current_sector;
 
 public:
+    static const uint32_t SECTOR_SIZE = 2352; // 0x930
+
     CD(const std::string &filename);
     void reset();
 

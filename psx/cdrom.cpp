@@ -14,65 +14,6 @@ using namespace util;
 
 namespace PSX {
 
-std::ostream& operator<<(std::ostream &os, const Queue &queue) {
-    Queue copy = queue;
-
-    if (!copy.isEmpty()) {
-        os << std::format("0x{:08X}", copy.pop());
-    }
-
-    while (!copy.isEmpty()) {
-        os << std::format(", 0x{:08X}", copy.pop());
-    }
-
-    return os;
-}
-
-Queue::Queue() {
-    clear();
-}
-
-void Queue::clear() {
-    for (int i = 0; i < 16; ++i) {
-        queue[i] = 0;
-    }
-
-    in = 0;
-    out = 0;
-    elements = 0;
-}
-
-void Queue::push(uint8_t parameter) {
-    if (elements < 16) {
-        queue[in] = parameter;
-
-        in = (in + 1) % 16;
-        ++elements;
-    }
-}
-
-uint8_t Queue::pop() {
-    if (elements > 0) {
-        uint8_t value = queue[out];
-
-        out = (out + 1) % 16;
-        --elements;
-        return value;
-    }
-
-    throw std::runtime_error("Queue is empty");
-
-    return 0;
-}
-
-bool Queue::isEmpty() {
-    return elements == 0;
-}
-
-bool Queue::isFull() {
-    return elements == 16;
-}
-
 std::string CDROM::prependState(const std::string &str) const {
     return std::format("[{:s}] {:s}", driveStateToString(drive_state), str);
 }
@@ -419,7 +360,7 @@ uint8_t CDROM::read(uint32_t address) {
             case 1: // Response queue
             case 2: // Mirror of response queue
             case 3: // Mirror of response queue
-                if (response_queue.isEmpty()) {
+                if (response_queue.is_empty()) {
                     LOG_CDROM(std::format("Warning: Response queue is empty!"));
                     value = 0;
 
@@ -486,9 +427,9 @@ uint8_t CDROM::getIndex() const {
 void CDROM::updateStatusRegister() {
     Bit::setBit(statusRegister, CDROM_STATUS_BUSYSTS, pending_command);
     Bit::setBit(statusRegister, CDROM_STATUS_DRQSTS, has_data());
-    Bit::setBit(statusRegister, CDROM_STATUS_RSLRRDY, !response_queue.isEmpty());
-    Bit::setBit(statusRegister, CDROM_STATUS_PRMWRDY, !parameter_queue.isFull());
-    Bit::setBit(statusRegister, CDROM_STATUS_PRMEMPT, parameter_queue.isEmpty());
+    Bit::setBit(statusRegister, CDROM_STATUS_RSLRRDY, !response_queue.is_empty());
+    Bit::setBit(statusRegister, CDROM_STATUS_PRMWRDY, !parameter_queue.is_full());
+    Bit::setBit(statusRegister, CDROM_STATUS_PRMEMPT, parameter_queue.is_empty());
     Bit::setBit(statusRegister, CDROM_STATUS_ADPBUSY, 0); // TODO XA-ADPCM
 }
 

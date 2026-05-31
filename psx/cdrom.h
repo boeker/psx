@@ -7,6 +7,8 @@
 #include <ostream>
 #include <span>
 
+#include "util/queue.h"
+
 namespace PSX {
 
 // 0x1F801800 - Status Register (read only with the exception of bits 1 and 0)
@@ -50,24 +52,6 @@ namespace PSX {
 
 #define CDROM_MODE_SECTOR_SIZE 5 // Sector Size (0 = 0x800, data only, 1 = 0x924, whole sector except sync bytes)
 
-class Queue {
-private:
-    uint8_t queue[16];
-    uint8_t in;
-    uint8_t out;
-    uint8_t elements;
-
-    friend std::ostream& operator<<(std::ostream &os, const Queue &queue);
-
-public:
-    Queue();
-    void clear();
-    void push(uint8_t parameter);
-    uint8_t pop();
-    bool isEmpty();
-    bool isFull();
-};
-
 class Bus;
 class CD;
 
@@ -100,7 +84,7 @@ private:
     bool pending_command;
     uint8_t function;
     // The PSX's parameter queue containing the command parameter bytes
-    Queue parameter_queue;
+    util::Queue<16> parameter_queue;
 
     std::unique_ptr<CD> cd;
 
@@ -138,7 +122,7 @@ private:
     // Number of cycles until next response will be served
     uint32_t cycles_left;
     // The PSX's response queue containing the response bytes
-    Queue response_queue;
+    util::Queue<16> response_queue;
 
 public:
     CDROM(Bus *bus);
