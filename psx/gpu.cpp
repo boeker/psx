@@ -209,11 +209,11 @@ void GPU::updateTimers(uint32_t cpuCycles) {
                 currentScanlineCycles = 0;
                 currentScanline++;
 
-                //if (currentScanline < 240) {
-                //    Bit::setBit(gpuStatusRegister, GPUSTAT_INTERLACE_EVEN_ODD, currentScanline % 2);
-                //} else {
-                //    Bit::clearBit(gpuStatusRegister, GPUSTAT_INTERLACE_EVEN_ODD);
-                //}
+                if (currentScanline < 240) {
+                    Bit::setBit(gpuStatusRegister, GPUSTAT_INTERLACE_EVEN_ODD, currentScanline % 2);
+                } else {
+                    Bit::clearBit(gpuStatusRegister, GPUSTAT_INTERLACE_EVEN_ODD);
+                }
 
                 bus->timers.notifyAboutHBlankEnd();
 
@@ -1420,14 +1420,14 @@ void GPU::GP1DisplayMode() {
     // 0x08
     // parameter bits 0...5 are GPUSTAT bits 17...22
     // parameter bit 6 is GPUSTAT bit 16
-    // parameter bit 5 is GPUSTAT bit 14
+    // parameter bit 7 is GPUSTAT bit 14
     uint32_t parameter = gp1 & 0x00FFFFFF;
 
     LOGV_GPU(std::format("GP1 - DisplayMode(0x{:06X})", parameter));
 
-    gpuStatusRegister = (gpuStatusRegister & 0xFFFFFC00) | (gp0 & 0x000003FF);
-    setGPUStatusRegisterBit(16 , (parameter >> 6) & 1);
-    setGPUStatusRegisterBit(14 , (parameter >> 5) & 1);
+    gpuStatusRegister = (gpuStatusRegister & 0xFF81FFFF) | ((parameter & 0x0000003F) << 17);
+    setGPUStatusRegisterBit(16, (parameter >> 6) & 1);
+    setGPUStatusRegisterBit(14, (parameter >> 7) & 1);
 }
 
 void GPU::GP1NewTextureDisable() {
