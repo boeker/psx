@@ -113,6 +113,9 @@ void GPU::reset() {
     drawing_area_bot_right_x = 639;
     drawing_area_bot_right_y = 479;
 
+    drawing_offset_x = 0;
+    drawing_offset_y = 0;
+
     //if (renderer) {
     //    renderer->clear();
     //    renderer->swapBuffers();
@@ -1343,8 +1346,9 @@ void GPU::GP0SetDrawingOffset() {
     int32_t signedYOffset = ((yOffset >> 10) ? 0xFFFFF800 : 0x00000000) | yOffset;
 
     LOG_GPU(std::format("GP0 - SetDrawingOffset({:d}, {:d})", signedXOffset, signedYOffset));
-    drawingOffsetX = signedXOffset;
-    drawingOffsetY = signedYOffset;
+    drawing_offset_x = signedXOffset;
+    drawing_offset_y = signedYOffset;
+    renderer->set_drawing_offset(drawing_offset_x, drawing_offset_y);
 }
 
 void GPU::GP0MaskBitSetting() {

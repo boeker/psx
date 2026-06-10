@@ -65,6 +65,9 @@ void SoftwareRenderer::reset() {
     drawing_area_bot_right_x = 639;
     drawing_area_bot_right_y = 479;
 
+    drawing_offset_x = 0;
+    drawing_offset_y = 0;
+
     display_area_top_left_x = 0;
     display_area_top_left_y = 0;
     display_area_width = 640;
@@ -198,6 +201,12 @@ void SoftwareRenderer::set_drawing_area(uint32_t top_left_x, uint32_t top_left_y
     drawing_area_bot_right_y = bot_right_y;
 }
 
+void SoftwareRenderer::set_drawing_offset(int32_t x, int32_t y) {
+    drawing_offset_x = x;
+    drawing_offset_y = y;
+}
+
+
 void SoftwareRenderer::set_display_area(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     display_area_top_left_x = x;
     display_area_top_left_y = y;
@@ -208,12 +217,12 @@ void SoftwareRenderer::set_display_area(uint32_t x, uint32_t y, uint32_t width, 
 
 void SoftwareRenderer::drawTriangle(const Triangle &triangle) {
     LOGT_REND(std::format("drawTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
-    drawTriangle(triangle.v1.x,
-                 triangle.v1.y,
-                 triangle.v2.x,
-                 triangle.v2.y,
-                 triangle.v3.x,
-                 triangle.v3.y,
+    drawTriangle(triangle.v1.x + drawing_offset_x,
+                 triangle.v1.y + drawing_offset_y,
+                 triangle.v2.x + drawing_offset_x,
+                 triangle.v2.y + drawing_offset_y,
+                 triangle.v3.x + drawing_offset_x,
+                 triangle.v3.y + drawing_offset_y,
                  //Color(0xFF, 0, 0),
                  //Color(0, 0xFF, 0),
                  //Color(0, 0, 0xFF)
@@ -347,12 +356,12 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
 
 void SoftwareRenderer::drawTexturedTriangle(const TexturedTriangle &triangle) {
     LOGT_REND(std::format("drawTexturedTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
-    drawTexturedTriangle(triangle.v1.x,
-                         triangle.v1.y,
-                         triangle.v2.x,
-                         triangle.v2.y,
-                         triangle.v3.x,
-                         triangle.v3.y,
+    drawTexturedTriangle(triangle.v1.x + drawing_offset_x,
+                         triangle.v1.y + drawing_offset_y,
+                         triangle.v2.x + drawing_offset_x,
+                         triangle.v2.y + drawing_offset_y,
+                         triangle.v3.x + drawing_offset_x,
+                         triangle.v3.y + drawing_offset_y,
                          triangle.tc1.x,
                          triangle.tc1.y,
                          triangle.tc2.x,

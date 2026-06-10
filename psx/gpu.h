@@ -162,8 +162,8 @@ private:
     uint16_t verticalDisplayRangeY1; // on screen
     uint16_t verticalDisplayRangeY2; // on screen
 
-    int32_t drawingOffsetX;
-    int32_t drawingOffsetY;
+    int32_t drawing_offset_x;
+    int32_t drawing_offset_y;
 
     uint8_t textureWindowMaskX;
     uint8_t textureWindowMaskY;

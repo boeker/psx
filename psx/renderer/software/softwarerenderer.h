@@ -32,6 +32,7 @@ public:
     void fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 
     void set_drawing_area(uint32_t top_left_x, uint32_t top_left_y, uint32_t bot_right_x, uint32_t bot_right_y) override;
+    void set_drawing_offset(int32_t x, int32_t y) override;
     void set_display_area(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 
     void drawTriangle(const Triangle &triangle) override;
@@ -58,6 +59,9 @@ private:
     uint32_t drawing_area_top_left_y;
     uint32_t drawing_area_bot_right_x;
     uint32_t drawing_area_bot_right_y;
+
+    int32_t drawing_offset_x;
+    int32_t drawing_offset_y;
 
     uint32_t display_area_top_left_x;
     uint32_t display_area_top_left_y;

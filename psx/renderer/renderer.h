@@ -106,6 +106,7 @@ public:
     virtual void fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
 
     virtual void set_drawing_area(uint32_t top_left_x, uint32_t top_left_y, uint32_t bot_right_x, uint32_t bot_right_y) = 0;
+    virtual void set_drawing_offset(int32_t x, int32_t y) = 0;
     virtual void set_display_area(uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
 };
 
