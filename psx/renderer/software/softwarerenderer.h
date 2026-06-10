@@ -34,6 +34,8 @@ public:
     void setDrawingAreaTopLeft(uint32_t x, uint32_t y) override;
     void setDrawingAreaBottomRight(uint32_t x, uint32_t y) override;
 
+    void set_display_area(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
+
     void drawTriangle(const Triangle &triangle) override;
     void drawTexturedTriangle(const TexturedTriangle &triangle) override;
 
@@ -58,6 +60,11 @@ private:
     uint32_t drawingAreaTopLeftY;
     uint32_t drawingAreaBottomRightX;
     uint32_t drawingAreaBottomRightY;
+
+    uint32_t display_area_top_left_x;
+    uint32_t display_area_top_left_y;
+    uint32_t display_area_width;
+    uint32_t display_area_height;
 };
 
 }

@@ -107,6 +107,8 @@ public:
 
     virtual void setDrawingAreaTopLeft(uint32_t x, uint32_t y) = 0;
     virtual void setDrawingAreaBottomRight(uint32_t x, uint32_t y) = 0;
+
+    virtual void set_display_area(uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
 };
 
 }

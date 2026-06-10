@@ -64,6 +64,11 @@ void SoftwareRenderer::reset() {
     drawingAreaTopLeftY = 0;
     drawingAreaBottomRightX = 639;
     drawingAreaBottomRightY = 479;
+
+    display_area_top_left_x = 0;
+    display_area_top_left_y = 0;
+    display_area_width = 640;
+    display_area_height = 480;
 }
 
 void SoftwareRenderer::clear() {
@@ -124,7 +129,7 @@ void SoftwareRenderer::swapBuffers() {
     glBindFramebuffer(GL_READ_FRAMEBUFFER, vramFramebuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     //glBlitFramebuffer(0, 0, 1024, 512,
-    glBlitFramebuffer(0, 0, 640, 480,
+    glBlitFramebuffer(display_area_top_left_x, display_area_top_left_y, display_area_top_left_x + display_area_width, display_area_top_left_y + display_area_height,
                       //viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight,
                       viewportX, viewportY + viewportHeight, viewportX + viewportWidth, viewportY, // flip texture along y-axis
                       GL_COLOR_BUFFER_BIT, GL_NEAREST);
@@ -194,6 +199,14 @@ void SoftwareRenderer::setDrawingAreaTopLeft(uint32_t x, uint32_t y) {
 void SoftwareRenderer::setDrawingAreaBottomRight(uint32_t x, uint32_t y) {
     drawingAreaBottomRightX = x;
     drawingAreaBottomRightY = y;
+}
+
+void SoftwareRenderer::set_display_area(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+    display_area_top_left_x = x;
+    display_area_top_left_y = y;
+    display_area_width = width;
+    display_area_height = height;
+
 }
 
 void SoftwareRenderer::drawTriangle(const Triangle &triangle) {

@@ -509,6 +509,51 @@ void GPU::setGPUStatusRegisterBit(uint32_t bit, uint32_t value) {
     gpuStatusRegister = (gpuStatusRegister & ~(1 << bit)) | ((value & 1) << bit);
 }
 
+uint32_t GPU::get_horizontal_resolution() {
+    if (!Bit::getBit(gpuStatusRegister, GPUSTAT_HORIZONTAL_RESOLUTION2)) {
+        switch (Bit::getBits<2>(gpuStatusRegister, GPUSTAT_HORIZONTAL_RESOLUTION10)) {
+            case 0:
+                return 256;
+            case 1:
+                return 320;
+            case 2:
+                return 512;
+            case 3:
+                return 640;
+            default:
+                assert(false);
+        }
+    }
+
+    return 368;
+}
+
+uint32_t GPU::get_cycles_per_pixel() {
+    uint32_t horizontal_resolution = get_horizontal_resolution();
+    if (horizontal_resolution == 368) {
+        return 7;
+    }
+
+    return 2560 / horizontal_resolution;
+}
+
+void GPU::update_display_area() {
+    uint32_t cycles_per_pixel = get_cycles_per_pixel();
+    // Horizontal resolution is rounded to multiple of four pixels
+    uint32_t width = ((horizontalDisplayRangeX2 - horizontalDisplayRangeX1) / cycles_per_pixel + 2) & ~0x3;
+    // Vertical resolution is not rounded
+    uint32_t height = verticalDisplayRangeY2 - verticalDisplayRangeY1;
+    // Check if interlacing and 480 vertical resolution is enabled
+    if (Bit::getBit(gpuStatusRegister, GPUSTAT_VERTICAL_INTERLACE)
+        && Bit::getBit(gpuStatusRegister, GPUSTAT_VERTICAL_RESOLUTION)) {
+        height *= 2;
+    }
+
+    LOGV_GPU(std::format("Updating display area to ({:d}, {:d}) of size {:d}x{:d}",
+                         startOfDisplayAreaX, startOfDisplayAreaY, width, height));
+    renderer->set_display_area(startOfDisplayAreaX, startOfDisplayAreaY, width, height);
+}
+
 const GPU::Command GPU::gp0Commands[] = {
     // 0x00
     &GPU::GP0NOP,
@@ -1392,6 +1437,8 @@ void GPU::GP1StartOfDisplayArea() {
 
     LOGV_GPU(std::format("GP1 - StartOfDisplayArena({:d}, {:d})",
                          startOfDisplayAreaX, startOfDisplayAreaY));
+
+    update_display_area();
 }
 
 void GPU::GP1HorizontalDisplayRange() {
@@ -1403,6 +1450,8 @@ void GPU::GP1HorizontalDisplayRange() {
 
     LOGV_GPU(std::format("GP1 - HorizontalDisplayRange(0x{:03X}, 0x{:03X})",
                          horizontalDisplayRangeX1, horizontalDisplayRangeX2));
+
+    update_display_area();
 }
 
 void GPU::GP1VerticalDisplayRange() {
@@ -1414,6 +1463,8 @@ void GPU::GP1VerticalDisplayRange() {
 
     LOGV_GPU(std::format("GP1 - VerticalDisplayRange(0x{:03X}, 0x{:03X})",
                         verticalDisplayRangeY1, verticalDisplayRangeY2));
+
+    update_display_area();
 }
 
 void GPU::GP1DisplayMode() {
@@ -1428,6 +1479,9 @@ void GPU::GP1DisplayMode() {
     gpuStatusRegister = (gpuStatusRegister & 0xFF81FFFF) | ((parameter & 0x0000003F) << 17);
     setGPUStatusRegisterBit(16, (parameter >> 6) & 1);
     setGPUStatusRegisterBit(14, (parameter >> 7) & 1);
+
+    // Resolution might have changed, which affects the display area through the number of cycles per pixel
+    update_display_area();
 }
 
 void GPU::GP1NewTextureDisable() {

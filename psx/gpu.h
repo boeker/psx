@@ -37,11 +37,11 @@ namespace PSX {
 #define GPUSTAT_VIDEO_MODE 20
 // Vertical Resolution (0 = 240, 1 = 480 if vertical interlace enabled)
 #define GPUSTAT_VERTICAL_RESOLUTION 19
-// Horizontal resolution (0 = 256/320/512/640, 1 = 368)
-#define GPUSTAT_HORIZONTAL_RESOLUTION2 18
 // (0 = 256, 1 = 320, 2 = 512, 3 = 640)
-#define GPUSTAT_HORIZONTAL_RESOLUTION11 17
-#define GPUSTAT_HORIZONTAL_RESOLUTION10 16
+#define GPUSTAT_HORIZONTAL_RESOLUTION11 18
+#define GPUSTAT_HORIZONTAL_RESOLUTION10 17
+// Horizontal resolution (0 = 256/320/512/640, 1 = 368)
+#define GPUSTAT_HORIZONTAL_RESOLUTION2 16
 // Texture disable (0 = normal, 1 = disable textures)
 #define GPUSTAT_TEXTURE_DISABLE 15
 // Reverse flag (0 = normal, 1 = distorted)
@@ -196,6 +196,10 @@ private:
     std::string getGPUStatusRegisterExplanation() const;
     std::string getGPUStatusRegisterExplanation2() const;
     void setGPUStatusRegisterBit(uint32_t bit, uint32_t value);
+
+    uint32_t get_horizontal_resolution();
+    uint32_t get_cycles_per_pixel();
+    void update_display_area();
 
     // GPU commands
     typedef void (GPU::*Command) ();
