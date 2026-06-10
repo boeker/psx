@@ -31,9 +31,7 @@ public:
     uint16_t readFromVRAM(uint32_t line, uint32_t pos) override;
     void fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 
-    void setDrawingAreaTopLeft(uint32_t x, uint32_t y) override;
-    void setDrawingAreaBottomRight(uint32_t x, uint32_t y) override;
-
+    void set_drawing_area(uint32_t top_left_x, uint32_t top_left_y, uint32_t bot_right_x, uint32_t bot_right_y) override;
     void set_display_area(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 
     void drawTriangle(const Triangle &triangle) override;
@@ -56,10 +54,10 @@ private:
     int vramViewportX, vramViewportY;
     int vramViewportWidth, vramViewportHeight;
 
-    uint32_t drawingAreaTopLeftX;
-    uint32_t drawingAreaTopLeftY;
-    uint32_t drawingAreaBottomRightX;
-    uint32_t drawingAreaBottomRightY;
+    uint32_t drawing_area_top_left_x;
+    uint32_t drawing_area_top_left_y;
+    uint32_t drawing_area_bot_right_x;
+    uint32_t drawing_area_bot_right_y;
 
     uint32_t display_area_top_left_x;
     uint32_t display_area_top_left_y;

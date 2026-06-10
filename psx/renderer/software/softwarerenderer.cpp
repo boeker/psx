@@ -60,10 +60,10 @@ void SoftwareRenderer::installVRAMViewer(Screen *vramViewer) {
 void SoftwareRenderer::reset() {
     std::memset(vram, 0, VRAM_SIZE);
 
-    drawingAreaTopLeftX = 0;
-    drawingAreaTopLeftY = 0;
-    drawingAreaBottomRightX = 639;
-    drawingAreaBottomRightY = 479;
+    drawing_area_top_left_x = 0;
+    drawing_area_top_left_y = 0;
+    drawing_area_bot_right_x = 639;
+    drawing_area_bot_right_y = 479;
 
     display_area_top_left_x = 0;
     display_area_top_left_y = 0;
@@ -191,14 +191,11 @@ void SoftwareRenderer::fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t 
     }
 }
 
-void SoftwareRenderer::setDrawingAreaTopLeft(uint32_t x, uint32_t y) {
-    drawingAreaTopLeftX = x;
-    drawingAreaTopLeftY = y;
-}
-
-void SoftwareRenderer::setDrawingAreaBottomRight(uint32_t x, uint32_t y) {
-    drawingAreaBottomRightX = x;
-    drawingAreaBottomRightY = y;
+void SoftwareRenderer::set_drawing_area(uint32_t top_left_x, uint32_t top_left_y, uint32_t bot_right_x, uint32_t bot_right_y) {
+    drawing_area_top_left_x = top_left_x;
+    drawing_area_top_left_y = top_left_y;
+    drawing_area_bot_right_x = bot_right_x;
+    drawing_area_bot_right_y = bot_right_y;
 }
 
 void SoftwareRenderer::set_display_area(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
@@ -249,7 +246,7 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
     // Bottom half
     if (ay != by) {
         int segment_height = by - ay;
-        for (int y = std::max(0, ay); y < std::min(512, by); y++) { // Exclude by
+        for (int y = std::max(std::max(0, ay), (int)drawing_area_top_left_y); y < std::min(std::min(512, by), (int)drawing_area_bot_right_y); y++) { // Exclude by
             int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
             int x2 = ax + ((bx - ax) * (y - ay)) / segment_height;
 
@@ -285,7 +282,7 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
                 maxb = b1;
             }
             int line_length = max - min;
-            for (int x = min; x < max; x++) {
+            for (int x = std::max(min, (int)drawing_area_top_left_x); x < std::min(max, (int)drawing_area_bot_right_x); x++) {
                 uint32_t r = (maxr * (x - min) + minr * (max - x)) / line_length;
                 uint32_t g = (maxg * (x - min) + ming * (max - x)) / line_length;
                 uint32_t b = (maxb * (x - min) + minb * (max - x)) / line_length;
@@ -299,7 +296,7 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
     // Top half
     if (by != cy) {
         int segment_height = cy - by;
-        for (int y = std::max(0, by); y < std::min(512, cy); y++) { // Exclude last point
+        for (int y = std::max(std::max(0, by), (int)drawing_area_top_left_y); y < std::min(std::min(512, cy), (int)drawing_area_bot_right_y); y++) { // Exclude last point
             int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
             int x2 = bx + ((cx - bx) * (y - by)) / segment_height;
 
@@ -336,7 +333,7 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
                 maxb = b1;
             }
             int line_length = max - min;
-            for (int x = min; x < max; x++) {
+            for (int x = std::max(min, (int)drawing_area_top_left_x); x < std::min(max, (int)drawing_area_bot_right_x); x++) {
                 uint32_t r = (maxr * (x - min) + minr * (max - x)) / line_length;
                 uint32_t g = (maxg * (x - min) + ming * (max - x)) / line_length;
                 uint32_t b = (maxb * (x - min) + minb * (max - x)) / line_length;
@@ -409,7 +406,8 @@ void SoftwareRenderer::drawTexturedTriangle(int ax, int ay, int bx, int by, int 
     // Bottom half
     if (ay != by) {
         int segment_height = by - ay;
-        for (int y = std::max(0, ay); y < std::min(512, by); y++) {
+
+        for (int y = std::max(std::max(0, ay), (int)drawing_area_top_left_y); y < std::min(std::min(512, by), (int)drawing_area_bot_right_y); y++) { // Exclude by
             int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
             int x2 = ax + ((bx - ax) * (y - ay)) / segment_height;
 
@@ -439,7 +437,7 @@ void SoftwareRenderer::drawTexturedTriangle(int ax, int ay, int bx, int by, int 
                 maxty = tyl;
             }
             int line_length = max - min;
-            for (int x = min; x < max; x++) {
+            for (int x = std::max(min, (int)drawing_area_top_left_x); x < std::min(max, (int)drawing_area_bot_right_x); x++) {
                 uint32_t tx = (maxtx * (x - min) + mintx * (max - x)) / line_length;
                 uint32_t ty = (maxty * (x - min) + minty * (max - x)) / line_length;
 
@@ -457,7 +455,7 @@ void SoftwareRenderer::drawTexturedTriangle(int ax, int ay, int bx, int by, int 
     // Top half
     if (by != cy) {
         int segment_height = cy - by;
-        for (int y = std::max(0, by); y < std::min(512, cy); y++) {
+        for (int y = std::max(std::max(0, by), (int)drawing_area_top_left_y); y < std::min(std::min(512, cy), (int)drawing_area_bot_right_y); y++) { // Exclude last point
             int x1 = ax + ((cx - ax) * (y - ay)) / total_height;
             int x2 = bx + ((cx - bx) * (y - by)) / segment_height;
 
@@ -488,7 +486,7 @@ void SoftwareRenderer::drawTexturedTriangle(int ax, int ay, int bx, int by, int 
                 maxty = tyl;
             }
             int line_length = max - min;
-            for (int x = min; x < max; x++) {
+            for (int x = std::max(min, (int)drawing_area_top_left_x); x < std::min(max, (int)drawing_area_bot_right_x); x++) {
                 uint32_t tx = (maxtx * (x - min) + mintx * (max - x)) / line_length;
                 uint32_t ty = (maxty * (x - min) + minty * (max - x)) / line_length;
 

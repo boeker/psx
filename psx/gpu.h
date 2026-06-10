@@ -147,6 +147,12 @@ private:
 
     bool texturedRectangleXFlip;
     bool texturedRectangleYFlip;
+
+    uint32_t drawing_area_top_left_x;
+    uint32_t drawing_area_top_left_y;
+    uint32_t drawing_area_bot_right_x;
+    uint32_t drawing_area_bot_right_y;
+
     uint16_t startOfDisplayAreaX; // half-word address in VRAM
     uint16_t startOfDisplayAreaY; // scanline number in VRAM
 
@@ -199,6 +205,7 @@ private:
 
     uint32_t get_horizontal_resolution();
     uint32_t get_cycles_per_pixel();
+    void update_drawing_area();
     void update_display_area();
 
     // GPU commands

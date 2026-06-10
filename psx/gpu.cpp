@@ -108,6 +108,11 @@ void GPU::reset() {
     texturedRectangleXFlip = false;
     texturedRectangleYFlip = false;
 
+    drawing_area_top_left_x = 0;
+    drawing_area_top_left_y = 0;
+    drawing_area_bot_right_x = 639;
+    drawing_area_bot_right_y = 479;
+
     //if (renderer) {
     //    renderer->clear();
     //    renderer->swapBuffers();
@@ -535,6 +540,13 @@ uint32_t GPU::get_cycles_per_pixel() {
     }
 
     return 2560 / horizontal_resolution;
+}
+
+void GPU::update_drawing_area() {
+    LOGV_GPU(std::format("Updating drawing area to ({:d}, {:d})-({:d}x{:d})",
+                         drawing_area_top_left_x, drawing_area_top_left_y, drawing_area_bot_right_x, drawing_area_bot_right_y));
+    renderer->set_drawing_area(drawing_area_top_left_x, drawing_area_top_left_y,
+                               drawing_area_bot_right_x, drawing_area_bot_right_y);
 }
 
 void GPU::update_display_area() {
@@ -1303,8 +1315,10 @@ void GPU::GP0SetDrawingAreaTopLeft() {
 
     LOG_GPU(std::format("GP0 - SetDrawingAreaTopLeft({:d}, {:d})", xCoord, yCoord));
 
+    drawing_area_top_left_x = xCoord;
+    drawing_area_top_left_y = yCoord;
 
-    renderer->setDrawingAreaTopLeft(xCoord, yCoord);
+    update_drawing_area();
 }
 
 void GPU::GP0SetDrawingAreaBottomRight() {
@@ -1314,7 +1328,10 @@ void GPU::GP0SetDrawingAreaBottomRight() {
 
     LOG_GPU(std::format("GP0 - SetDrawingAreaBottomRight({:d}, {:d})", xCoord, yCoord));
 
-    renderer->setDrawingAreaBottomRight(xCoord, yCoord);
+    drawing_area_bot_right_x = xCoord;
+    drawing_area_bot_right_y = yCoord;
+
+    update_drawing_area();
 }
 
 void GPU::GP0SetDrawingOffset() {

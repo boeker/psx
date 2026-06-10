@@ -38,8 +38,8 @@ public:
     void writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data);
     void fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 
-    void setDrawingAreaTopLeft(uint32_t x, uint32_t y) override;
-    void setDrawingAreaBottomRight(uint32_t x, uint32_t y) override;
+    void setDrawingAreaTopLeft(uint32_t x, uint32_t y);
+    void setDrawingAreaBottomRight(uint32_t x, uint32_t y);
     void setViewportIntoVRAM();
 
     uint8_t* decodeTexture(uint16_t texpage, uint16_t palette);
