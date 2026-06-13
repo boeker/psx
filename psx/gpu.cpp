@@ -95,7 +95,7 @@ void GPU::reset() {
     remainingGPUCycles = 0;
     currentScanline = 0;
     currentScanlineCycles = 0;
-    frameCount = 0;
+    frame_count = 0;
     verticalBlankOccurred = false;
 
     gp0 = 0;
@@ -187,9 +187,8 @@ void GPU::updateTimers(uint32_t cpuCycles) {
     uint32_t todoGPUCycles = remainingGPUCycles >> 16; // Division by 65536
     remainingGPUCycles = remainingGPUCycles & 0xFFFF;
 
-    // TODO Other resolutions than 640 pixels
-    uint32_t horizontalResolution = 640;
-    uint32_t resolutionFactor = 2560 / horizontalResolution;
+    uint32_t cycles_per_pixel = get_cycles_per_pixel();
+    bool interlaced = get_vertical_resolution() == 480;
 
     while (todoGPUCycles > 0) {
         if (currentScanlineCycles < 2560) { // In screen part of scanline
@@ -198,7 +197,8 @@ void GPU::updateTimers(uint32_t cpuCycles) {
             currentScanlineCycles += cycles;
             todoGPUCycles -= cycles;
 
-            bus->timers.notifyAboutDots(cycles / resolutionFactor);
+            // TODO: Make sure that cycles is a multiple of cycles_per_pixel
+            bus->timers.notifyAboutDots(cycles / cycles_per_pixel);
             if (currentScanlineCycles == 2560) {
                 bus->timers.notifyAboutHBlankStart();
             }
@@ -211,16 +211,19 @@ void GPU::updateTimers(uint32_t cpuCycles) {
             currentScanlineCycles += cycles;
             todoGPUCycles -= cycles;
 
-            bus->timers.notifyAboutDots(cycles / resolutionFactor);
+            // TODO: Make sure that cycles is a multiple of cycles_per_pixel
+            bus->timers.notifyAboutDots(cycles / cycles_per_pixel);
             if (currentScanlineCycles == 3412) {
                 // Next scanline
                 currentScanlineCycles = 0;
-                currentScanline++;
+                ++currentScanline;
 
-                if (currentScanline < 240) {
-                    Bit::setBit(gpuStatusRegister, GPUSTAT_INTERLACE_EVEN_ODD, currentScanline % 2);
-                } else {
-                    Bit::clearBit(gpuStatusRegister, GPUSTAT_INTERLACE_EVEN_ODD);
+                if (!interlaced) {
+                    if (currentScanline < 240) {
+                        Bit::setBit(gpuStatusRegister, GPUSTAT_INTERLACE_EVEN_ODD, currentScanline % 2);
+                    } else {
+                        Bit::clearBit(gpuStatusRegister, GPUSTAT_INTERLACE_EVEN_ODD);
+                    }
                 }
 
                 bus->timers.notifyAboutHBlankEnd();
@@ -242,7 +245,11 @@ void GPU::updateTimers(uint32_t cpuCycles) {
 
                 } else if (currentScanline == 263) {
                     currentScanline = 0;
-                    //frameCount++;
+                    ++frame_count;
+
+                    if (interlaced) {
+                        Bit::setBit(gpuStatusRegister, GPUSTAT_INTERLACE_EVEN_ODD, frame_count % 2);
+                    }
 
                     bus->timers.notifyAboutVBlankEnd();
                 }
@@ -536,6 +543,18 @@ uint32_t GPU::get_horizontal_resolution() {
     return 368;
 }
 
+bool GPU::interlacing_enabled() {
+    return Bit::getBit(gpuStatusRegister, GPUSTAT_VERTICAL_INTERLACE);
+}
+
+uint32_t GPU::get_vertical_resolution() {
+    if (interlacing_enabled() && Bit::getBit(gpuStatusRegister, GPUSTAT_VERTICAL_RESOLUTION)) {
+        return 480;
+    } else {
+        return 240;
+    }
+}
+
 uint32_t GPU::get_cycles_per_pixel() {
     uint32_t horizontal_resolution = get_horizontal_resolution();
     if (horizontal_resolution == 368) {
@@ -558,9 +577,7 @@ void GPU::update_display_area() {
     uint32_t width = ((horizontalDisplayRangeX2 - horizontalDisplayRangeX1) / cycles_per_pixel + 2) & ~0x3;
     // Vertical resolution is not rounded
     uint32_t height = verticalDisplayRangeY2 - verticalDisplayRangeY1;
-    // Check if interlacing and 480 vertical resolution is enabled
-    if (Bit::getBit(gpuStatusRegister, GPUSTAT_VERTICAL_INTERLACE)
-        && Bit::getBit(gpuStatusRegister, GPUSTAT_VERTICAL_RESOLUTION)) {
+    if (get_vertical_resolution() == 480) {
         height *= 2;
     }
 
@@ -1497,9 +1514,26 @@ void GPU::GP1DisplayMode() {
 
     LOGV_GPU(std::format("GP1 - DisplayMode(0x{:06X})", parameter));
 
+    bool interlacing_enabled_before = interlacing_enabled();
+
     gpuStatusRegister = (gpuStatusRegister & 0xFF81FFFF) | ((parameter & 0x0000003F) << 17);
     setGPUStatusRegisterBit(16, (parameter >> 6) & 1);
     setGPUStatusRegisterBit(14, (parameter >> 7) & 1);
+
+    bool interlacing_enabled_after = interlacing_enabled();
+
+    // Update interlacing field if interlacing is switched on
+    if (interlacing_enabled_after && !interlacing_enabled_before) {
+        setGPUStatusRegisterBit(GPUSTAT_INTERLACE_FIELD,
+                                Bit::getBit(gpuStatusRegister, GPUSTAT_INTERLACE_EVEN_ODD));
+    }
+
+    if (!interlacing_enabled_after) {
+        // Always 1 on new GPU (0 on old GPU) if interlacing disabled
+        setGPUStatusRegisterBit(GPUSTAT_INTERLACE_FIELD, 1);
+    }
+
+    // TODO: Handle updated video mode, display area color depth, reverseflag
 
     // Resolution might have changed, which affects the display area through the number of cycles per pixel
     update_display_area();

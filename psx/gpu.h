@@ -107,7 +107,7 @@ private:
     uint32_t remainingGPUCycles;
     uint32_t currentScanline;
     uint32_t currentScanlineCycles;
-    uint32_t frameCount;
+    uint32_t frame_count;
     bool verticalBlankOccurred;
 
     // 1F801810
@@ -204,6 +204,8 @@ private:
     void setGPUStatusRegisterBit(uint32_t bit, uint32_t value);
 
     uint32_t get_horizontal_resolution();
+    bool interlacing_enabled();
+    uint32_t get_vertical_resolution();
     uint32_t get_cycles_per_pixel();
     void update_drawing_area();
     void update_display_area();
