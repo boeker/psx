@@ -1049,8 +1049,8 @@ void GPU::GP0TexturedRectangleVariableSizeOpaqueTextureBlending() {
     Vertex v1(gp0Parameters[0]); // upper left edge
     TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
     uint16_t palette = gp0Parameters[1] >> 16;
-    uint16_t width = gp0Parameters[2] >> 16;
-    uint16_t height = gp0Parameters[2] & 0xFFFF;
+    uint16_t width = gp0Parameters[2] & 0xFFFF;
+    uint16_t height = gp0Parameters[2] >> 16;
 
     LOGT_GPU(std::format("GP0 - TexturedRectangleVariableSizeOpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
                          c, v1, tc1, palette, width, height));
@@ -1079,8 +1079,8 @@ void GPU::GP0TexturedRectangleVariableSizeOpaqueRawTexture() {
     Vertex v1(gp0Parameters[0]); // upper left edge
     TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
     uint16_t palette = gp0Parameters[1] >> 16;
-    uint16_t width = gp0Parameters[2] >> 16;
-    uint16_t height = gp0Parameters[2] & 0xFFFF;
+    uint16_t width = gp0Parameters[2] & 0xFFFF;
+    uint16_t height = gp0Parameters[2] >> 16;
 
     LOGT_GPU(std::format("GP0 - TexturedRectangleVariableSizeOpaqueRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
                          c, v1, tc1, palette, width, height));
@@ -1109,8 +1109,8 @@ void GPU::GP0TexturedRectangleVariableSizeSemiTransparentTextureBlending() {
     Vertex v1(gp0Parameters[0]); // upper left edge
     TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
     uint16_t palette = gp0Parameters[1] >> 16;
-    uint16_t width = gp0Parameters[2] >> 16;
-    uint16_t height = gp0Parameters[2] & 0xFFFF;
+    uint16_t width = gp0Parameters[2] & 0xFFFF;
+    uint16_t height = gp0Parameters[2] >> 16;
 
     LOGT_GPU(std::format("GP0 - TexturedRectangleVariableSizeSemiTransparentTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
                          c, v1, tc1, palette, width, height));
