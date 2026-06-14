@@ -95,6 +95,9 @@ private:
     template<typename Point, typename Context>
     void draw_triangle(Point a, Point b, Point c, Context context);
 
+    template<typename Point, typename Context>
+    void draw_triangle_half(Point a, Point c, Point f, Point t, Context context);
+
     void draw_pixel(int32_t x, int32_t y, const TextureContext &context, const TextureCoordinate &c) {
         uint16_t halfword = readFromVRAM(context.xBase + (c.x / 4), context.yBase + c.y);
         uint8_t textureIndex = (halfword >> (4 * (c.x % 4))) & 0xF;

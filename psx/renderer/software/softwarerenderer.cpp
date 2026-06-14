@@ -536,6 +536,7 @@ void SoftwareRenderer::draw_triangle(Point a, Point b, Point c, Context context)
     }
 
     // Sort the points by their y-coordinates
+    // such that a.y <= b.y <= c.y
     if (a.y > b.y) {
         std::swap(a, b);
     }
@@ -546,77 +547,54 @@ void SoftwareRenderer::draw_triangle(Point a, Point b, Point c, Context context)
         std::swap(b, c);
     }
 
-    // We now have a.y <= b.y <= c.y
-    int32_t total_height = c.y - a.y;
-
     // Bottom half of the triangle
     if (a.y != b.y) {
-        int32_t segment_height = b.y - a.y;
-
-        // Draw lines from a.y to b.y
-        for (int32_t y = std::max(a.y, (int32_t)drawing_area_top_left_y); y < std::min(b.y, (int32_t)drawing_area_bot_right_y); y++) { // Exclude by
-            // Determine x-coordinates on triangle borders at height y
-            // x_ac by interpolating between a.x and c.x
-            // x_ab by interpolating between a.x and b.x
-            int32_t x_ac = a.x + ((c.x - a.x) * (y - a.y)) / total_height;
-            int32_t x_ab = a.x + ((b.x - a.x) * (y - a.y)) / segment_height;
-
-            // Determine color/texture coordinate for point (x_ac, y) and (x_ab, y)
-            // (x_ac, y) by interpolating a and c along y
-            // (x_ab, y) by interpolating a and b along y
-            typename Point::Color c_ac = Point::Color::interpolate(c.c, y - a.y, a.c, c.y - y, total_height);
-            typename Point::Color c_ab = Point::Color::interpolate(b.c, y - a.y, a.c, b.y - y, segment_height);
-
-            // Draw line from left to right
-            Point left = { x_ac, y, c_ac };
-            Point right = { x_ab, y, c_ab };
-            if (x_ab < x_ac) {
-                std::swap(left, right);
-            }
-
-            int32_t line_length = right.x - left.x;
-            for (int x = std::max(left.x, (int)drawing_area_top_left_x); x < std::min(right.x, (int)drawing_area_bot_right_x); x++) {
-                typename Point::Color c = Point::Color::interpolate(right.c, x - left.x, left.c, right.x - x, line_length);
-                draw_pixel(x, y, context, c);
-            }
-        }
+        draw_triangle_half<Point, Context>(a, c, a, b, context);
     }
 
     // Top half of the triangle
     if (b.y != c.y) {
-        int32_t segment_height = c.y - b.y;
-
-        // Draw lines from b.y to c.y
-        for (int32_t y = std::max(b.y, (int32_t)drawing_area_top_left_y); y < std::min(c.y, (int32_t)drawing_area_bot_right_y); y++) { // Exclude last point
-            // Determine x-coordinates on triangle borders at height y
-            // x_ac by interpolating between a.x and c.x
-            // x_bc by interpolating between b.x and c.x
-            int32_t x_ac = a.x + ((c.x - a.x) * (y - a.y)) / total_height;
-            int32_t x_bc = b.x + ((c.x - b.x) * (y - b.y)) / segment_height;
-
-            // Determine color/texture coordinate for point (x_ac, y) and (x_ab, y)
-            // (x_ac, y) by interpolating a and c along y
-            // (x_bc, y) by interpolating b and c along y
-            typename Point::Color c_ac = Point::Color::interpolate(c.c, y - a.y, a.c, c.y - y, total_height);
-            typename Point::Color c_bc = Point::Color::interpolate(c.c, y - b.y, b.c, c.y - y, segment_height);
-
-            // Draw line from left to right
-            Point left = { x_ac, y, c_ac };
-            Point right = { x_bc, y, c_bc };
-            if (x_bc < x_ac) {
-                std::swap(left, right);
-            }
-
-            int32_t line_length = right.x - left.x;
-            for (int32_t x = std::max(left.x, (int32_t)drawing_area_top_left_x); x < std::min(right.x, (int32_t)drawing_area_bot_right_x); x++) {
-                typename Point::Color c = Point::Color::interpolate(right.c, x - left.x, left.c, right.x - x, line_length);
-                draw_pixel(x, y, context, c);
-            }
-        }
+        draw_triangle_half<Point, Context>(a, c, b, c, context);
     }
 }
 
 template void SoftwareRenderer::draw_triangle(TexturedPoint a, TexturedPoint b, TexturedPoint c, TextureContext context);
+
+template<typename Point, typename Context>
+void SoftwareRenderer::draw_triangle_half(Point a, Point c, Point f, Point t, Context context) {
+    int32_t total_height = c.y - a.y;
+    int32_t segment_height = t.y - f.y;
+
+    // Draw lines from f.y to t.y
+    for (int32_t y = std::max(f.y, (int32_t)drawing_area_top_left_y); y < std::min(t.y, (int32_t)drawing_area_bot_right_y); y++) { // Exclude t.y
+        // Determine x-coordinates on triangle borders at height y
+        // x_ac by interpolating between a.x and c.x
+        // x_ft by interpolating between f.x and t.x
+        int32_t x_ac = a.x + ((c.x - a.x) * (y - a.y)) / total_height;
+        int32_t x_ft = f.x + ((t.x - f.x) * (y - f.y)) / segment_height;
+
+        // Determine color/texture coordinate for point (x_ac, y) and (x_ft, y)
+        // (x_ac, y) by interpolating a and c along y
+        // (x_ft, y) by interpolating f and t along y
+        typename Point::Color c_ac = Point::Color::interpolate(c.c, y - a.y, a.c, c.y - y, total_height);
+        typename Point::Color c_ft = Point::Color::interpolate(t.c, y - f.y, f.c, t.y - y, segment_height);
+
+        // Draw line from left to right
+        Point left = { x_ac, y, c_ac };
+        Point right = { x_ft, y, c_ft };
+        if (x_ft < x_ac) {
+            std::swap(left, right);
+        }
+
+        int32_t line_length = right.x - left.x;
+        for (int x = std::max(left.x, (int)drawing_area_top_left_x); x < std::min(right.x, (int)drawing_area_bot_right_x); x++) {
+            typename Point::Color c = Point::Color::interpolate(right.c, x - left.x, left.c, right.x - x, line_length);
+            draw_pixel(x, y, context, c);
+        }
+    }
+}
+
+template void SoftwareRenderer::draw_triangle_half(TexturedPoint a, TexturedPoint c, TexturedPoint f, TexturedPoint t, TextureContext context);
 
 }
 
