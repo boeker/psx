@@ -195,10 +195,10 @@ void SoftwareRenderer::fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t 
 }
 
 void SoftwareRenderer::set_drawing_area(uint32_t top_left_x, uint32_t top_left_y, uint32_t bot_right_x, uint32_t bot_right_y) {
-    drawing_area_top_left_x = top_left_x;
-    drawing_area_top_left_y = top_left_y;
-    drawing_area_bot_right_x = bot_right_x;
-    drawing_area_bot_right_y = bot_right_y;
+    drawing_area_top_left_x = std::min(top_left_x, 1024U);
+    drawing_area_top_left_y = std::min(top_left_y, 512U);
+    drawing_area_bot_right_x = std::min(bot_right_x, 1024U);
+    drawing_area_bot_right_y = std::min(bot_right_y, 512U);
 }
 
 void SoftwareRenderer::set_drawing_offset(int32_t x, int32_t y) {
@@ -356,21 +356,36 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
 
 void SoftwareRenderer::drawTexturedTriangle(const TexturedTriangle &triangle) {
     LOGT_REND(std::format("drawTexturedTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
-    drawTexturedTriangle(triangle.v1.x + drawing_offset_x,
-                         triangle.v1.y + drawing_offset_y,
-                         triangle.v2.x + drawing_offset_x,
-                         triangle.v2.y + drawing_offset_y,
-                         triangle.v3.x + drawing_offset_x,
-                         triangle.v3.y + drawing_offset_y,
-                         triangle.tc1.x,
-                         triangle.tc1.y,
-                         triangle.tc2.x,
-                         triangle.tc2.y,
-                         triangle.tc3.x,
-                         triangle.tc3.y,
-                         triangle.texpage,
-                         triangle.palette
-                         );
+    //drawTexturedTriangle(triangle.v1.x + drawing_offset_x,
+    //                     triangle.v1.y + drawing_offset_y,
+    //                     triangle.v2.x + drawing_offset_x,
+    //                     triangle.v2.y + drawing_offset_y,
+    //                     triangle.v3.x + drawing_offset_x,
+    //                     triangle.v3.y + drawing_offset_y,
+    //                     triangle.tc1.x,
+    //                     triangle.tc1.y,
+    //                     triangle.tc2.x,
+    //                     triangle.tc2.y,
+    //                     triangle.tc3.x,
+    //                     triangle.tc3.y,
+    //                     triangle.texpage,
+    //                     triangle.palette
+    //                     );
+    TexturedPoint a = {
+        triangle.v1.x + drawing_offset_x, triangle.v1.y + drawing_offset_y,
+        { triangle.tc1.x, triangle.tc1.y }
+    };
+    TexturedPoint b = {
+        triangle.v2.x + drawing_offset_x, triangle.v2.y + drawing_offset_y,
+        { triangle.tc2.x, triangle.tc2.y }
+    };
+    TexturedPoint c = {
+        triangle.v3.x + drawing_offset_x, triangle.v3.y + drawing_offset_y,
+        { triangle.tc3.x, triangle.tc3.y }
+    };
+    TextureContext context(triangle.texpage, triangle.palette);
+
+    draw_triangle<TexturedPoint, TextureContext>(a, b, c, context);
 }
 
 void SoftwareRenderer::drawTexturedTriangle(int ax, int ay, int bx, int by, int cx, int cy, int tx1, int ty1, int tx2, int ty2, int tx3, int ty3, uint16_t texpage, uint16_t palette) {
@@ -510,6 +525,98 @@ void SoftwareRenderer::drawTexturedTriangle(int ax, int ay, int bx, int by, int 
         }
     }
 }
+
+template<typename Point, typename Context>
+void SoftwareRenderer::draw_triangle(Point a, Point b, Point c, Context context) {
+    //LOGT_REND(std::format("draw_triangle({}, {}, {}, {})", a, b, c, context));
+
+    if (!context.valid()) {
+        LOG_REND(std::format("DrawingContext not valid: format not implemented?"));
+        return;
+    }
+
+    // Sort the points by their y-coordinates
+    if (a.y > b.y) {
+        std::swap(a, b);
+    }
+    if (a.y > c.y) {
+        std::swap(a, c);
+    }
+    if (b.y > c.y) {
+        std::swap(b, c);
+    }
+
+    // We now have a.y <= b.y <= c.y
+    int32_t total_height = c.y - a.y;
+
+    // Bottom half of the triangle
+    if (a.y != b.y) {
+        int32_t segment_height = b.y - a.y;
+
+        // Draw lines from a.y to b.y
+        for (int32_t y = std::max(a.y, (int32_t)drawing_area_top_left_y); y < std::min(b.y, (int32_t)drawing_area_bot_right_y); y++) { // Exclude by
+            // Determine x-coordinates on triangle borders at height y
+            // x_ac by interpolating between a.x and c.x
+            // x_ab by interpolating between a.x and b.x
+            int32_t x_ac = a.x + ((c.x - a.x) * (y - a.y)) / total_height;
+            int32_t x_ab = a.x + ((b.x - a.x) * (y - a.y)) / segment_height;
+
+            // Determine color/texture coordinate for point (x_ac, y) and (x_ab, y)
+            // (x_ac, y) by interpolating a and c along y
+            // (x_ab, y) by interpolating a and b along y
+            typename Point::Color c_ac = Point::Color::interpolate(c.c, y - a.y, a.c, c.y - y, total_height);
+            typename Point::Color c_ab = Point::Color::interpolate(b.c, y - a.y, a.c, b.y - y, segment_height);
+
+            // Draw line from left to right
+            Point left = { x_ac, y, c_ac };
+            Point right = { x_ab, y, c_ab };
+            if (x_ab < x_ac) {
+                std::swap(left, right);
+            }
+
+            int32_t line_length = right.x - left.x;
+            for (int x = std::max(left.x, (int)drawing_area_top_left_x); x < std::min(right.x, (int)drawing_area_bot_right_x); x++) {
+                typename Point::Color c = Point::Color::interpolate(right.c, x - left.x, left.c, right.x - x, line_length);
+                draw_pixel(x, y, context, c);
+            }
+        }
+    }
+
+    // Top half of the triangle
+    if (b.y != c.y) {
+        int32_t segment_height = c.y - b.y;
+
+        // Draw lines from b.y to c.y
+        for (int32_t y = std::max(b.y, (int32_t)drawing_area_top_left_y); y < std::min(c.y, (int32_t)drawing_area_bot_right_y); y++) { // Exclude last point
+            // Determine x-coordinates on triangle borders at height y
+            // x_ac by interpolating between a.x and c.x
+            // x_bc by interpolating between b.x and c.x
+            int32_t x_ac = a.x + ((c.x - a.x) * (y - a.y)) / total_height;
+            int32_t x_bc = b.x + ((c.x - b.x) * (y - b.y)) / segment_height;
+
+            // Determine color/texture coordinate for point (x_ac, y) and (x_ab, y)
+            // (x_ac, y) by interpolating a and c along y
+            // (x_bc, y) by interpolating b and c along y
+            typename Point::Color c_ac = Point::Color::interpolate(c.c, y - a.y, a.c, c.y - y, total_height);
+            typename Point::Color c_bc = Point::Color::interpolate(c.c, y - b.y, b.c, c.y - y, segment_height);
+
+            // Draw line from left to right
+            Point left = { x_ac, y, c_ac };
+            Point right = { x_bc, y, c_bc };
+            if (x_bc < x_ac) {
+                std::swap(left, right);
+            }
+
+            int32_t line_length = right.x - left.x;
+            for (int32_t x = std::max(left.x, (int32_t)drawing_area_top_left_x); x < std::min(right.x, (int32_t)drawing_area_bot_right_x); x++) {
+                typename Point::Color c = Point::Color::interpolate(right.c, x - left.x, left.c, right.x - x, line_length);
+                draw_pixel(x, y, context, c);
+            }
+        }
+    }
+}
+
+template void SoftwareRenderer::draw_triangle(TexturedPoint a, TexturedPoint b, TexturedPoint c, TextureContext context);
 
 }
 

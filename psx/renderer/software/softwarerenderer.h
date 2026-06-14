@@ -42,6 +42,69 @@ private:
     void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, Color ac, Color bc, Color cc);
     void drawTexturedTriangle(int ax, int ay, int bx, int by, int cx, int cy, int tx1, int ty1, int tx2, int ty2, int tx3, int ty3, uint16_t texpage, uint16_t palette);
 
+    struct ColoredPoint {
+        int32_t x;
+        int32_t y;
+        Color c;
+    };
+
+    struct TextureCoordinate {
+        int32_t x;
+        int32_t y;
+        static TextureCoordinate interpolate(const TextureCoordinate &a, int32_t a_fact, const TextureCoordinate &b, int32_t b_fact, int32_t divisor) {
+            return {
+                (a.x * a_fact + b.x * b_fact) / divisor,
+                (a.y * a_fact + b.y * b_fact) / divisor
+            };
+        }
+    };
+
+    struct TexturedPoint {
+        using Color = TextureCoordinate;
+        int32_t x;
+        int32_t y;
+        TextureCoordinate c;
+    };
+
+    struct TextureContext {
+        uint32_t xBase;
+        uint32_t yBase;
+        uint8_t semiTransparency;
+        uint8_t texturePageColors;
+        uint8_t textureDisable;
+
+        uint32_t xPalette;
+        uint32_t yPalette;
+
+        TextureContext(uint16_t texpage, uint16_t palette) {
+            xBase = (texpage & 0xF) * 64; // in halfwords
+            yBase = ((texpage >> 4) & 1) * 256; // in lines
+            semiTransparency = (texpage >> 5) & 3;
+            texturePageColors = (texpage >> 7) & 3;
+            textureDisable = (texpage >> 11) & 1;
+
+            xPalette = (palette & 0x3F) * 16; // in halfwords
+            yPalette = (palette >> 6) & 0x1FF; // in lines
+        }
+
+        bool valid() const {
+            return texturePageColors == 0; // 4-bit colors, everything else not implemented yet
+        }
+    };
+
+    template<typename Point, typename Context>
+    void draw_triangle(Point a, Point b, Point c, Context context);
+
+    void draw_pixel(int32_t x, int32_t y, const TextureContext &context, const TextureCoordinate &c) {
+        uint16_t halfword = readFromVRAM(context.xBase + (c.x / 4), context.yBase + c.y);
+        uint8_t textureIndex = (halfword >> (4 * (c.x % 4))) & 0xF;
+        uint16_t color = readFromVRAM(context.xPalette + textureIndex, context.yPalette);
+
+        if (color) { // nothing, not even semiTransparency set -> transparent
+            writeToVRAM(x, y, color & 0x7FFF); // set mask bit to 0 for now
+        }
+    }
+
 private:
     Screen *screen;
     Screen *vramViewer;
