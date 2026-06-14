@@ -39,9 +39,6 @@ public:
     void drawTexturedTriangle(const TexturedTriangle &triangle) override;
 
 private:
-    void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, PSX::Color ac, PSX::Color bc, PSX::Color cc);
-    void drawTexturedTriangle(int ax, int ay, int bx, int by, int cx, int cy, int tx1, int ty1, int tx2, int ty2, int tx3, int ty3, uint16_t texpage, uint16_t palette);
-
     template<typename Point, typename Context>
     void draw_triangle(Point a, Point b, Point c, Context context);
 
