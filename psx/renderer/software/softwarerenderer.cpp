@@ -186,7 +186,7 @@ uint16_t SoftwareRenderer::readFromVRAM(uint32_t x, uint32_t y) {
     return value;
 }
 
-void SoftwareRenderer::fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+void SoftwareRenderer::fillRectangleInVRAM(const PSX::Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     for (uint32_t i = x; i < x + width; ++i) {
         for (uint32_t j = y; j < y + height; ++j) {
             writeToVRAM(i, j, c.to16Bit());
@@ -217,22 +217,37 @@ void SoftwareRenderer::set_display_area(uint32_t x, uint32_t y, uint32_t width, 
 
 void SoftwareRenderer::drawTriangle(const Triangle &triangle) {
     LOGT_REND(std::format("drawTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
-    drawTriangle(triangle.v1.x + drawing_offset_x,
-                 triangle.v1.y + drawing_offset_y,
-                 triangle.v2.x + drawing_offset_x,
-                 triangle.v2.y + drawing_offset_y,
-                 triangle.v3.x + drawing_offset_x,
-                 triangle.v3.y + drawing_offset_y,
-                 //Color(0xFF, 0, 0),
-                 //Color(0, 0xFF, 0),
-                 //Color(0, 0, 0xFF)
-                 triangle.c1,
-                 triangle.c2,
-                 triangle.c3
-                 );
+    //drawTriangle(triangle.v1.x + drawing_offset_x,
+    //             triangle.v1.y + drawing_offset_y,
+    //             triangle.v2.x + drawing_offset_x,
+    //             triangle.v2.y + drawing_offset_y,
+    //             triangle.v3.x + drawing_offset_x,
+    //             triangle.v3.y + drawing_offset_y,
+    //             //Color(0xFF, 0, 0),
+    //             //Color(0, 0xFF, 0),
+    //             //Color(0, 0, 0xFF)
+    //             triangle.c1,
+    //             triangle.c2,
+    //             triangle.c3
+    //             );
+    ColoredPoint a = {
+        triangle.v1.x + drawing_offset_x, triangle.v1.y + drawing_offset_y,
+        { triangle.c1.r, triangle.c1.g, triangle.c1.b }
+    };
+    ColoredPoint b = {
+        triangle.v2.x + drawing_offset_x, triangle.v2.y + drawing_offset_y,
+        { triangle.c2.r, triangle.c2.g, triangle.c2.b }
+    };
+    ColoredPoint c = {
+        triangle.v3.x + drawing_offset_x, triangle.v3.y + drawing_offset_y,
+        { triangle.c3.r, triangle.c3.g, triangle.c3.b }
+    };
+    ColorContext context;
+
+    draw_triangle<ColoredPoint, ColorContext>(a, b, c, context);
 }
 
-void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, Color ac, Color bc, Color cc) {
+void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, PSX::Color ac, PSX::Color bc, PSX::Color cc) {
     // Sort the points by their y-coordinates
     if (ay > by) {
         std::swap(ax, bx);
@@ -296,7 +311,7 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
                 uint32_t g = (maxg * (x - min) + ming * (max - x)) / line_length;
                 uint32_t b = (maxb * (x - min) + minb * (max - x)) / line_length;
 
-                Color c(r, g, b);
+                PSX::Color c(r, g, b);
                 writeToVRAM(x, y, c.to16Bit());
             }
         }
@@ -347,7 +362,7 @@ void SoftwareRenderer::drawTriangle(int ax, int ay, int bx, int by, int cx, int 
                 uint32_t g = (maxg * (x - min) + ming * (max - x)) / line_length;
                 uint32_t b = (maxb * (x - min) + minb * (max - x)) / line_length;
 
-                Color c(r, g, b);
+                PSX::Color c(r, g, b);
                 writeToVRAM(x, y, c.to16Bit());
             }
         }
@@ -576,8 +591,8 @@ void SoftwareRenderer::draw_triangle_half(Point a, Point c, Point f, Point t, Co
         // Determine color/texture coordinate for point (x_ac, y) and (x_ft, y)
         // (x_ac, y) by interpolating a and c along y
         // (x_ft, y) by interpolating f and t along y
-        typename Point::Color c_ac = Point::Color::interpolate(c.c, y - a.y, a.c, c.y - y, total_height);
-        typename Point::Color c_ft = Point::Color::interpolate(t.c, y - f.y, f.c, t.y - y, segment_height);
+        typename Context::ColorType c_ac = Context::interpolate(c.c, y - a.y, a.c, c.y - y, total_height);
+        typename Context::ColorType c_ft = Context::interpolate(t.c, y - f.y, f.c, t.y - y, segment_height);
 
         // Draw line from left to right
         Point left = { x_ac, y, c_ac };
@@ -588,7 +603,7 @@ void SoftwareRenderer::draw_triangle_half(Point a, Point c, Point f, Point t, Co
 
         int32_t line_length = right.x - left.x;
         for (int x = std::max(left.x, (int)drawing_area_top_left_x); x < std::min(right.x, (int)drawing_area_bot_right_x); x++) {
-            typename Point::Color c = Point::Color::interpolate(right.c, x - left.x, left.c, right.x - x, line_length);
+            typename Context::ColorType c = Context::interpolate(right.c, x - left.x, left.c, right.x - x, line_length);
             draw_pixel(x, y, context, c);
         }
     }

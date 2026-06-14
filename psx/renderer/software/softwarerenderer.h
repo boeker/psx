@@ -29,7 +29,7 @@ public:
 
     void writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) override;
     uint16_t readFromVRAM(uint32_t line, uint32_t pos) override;
-    void fillRectangleInVRAM(const Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
+    void fillRectangleInVRAM(const PSX::Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 
     void set_drawing_area(uint32_t top_left_x, uint32_t top_left_y, uint32_t bot_right_x, uint32_t bot_right_y) override;
     void set_drawing_offset(int32_t x, int32_t y) override;
@@ -39,8 +39,20 @@ public:
     void drawTexturedTriangle(const TexturedTriangle &triangle) override;
 
 private:
-    void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, Color ac, Color bc, Color cc);
+    void drawTriangle(int ax, int ay, int bx, int by, int cx, int cy, PSX::Color ac, PSX::Color bc, PSX::Color cc);
     void drawTexturedTriangle(int ax, int ay, int bx, int by, int cx, int cy, int tx1, int ty1, int tx2, int ty2, int tx3, int ty3, uint16_t texpage, uint16_t palette);
+
+    template<typename Point, typename Context>
+    void draw_triangle(Point a, Point b, Point c, Context context);
+
+    template<typename Point, typename Context>
+    void draw_triangle_half(Point a, Point c, Point f, Point t, Context context);
+
+    struct Color {
+        uint32_t r;
+        uint32_t g;
+        uint32_t b;
+    };
 
     struct ColoredPoint {
         int32_t x;
@@ -48,25 +60,45 @@ private:
         Color c;
     };
 
-    struct TextureCoordinate {
-        int32_t x;
-        int32_t y;
-        static TextureCoordinate interpolate(const TextureCoordinate &a, int32_t a_fact, const TextureCoordinate &b, int32_t b_fact, int32_t divisor) {
+    struct ColorContext {
+        using ColorType = Color;
+        static Color interpolate(const Color &a, int32_t a_fact, const Color &b, int32_t b_fact, int32_t divisor) {
             return {
-                (a.x * a_fact + b.x * b_fact) / divisor,
-                (a.y * a_fact + b.y * b_fact) / divisor
+                (a.r * a_fact + b.r * b_fact) / divisor,
+                (a.g * a_fact + b.g * b_fact) / divisor,
+                (a.b * a_fact + b.b * b_fact) / divisor,
             };
+        }
+        bool valid() {
+            return true;
         }
     };
 
+    void draw_pixel(int32_t x, int32_t y, const ColorContext &context, const Color &c) {
+        PSX::Color col(c.r, c.g, c.b);
+        writeToVRAM(x, y, col.to16Bit());
+    }
+
+    struct TextureCoordinate {
+        int32_t x;
+        int32_t y;
+    };
+
     struct TexturedPoint {
-        using Color = TextureCoordinate;
         int32_t x;
         int32_t y;
         TextureCoordinate c;
     };
 
     struct TextureContext {
+        using ColorType = TextureCoordinate;
+        static TextureCoordinate interpolate(const TextureCoordinate &a, int32_t a_fact, const TextureCoordinate &b, int32_t b_fact, int32_t divisor) {
+            return {
+                (a.x * a_fact + b.x * b_fact) / divisor,
+                (a.y * a_fact + b.y * b_fact) / divisor
+            };
+        }
+
         uint32_t xBase;
         uint32_t yBase;
         uint8_t semiTransparency;
@@ -91,12 +123,6 @@ private:
             return texturePageColors == 0; // 4-bit colors, everything else not implemented yet
         }
     };
-
-    template<typename Point, typename Context>
-    void draw_triangle(Point a, Point b, Point c, Context context);
-
-    template<typename Point, typename Context>
-    void draw_triangle_half(Point a, Point c, Point f, Point t, Context context);
 
     void draw_pixel(int32_t x, int32_t y, const TextureContext &context, const TextureCoordinate &c) {
         uint16_t halfword = readFromVRAM(context.xBase + (c.x / 4), context.yBase + c.y);
