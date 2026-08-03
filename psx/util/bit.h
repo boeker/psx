@@ -25,6 +25,13 @@ namespace Bit {
         return (target >> bit) & ~(~0u << N);
     }
 
+    template<uint32_t N, typename T, typename S>
+    inline void setBits(T &target, uint8_t bit, S source) {
+        uint32_t drop_leading = sizeof(T) * 8 - bit - N;
+        T selected_bits = ((~0u << bit) << drop_leading) >> drop_leading;
+        target = (target & ~selected_bits) | ((source << bit) & selected_bits);
+    }
+
     template<typename T>
     inline void setBit(T &target, uint8_t bit, bool value) {
         uint32_t selectedBit = 1 << bit;
