@@ -17,6 +17,7 @@ target_sources(psx PRIVATE
     gpu.cpp
     gte.cpp
     interrupts.cpp
+    mdec.cpp
     memory.cpp
     registers.cpp
     renderer/null/nullrenderer.cpp

@@ -27,7 +27,7 @@ std::ostream& operator<<(std::ostream &os, const Bus &bus) {
 }
 
 Bus::Bus()
-    : cdrom(this), cpu(this), dma(this), executable(this), interrupts(this), gpu(this), timers(this), gamepad(), gio(this, gamepad) {
+    : cdrom(this), cpu(this), dma(this), mdec(this), executable(this), interrupts(this), gpu(this), timers(this), gamepad(), gio(this, gamepad) {
     reset();
 }
 
@@ -39,6 +39,7 @@ void Bus::reset() {
     bios.reset();
     timers.reset();
     dma.reset();
+    mdec.reset();
     interrupts.reset();
     spu.reset();
     gpu.reset();
@@ -184,7 +185,7 @@ T Bus::read(uint32_t address) {
             value = gpu.read<T>(address);
 
         } else if ((address >= 0x1F801820) && (address <= 0x1F801827)) {
-            LOG_WRN(std::format("Unimplemented MDEC read @0x{:08X}", address));
+            value = mdec.read<T>(address);
 
         } else if ((address >= 0x1F801C00) && (address <= 0x1F801FFF)) {
             value = spu.read<T>(address);
@@ -275,7 +276,7 @@ void Bus::write(uint32_t address, T value) {
             gpu.write<T>(address, value);
 
         } else if ((address >= 0x1F801820) && (address <= 0x1F801827)) {
-            LOG_WRN(std::format("Unimplemented MDEC write @0x{:08X}", address));
+            mdec.write<T>(address, value);
 
         } else if ((address >= 0x1F801C00) && (address <= 0x1F801FFF)) {
             spu.write<T>(address, value);

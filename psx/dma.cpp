@@ -223,9 +223,9 @@ void DMA::transfer(uint32_t channel) {
             transferOTC();
             break;
         default:
-            LOG_DMA(std::format("Channel {:d}: transfer not implemented",
-                                channel,
-                                CHANNEL_NAMES[channel]));
+            LOGW_DMA(std::format("Channel {:d}: transfer not implemented",
+                                 channel,
+                                 CHANNEL_NAMES[channel]));
     }
 
     //pendingTransfer = -1;
@@ -491,7 +491,7 @@ void DMA::transferFromCDROM() {
         uint32_t previousAddress = address; // to update base address register
         for (uint32_t i = 0; i < numberOfWords; ++i) {
             uint32_t word = bus->cdrom.read_word();
-            LOG_DMA(std::format("Channel 3 (CDROM) transfer: reading 0x{:08X}", word));
+            LOGT_DMA(std::format("Channel 3 (CDROM) transfer: reading 0x{:08X}", word));
 
             bus->write<uint32_t>(address, word);
 

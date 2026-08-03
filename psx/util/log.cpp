@@ -81,7 +81,7 @@ void ThreeWayLog::installAdditionalLog(const std::shared_ptr<Log> &log) {
     additionalLog = log;
 }
 
-#define INIT_TWL(name, descriptor) name(descriptor, false), name##V(descriptor, false), name##T(descriptor, false)
+#define INIT_TWL(name, descriptor) name(descriptor, false), name##W(descriptor, true), name##V(descriptor, false), name##T(descriptor, false)
 
 LogPack logPack;
 
@@ -115,47 +115,51 @@ LogPack::LogPack()
     //exceptions.setConsoleLogEnabled(true);
     //exceptionsV.setConsoleLogEnabled(true);
 
-    bus.setConsoleLogEnabled(true);
-    cdrom.setConsoleLogEnabled(true);
-    cp0.setConsoleLogEnabled(true);
-    cpu.setConsoleLogEnabled(true);
-    dma.setConsoleLogEnabled(true);
-    exceptions.setConsoleLogEnabled(true);
-    executable.setConsoleLogEnabled(true);
-    gio.setConsoleLogEnabled(true);
-    gpu.setConsoleLogEnabled(true);
-    gte.setConsoleLogEnabled(true);
-    interrupts.setConsoleLogEnabled(true);
+    //bus.setConsoleLogEnabled(true);
+    //cdrom.setConsoleLogEnabled(true);
+    //cp0.setConsoleLogEnabled(true);
+    //cpu.setConsoleLogEnabled(true);
+    //dma.setConsoleLogEnabled(true);
+    ////exceptions.setConsoleLogEnabled(true);
+    //executable.setConsoleLogEnabled(true);
+    //gio.setConsoleLogEnabled(true);
+    //gpu.setConsoleLogEnabled(true);
+    //gte.setConsoleLogEnabled(true);
+    ////interrupts.setConsoleLogEnabled(true);
     mdec.setConsoleLogEnabled(true);
-    memory.setConsoleLogEnabled(true);
-    misc.setConsoleLogEnabled(true);
-    pad.setConsoleLogEnabled(true);
-    renderer.setConsoleLogEnabled(true);
-    spu.setConsoleLogEnabled(true);
-    timers.setConsoleLogEnabled(true);
-    tty.setConsoleLogEnabled(true);
+    mdecV.setConsoleLogEnabled(true);
+    mdecT.setConsoleLogEnabled(true);
+    //memory.setConsoleLogEnabled(true);
+    //misc.setConsoleLogEnabled(true);
+    //pad.setConsoleLogEnabled(true);
+    //renderer.setConsoleLogEnabled(true);
+    //spu.setConsoleLogEnabled(true);
+    //timers.setConsoleLogEnabled(true);
+    //tty.setConsoleLogEnabled(true);
     warning.setConsoleLogEnabled(true);
 
-    interrupts.setConsoleLogEnabled(true);
-    interruptsV.setConsoleLogEnabled(true);
+    //interrupts.setConsoleLogEnabled(true);
+    //interruptsV.setConsoleLogEnabled(true);
 
     //gpu.setConsoleLogEnabled(true);
+    //gpuV.setConsoleLogEnabled(true);
+    //gpuT.setConsoleLogEnabled(true);
     //renderer.setConsoleLogEnabled(true);
     //rendererV.setConsoleLogEnabled(true);
     //rendererT.setConsoleLogEnabled(true);
 
-    dma.setConsoleLogEnabled(true);
-    dmaV.setConsoleLogEnabled(true);
+    //dma.setConsoleLogEnabled(true);
+    //dmaV.setConsoleLogEnabled(true);
 
     //gteV.setConsoleLogEnabled(true);
     //gteT.setConsoleLogEnabled(true);
 
-    cdrom.setConsoleLogEnabled(true);
-    cdromV.setConsoleLogEnabled(true);
+    //cdrom.setConsoleLogEnabled(true);
+    //cdromV.setConsoleLogEnabled(true);
     //cdromT.setConsoleLogEnabled(true);
 
-    exceptions.setConsoleLogEnabled(true);
-    exceptionsV.setConsoleLogEnabled(true);
+    //exceptions.setConsoleLogEnabled(true);
+    //exceptionsV.setConsoleLogEnabled(true);
 
     //gio.setConsoleLogEnabled(true);
     //gioV.setConsoleLogEnabled(true);

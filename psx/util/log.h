@@ -63,7 +63,7 @@ private:
     const std::string descriptor;
 };
 
-#define DECLARE_TWL(name) ThreeWayLog name, name##V, name##T
+#define DECLARE_TWL(name) ThreeWayLog name, name##W, name##V, name##T
 
 struct LogPack {
     LogPack();
@@ -98,82 +98,102 @@ extern LogPack logPack;
 #define MACRO_LOG(log) util::logPack.log.isEnabled() && util::logPack.log.print
 
 #define LOG_BUS             MACRO_LOG(bus)
+#define LOGW_BUS            MACRO_LOG(busW)
 #define LOGV_BUS            MACRO_LOG(busV)
 #define LOGT_BUS            MACRO_LOG(busT)
 
 #define LOG_CP0             MACRO_LOG(cp0)
+#define LOGW_CP0            MACRO_LOG(cp0W)
 #define LOGV_CP0            MACRO_LOG(cp0V)
 #define LOGT_CP0            MACRO_LOG(cp0T)
 
 #define LOG_CPU             MACRO_LOG(cpu)
+#define LOGW_CPU            MACRO_LOG(cpuW)
 #define LOGV_CPU            MACRO_LOG(cpuV)
 #define LOGT_CPU            MACRO_LOG(cpuT)
 
 #define LOG_CDROM           MACRO_LOG(cdrom)
+#define LOGW_CDROM          MACRO_LOG(cdromW)
 #define LOGV_CDROM          MACRO_LOG(cdromV)
 #define LOGT_CDROM          MACRO_LOG(cdromT)
 
 #define LOG_DMA             MACRO_LOG(dma)
+#define LOGW_DMA            MACRO_LOG(dmaW)
 #define LOGV_DMA            MACRO_LOG(dmaV)
 #define LOGT_DMA            MACRO_LOG(dmaT)
 
 #define LOG_EXC             MACRO_LOG(exceptions)
+#define LOGW_EXC            MACRO_LOG(exceptionsW)
 #define LOGV_EXC            MACRO_LOG(exceptionsV)
 #define LOGT_EXC            MACRO_LOG(exceptionsT)
 
 #define LOG_EXE             MACRO_LOG(executable)
+#define LOGW_EXE            MACRO_LOG(executableW)
 #define LOGV_EXE            MACRO_LOG(executableV)
 #define LOGT_EXE            MACRO_LOG(executableT)
 
 #define LOG_GIO             MACRO_LOG(gio)
+#define LOGW_GIO            MACRO_LOG(gioW)
 #define LOGV_GIO            MACRO_LOG(gioV)
 #define LOGT_GIO            MACRO_LOG(gioT)
 
 #define LOG_GPU             MACRO_LOG(gpu)
+#define LOGW_GPU            MACRO_LOG(gpuW)
 #define LOGV_GPU            MACRO_LOG(gpuV)
 #define LOGT_GPU            MACRO_LOG(gpuT)
 
 #define LOG_GTE             MACRO_LOG(gte)
+#define LOGW_GTE            MACRO_LOG(gteW)
 #define LOGV_GTE            MACRO_LOG(gteV)
 #define LOGT_GTE            MACRO_LOG(gteT)
 
 #define LOG_INT             MACRO_LOG(interrupts)
+#define LOGW_INT            MACRO_LOG(interruptsW)
 #define LOGV_INT            MACRO_LOG(interruptsV)
 #define LOGT_INT            MACRO_LOG(interruptsT)
 
 #define LOG_MDEC            MACRO_LOG(mdec)
+#define LOGW_MDEC           MACRO_LOG(mdecW)
 #define LOGV_MDEC           MACRO_LOG(mdecV)
 #define LOGT_MDEC           MACRO_LOG(mdecT)
 
 #define LOG_MEM             MACRO_LOG(memory)
+#define LOGW_MEM            MACRO_LOG(memoryW)
 #define LOGV_MEM            MACRO_LOG(memoryV)
 #define LOGT_MEM            MACRO_LOG(memoryT)
 
 #define LOG_MISC            MACRO_LOG(misc)
+#define LOGW_MISC           MACRO_LOG(miscW)
 #define LOGV_MISC           MACRO_LOG(miscV)
 #define LOGT_MISC           MACRO_LOG(miscT)
 
 #define LOG_PAD             MACRO_LOG(pad)
+#define LOGW_PAD            MACRO_LOG(padW)
 #define LOGV_PAD            MACRO_LOG(padV)
 #define LOGT_PAD            MACRO_LOG(padT)
 
 #define LOG_REND            MACRO_LOG(renderer)
+#define LOGW_REND           MACRO_LOG(rendererW)
 #define LOGV_REND           MACRO_LOG(rendererV)
 #define LOGT_REND           MACRO_LOG(rendererT)
 
 #define LOG_SPU             MACRO_LOG(spu)
+#define LOGW_SPU            MACRO_LOG(spuW)
 #define LOGV_SPU            MACRO_LOG(spuV)
 #define LOGT_SPU            MACRO_LOG(spuT)
 
 #define LOG_TMR             MACRO_LOG(timers)
+#define LOGW_TMR            MACRO_LOG(timersW)
 #define LOGV_TMR            MACRO_LOG(timersV)
 #define LOGT_TMR            MACRO_LOG(timersT)
 
 #define LOG_TTY             MACRO_LOG(tty)
+#define LOGW_TTY            MACRO_LOG(ttyW)
 #define LOGV_TTY            MACRO_LOG(ttyV)
 #define LOGT_TTY            MACRO_LOG(ttyT)
 
 #define LOG_WRN             MACRO_LOG(warning)
+#define LOGW_WRN            MACRO_LOG(warningW)
 #define LOGV_WRN            MACRO_LOG(warningV)
 #define LOGT_WRN            MACRO_LOG(warningT)
 

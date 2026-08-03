@@ -11,6 +11,7 @@
 #include "memory.h"
 #include "bios.h"
 #include "dma.h"
+#include "mdec.h"
 #include "timers.h"
 #include "interrupts.h"
 #include "dma.h"
@@ -84,6 +85,7 @@ public:
     Bios bios;
     Timers timers;
     DMA dma;
+    MacroblockDecoder mdec;
     Interrupts interrupts;
     SPU spu;
     GPU gpu;
