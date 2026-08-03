@@ -517,7 +517,7 @@ const CDROM::Command CDROM::commands[] = {
     &CDROM::unknown,
     &CDROM::test, // 0x19
     &CDROM::get_id, // 0x1A
-    &CDROM::unknown,
+    &CDROM::read_s, // 0x1B
     &CDROM::unknown, &CDROM::unknown,
     &CDROM::read_toc,
     &CDROM::unknown,
@@ -1046,6 +1046,66 @@ uint8_t CDROM::get_id_second_response_mode_2() {
     response_queue.push(0x45); // E
     response_queue.push(0x41); // A
     return 2;
+}
+
+void CDROM::read_s() {
+    LOG_CDROM(prependState(std::format("========> ReadS(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::read_s_response);
+
+    // Make sure we do not have any already read sectors remaining
+    while (!read_sector_buffers.empty()) {
+        unused_sector_buffers.emplace_back(std::move(read_sector_buffers.back()));
+        read_sector_buffers.pop_back();
+    }
+}
+
+uint8_t CDROM::read_s_response() {
+    LOG_CDROM(prependState(std::format("========> ReadS(): Initial Response <========")));
+
+    if (!cd) {
+        return no_disc_response();
+    }
+
+    // Write response
+    drive_state = READING;
+    push_drive_state_to_response_queue();
+
+    // Read does also seek
+    // TODO Move this to second response, separate spam response
+    cd->seek_to_bcd(amm, ass, asect);
+
+    // Schedule second response
+    scheduled_responses.emplace_back(&CDROM::read_s_second_response, 0x36CD2);
+
+    return 3;
+}
+
+uint8_t CDROM::read_s_second_response() {
+    LOG_CDROM(prependState(std::format("========> ReadS(): Second Response <========")));
+
+    // Read sector from CD
+    std::unique_ptr<uint8_t[]> buffer;
+    if (!unused_sector_buffers.empty()) {
+        buffer = std::move(unused_sector_buffers.front());
+        unused_sector_buffers.pop_front();
+
+    } else {
+        LOG_CDROM(prependState(std::format("Warning: No unused sector buffer for read, allocating new buffer!")));
+        buffer = std::make_unique<uint8_t[]>(CD::SECTOR_SIZE);
+    }
+
+    LOG_CDROM(prependState(std::format("CD is at {}", cd->get_current_position())));
+    cd->read_sector_and_advance(buffer.get());
+    read_sector_buffers.emplace_back(std::move(buffer));
+
+    push_drive_state_to_response_queue();
+
+    // Schedule reading of next sector (since we are automatically reading that)
+    // Software has to be fast enough to keep up!
+    // That is, the next_sector_buffer has to be read or we will overwrite it.
+    scheduled_responses.emplace_back(&CDROM::read_s_second_response, 0x36CD2);
+
+    return 1;
 }
 
 void CDROM::read_toc() {

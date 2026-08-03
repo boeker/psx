@@ -205,6 +205,10 @@ private:
     uint8_t get_id_response();
     uint8_t get_id_second_response_motor_off();
     uint8_t get_id_second_response_mode_2();
+    // 0x1B
+    void read_s();
+    uint8_t read_s_response();
+    uint8_t read_s_second_response();
     // 0x1E
     void read_toc();
     uint8_t read_toc_response();
