@@ -25,8 +25,8 @@ uint32_t MacroblockDecoder::get_status_register() const {
     Bit::setBit(reg, MDEC_STATUS_DATA_OUT_QUEUE_EMPTY, data_out_queue.empty());
     Bit::setBit(reg, MDEC_STATUS_DATA_IN_QUEUE_FULL, received_all_parameters);
     Bit::setBit(reg, MDEC_STATUS_CMD_BUSY, state != State::IDLE);
-    Bit::setBit(reg, MDEC_STATUS_DATA_IN_REQ, data_in_enabled); // TODO: Check if DMA0 enabled?
-    Bit::setBit(reg, MDEC_STATUS_DATA_OUT_REQ, data_out_enabled && false); // TODO: Check if DMA1 enabled? Check if something to send?
+    Bit::setBit(reg, MDEC_STATUS_DATA_IN_REQ, data_in_request());
+    Bit::setBit(reg, MDEC_STATUS_DATA_OUT_REQ, data_out_request());
     Bit::setBits<2>(reg, MDEC_STATUS_DATA_OUTPUT_DEPTH0, data_output_depth);
     Bit::setBit(reg, MDEC_STATUS_DATA_OUTPUT_SIGNED, data_output_signed);
     Bit::setBit(reg, MDEC_STATUS_DATA_OUTPUT_BIT15, data_output_bit15);
@@ -122,6 +122,14 @@ void MacroblockDecoder::reset() {
     current_block = 4; // Default is 4 = Y
 }
 
+bool MacroblockDecoder::data_in_request() const {
+    return data_in_enabled && state != State::IDLE;
+}
+
+bool MacroblockDecoder::data_out_request() const {
+    return data_out_enabled && false; // TODO Replace false by "have something to send"
+}
+
 void MacroblockDecoder::process(uint32_t value) {
     if (state == State::IDLE) { // Has to be a command
         uint8_t command_num = value >> MDEC_CMD_CMD0;
@@ -143,8 +151,29 @@ void MacroblockDecoder::process(uint32_t value) {
         }
 
     } else {
-        // TODO: Receiving parameter
-        LOGT_MDEC(std::format("Not IDLE, incoming value 0x{:08X}", value));
+        switch (state) {
+            case State::CMD_DECODE_MACROBLOCK:
+                LOGT_MDEC(std::format("Received macroblock value 0x{:08X}", value));
+                // TODO: Store and process
+                break;
+            case State::CMD_SET_IQTAB:
+                LOGT_MDEC(std::format("Received iqtab value 0x{:08X}", value));
+                // TODO: Store
+                break;
+            case State::CMD_SET_SCALE:
+                LOGT_MDEC(std::format("Received scale value 0x{:08X}", value));
+                // TODO: Store
+                break;
+            case State::IDLE: // Not reachable
+                break;
+        }
+
+        --remaining_parameter_words;
+        if (remaining_parameter_words == 0xFFFF) { // The stored value is minus one
+            LOGT_MDEC(std::format("Received last parameter word"));
+            state = State::IDLE;
+            received_all_parameters = true;
+        }
     }
 }
 

@@ -118,6 +118,7 @@ public:
     void transferOTC();
     void transferToGPU();
     void transferFromGPU();
+    void transfer_to_mdec();
     void transferFromCDROM();
 
 private:

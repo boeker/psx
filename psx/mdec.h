@@ -88,6 +88,9 @@ public:
     MacroblockDecoder(Bus *bus);
     void reset();
 
+    bool data_in_request() const;
+    bool data_out_request() const;
+
     void process(uint32_t value);
 
     template <typename T>
