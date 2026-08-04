@@ -27,9 +27,9 @@ uint32_t MacroblockDecoder::get_status_register() const {
     Bit::setBit(reg, MDEC_STATUS_CMD_BUSY, state != State::IDLE);
     Bit::setBit(reg, MDEC_STATUS_DATA_IN_REQ, data_in_enabled); // TODO: Check if DMA0 enabled?
     Bit::setBit(reg, MDEC_STATUS_DATA_OUT_REQ, data_out_enabled && false); // TODO: Check if DMA1 enabled? Check if something to send?
-    // TODO output depth
-    // TODO output signed
-    // TODO output bit15
+    Bit::setBits<2>(reg, MDEC_STATUS_DATA_OUTPUT_DEPTH0, data_output_depth);
+    Bit::setBit(reg, MDEC_STATUS_DATA_OUTPUT_SIGNED, data_output_signed);
+    Bit::setBit(reg, MDEC_STATUS_DATA_OUTPUT_BIT15, data_output_bit15);
     Bit::setBits<3>(reg, MDEC_STATUS_CURRENT_BLOCK0, current_block);
 
     return reg;
@@ -47,9 +47,56 @@ std::string MacroblockDecoder::get_status_register_explanation(uint32_t reg) {
     ss << std::format("DATA_OUTPUT_SIGNED[{:01b}], ", (reg >> MDEC_STATUS_DATA_OUTPUT_SIGNED) & 1);
     ss << std::format("DATA_OUTPUT_BIT15[{:01b}], ", (reg >> MDEC_STATUS_DATA_OUTPUT_BIT15) & 1);
     ss << std::format("CURRENT_BLOCK[{:d}], ", (reg >> MDEC_STATUS_CURRENT_BLOCK0) & 7);
-    ss << std::format("PARAMETER_WORDS_REMAINING[{:04X}] ", (reg >> MDEC_STATUS_PARAMETER_WORDS_REMAINING0) & 0xFFFF);
+    ss << std::format("PARAMETER_WORDS_REMAINING[{:04X}]", (reg >> MDEC_STATUS_PARAMETER_WORDS_REMAINING0) & 0xFFFF);
 
     return ss.str();
+}
+
+void MacroblockDecoder::extract_data_output_bits(uint32_t command) {
+    data_output_depth = Bit::getBits<2>(command, MDEC_CMD_DATA_OUTPUT_DEPTH0);
+    data_output_signed = Bit::getBit(command, MDEC_CMD_DATA_OUTPUT_SIGNED);
+    data_output_bit15 = Bit::getBit(command, MDEC_CMD_DATA_OUTPUT_BIT15);
+
+    LOGT_MDEC(std::format("Data Output Depth: {:d}", data_output_depth));
+    LOGT_MDEC(std::format("Data Output Signed: {:s}", data_output_signed));
+    LOGT_MDEC(std::format("Data Output Bit 15: {:s}", data_output_bit15));
+}
+
+void MacroblockDecoder::decode_macroblock(uint32_t command) {
+    LOGT_MDEC("decode_macroblock");
+    state = State::CMD_DECODE_MACROBLOCK;
+    extract_data_output_bits(command);
+    remaining_parameter_words = static_cast<uint16_t>(command & 0x0000'FFFF) - 1;
+    LOGT_MDEC(std::format("Remaining parameter words (one was subtracted): 0x{:04X}", remaining_parameter_words));
+}
+
+void MacroblockDecoder::set_iqtab(uint32_t command) {
+    LOGT_MDEC("set_iqtab");
+    state = State::CMD_SET_IQTAB;
+    extract_data_output_bits(command);
+    if (!Bit::getBit(command, MDEC_CMD_COLOR)) {
+        LOGT_MDEC(std::format("Luminance only, setting remaining parameter words to 64/4 - 1 = 15"));
+        remaining_parameter_words = 15;
+    } else {
+        LOGT_MDEC(std::format("Luminance and color, setting remaining parameter words to 128/4 - 1 = 31"));
+        remaining_parameter_words = 31;
+    }
+}
+
+void MacroblockDecoder::set_scale(uint32_t command) {
+    LOGT_MDEC("set_scale");
+    state = State::CMD_SET_SCALE;
+    extract_data_output_bits(command);
+    LOGT_MDEC(std::format("Setting remaining parameter words to 64/2 - 1 = 31"));
+    remaining_parameter_words = 31;
+}
+
+void MacroblockDecoder::no_function(uint32_t command) {
+    LOGT_MDEC("no_function");
+    state = State::IDLE;
+    extract_data_output_bits(command);
+    remaining_parameter_words = static_cast<uint16_t>(command & 0x0000'FFFF);
+    LOGT_MDEC(std::format("Remaining parameter words: 0x{:04X}", remaining_parameter_words));
 }
 
 MacroblockDecoder::MacroblockDecoder(Bus *bus) {
@@ -68,7 +115,37 @@ void MacroblockDecoder::reset() {
     data_in_enabled = false;
     data_out_enabled = false;
 
+    data_output_depth = 0;
+    data_output_signed = false;
+    data_output_bit15 = false;
+
     current_block = 4; // Default is 4 = Y
+}
+
+void MacroblockDecoder::process(uint32_t value) {
+    if (state == State::IDLE) { // Has to be a command
+        uint8_t command_num = value >> MDEC_CMD_CMD0;
+        LOGT_MDEC(std::format("Executing command #{:d}", command_num));
+
+        switch (command_num) {
+            case 1:
+                decode_macroblock(value);
+                break;
+            case 2:
+                set_iqtab(value);
+                break;
+            case 3:
+                set_scale(value);
+                break;
+            default:
+                no_function(value);
+                break;
+        }
+
+    } else {
+        // TODO: Receiving parameter
+        LOGT_MDEC(std::format("Not IDLE, incoming value 0x{:08X}", value));
+    }
 }
 
 template <>
@@ -78,9 +155,11 @@ void MacroblockDecoder::write(uint32_t address, uint32_t value) {
     LOGT_MDEC(std::format("Write to MDEC: 0x{:08X} --> @0x{:08X}", value, address));
 
     if (address == 0x1F80'1820) { // Command/Parameter Register
-        LOGW_MDEC("Unimplemented write to Command Register");
+        LOGT_MDEC(std::format("Write to Command Register: 0x{:08X}", value));
+        process(value);
+
     } else { // 0x1F80'1824: Control/Reset Register
-        LOGT_MDEC("Write to Control Register");
+        LOGT_MDEC(std::format("Write to Control Register: 0x{:08X}", value));
         if (Bit::getBit(value, MDEC_CONTROL_RESET)) {
             reset();
             LOGV_MDEC("Reset MDEC");
