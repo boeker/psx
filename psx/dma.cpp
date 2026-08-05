@@ -100,7 +100,11 @@ template <> void DMA::write(uint32_t address, uint16_t value) {
 }
 
 template <> void DMA::write(uint32_t address, uint8_t value) {
-    throw exceptions::UnimplementedAddressingError(std::format("DMA: byte write @0x{:08X}", address));
+    if (address == 0x1F8010F6) { // Ugly hack, some games write a byte here. TODO: Correct?
+        updateInterruptRegister(value << 16);
+    } else {
+        throw exceptions::UnimplementedAddressingError(std::format("DMA: byte write @0x{:08X}", address));
+    }
 }
 
 template <>
@@ -144,12 +148,19 @@ uint32_t DMA::read(uint32_t address) {
     }
 }
 
-template <> uint16_t DMA::read(uint32_t address) {
-    throw exceptions::UnimplementedAddressingError(std::format("DMA: half-word read @0x{:08X}", address));
+template <>
+uint16_t DMA::read(uint32_t address) {
+    uint32_t offset = address & 3;
+    assert(offset == 0 || offset == 2); // Only aligned reads supported
+    uint32_t value = read<uint32_t>(address & 0xFFFF'FFFC);
+    return static_cast<uint16_t>(value >> 8 * offset);
 }
 
-template <> uint8_t DMA::read(uint32_t address) {
-    throw exceptions::UnimplementedAddressingError(std::format("DMA: byte read @0x{:08X}", address));
+template <>
+uint8_t DMA::read(uint32_t address) {
+    uint32_t offset = address & 3;
+    uint32_t value = read<uint32_t>(address & 0xFFFF'FFFC);
+    return static_cast<uint8_t>(value >> 8 * offset);
 }
 
 void DMA::handlePendingTransfers() {
