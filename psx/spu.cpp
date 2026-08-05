@@ -4,6 +4,7 @@
 #include <cstring>
 #include <format>
 
+#include "util/bit.h"
 #include "util/log.h"
 #include "exceptions/exceptions.h"
 
@@ -41,14 +42,59 @@ void SPU::handle_control_write(uint32_t address, uint16_t value) {
         LOGW_SPU(std::format("Unimplemented write to RAM Data Transfer Queue @0x{:08X}", address));
         // TODO
     } else if (offset == 0xAA) {
-        LOGW_SPU(std::format("Unimplemented write to Control Register @0x{:08X}", address));
-        // TODO
+        control_register = value;
+
+        // Update Status Register
+        // TODO: Update Bit 11 (Half Bit) after transfer?
+        // Bit 6
+        // Check if pending interrupt is acknowledged
+        if (Bit::getBit(status_register, SPU_STATUS_IRQ9_FLAG)
+            && !Bit::getBit(value, SPU_CONTROL_IRQ9_ENABLE)) {
+            Bit::clearBit(status_register, SPU_STATUS_IRQ9_FLAG);
+            LOGT_SPU(std::format("Acknowledged IRQ9"));
+        }
+
+        // Bit 7
+        Bit::setBit(status_register, SPU_STATUS_TRANSFER_READ_WRITE_REQUEST, Bit::getBit(value, SPU_CONTROL_RAM_TRANSFER_MODE1));
+        // Bit 5 to 0
+        Bit::setBits<6>(status_register, SPU_STATUS_CD_AUDIO_ENABLE, Bit::getBits<6>(value, SPU_STATUS_CD_AUDIO_ENABLE));
+        switch (Bit::getBits<2>(value, SPU_CONTROL_RAM_TRANSFER_MODE0)) {
+            case 0: // stop
+                Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
+                Bit::clearBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
+                Bit::clearBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
+                LOGT_SPU(std::format("Stop SPU RAM transfer"));
+                break;
+            case 1: // manual write
+                Bit::setBit(status_register, SPU_STATUS_TRANSFER_BUSY);
+                Bit::clearBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
+                Bit::clearBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
+                // TODO Perform manual transfer
+                LOGW_SPU(std::format("Unimplemented manual transfer to SPU RAM requested"));
+                break;
+            case 2: // DMA write (to SPU RAM)
+                Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
+                Bit::clearBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
+                Bit::setBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
+                LOGW_SPU(std::format("Unimplemented DMA transfer to SPU RAM requested"));
+                // TODO: Implement DMA transfer
+                break;
+            case 3: // DMA read (from SPU RAM)
+                Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
+                Bit::setBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
+                Bit::clearBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
+                LOGW_SPU(std::format("Unimplemented DMA transfer from SPU RAM requested"));
+                // TODO: Implement DMA transfer
+                break;
+            case 4:
+                assert(false);
+        }
+
     } else if (offset == 0xAC) {
         LOGW_SPU(std::format("Unimplemented write to RAM Data Transfer Control @0x{:08X}", address));
         // TODO
     } else if (offset == 0xAE) {
-        LOGW_SPU(std::format("Unimplemented write to Status Register @0x{:08X}", address));
-        // TODO
+        LOGW_SPU(std::format("Attempted write to read-only Status Register @0x{:08X}", address));
     } else {
         LOGW_SPU(std::format("Write to unknown control register @0x{:08X}", address));
     }
@@ -69,14 +115,16 @@ uint16_t SPU::handle_control_read(uint32_t address) {
         LOGW_SPU(std::format("Unimplemented read from RAM Data Transfer Queue @0x{:08X}", address));
         // TODO
     } else if (offset == 0xAA) {
-        LOGW_SPU(std::format("Unimplemented read from Control Register @0x{:08X}", address));
-        // TODO
+        LOGT_SPU(std::format("Read from Control Register @0x{:08X}", address));
+        // TODO Explain
+        return control_register;
     } else if (offset == 0xAC) {
         LOGW_SPU(std::format("Unimplemented read from RAM Data Transfer Control @0x{:08X}", address));
         // TODO
     } else if (offset == 0xAE) {
-        LOGW_SPU(std::format("Unimplemented read from Status Register @0x{:08X}", address));
-        // TODO
+        LOGT_SPU(std::format("Read from Status Register @0x{:08X}", address));
+        // TODO Explain
+        return status_register;
     } else {
         LOGW_SPU(std::format("Read from unknown control register @0x{:08X}", address));
     }
