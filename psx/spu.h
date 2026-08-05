@@ -39,14 +39,19 @@
 
 namespace PSX {
 
+class Bus;
+
 class SPU {
 private:
+    Bus *bus;
+
     std::unique_ptr<uint8_t[]> ram;
 
     // 0x1F80'1DA4: SPU RAM IRQ Address (halfword)
     uint16_t irq_address_register;
     // 0x1F80'1DA6: SPU RAM Data Transfer Address (divided by 8, halfword)
     uint16_t data_transfer_address_register;
+    uint32_t data_transfer_address;
     // 0x1F80'1DA8: SPU RAM Data Transfer Queue (stores up to 32 halfwords)
     // TODO
     // 0x1F80'1DAA: SPU Control Register (SPUCNT)
@@ -57,8 +62,16 @@ private:
     uint16_t status_register;
 
 public:
-    SPU();
+    SPU(Bus *bus);
     void reset();
+
+    bool dma_write_to_spu_requested() const;
+    bool dma_read_from_spu_requested() const;
+
+    void start_dma_transfer();
+    void write_to_ram(uint16_t value);
+    uint16_t read_from_ram();
+    void finish_dma_transfer();
 
     void handle_control_write(uint32_t address, uint16_t value);
     uint16_t handle_control_read(uint32_t address);
@@ -68,6 +81,10 @@ public:
 
     template <typename T>
     T read(uint32_t address);
+
+private:
+    void perform_manual_transfer();
+    void issue_interrupt_if_enabled();
 };
 
 }

@@ -4,6 +4,7 @@
 #include <cstring>
 #include <format>
 
+#include "bus.h"
 #include "util/bit.h"
 #include "util/log.h"
 #include "exceptions/exceptions.h"
@@ -12,8 +13,9 @@ using namespace util;
 
 namespace PSX {
 
-SPU::SPU()
-    : ram(std::make_unique<uint8_t[]>(SPU_RAM_SIZE)) {
+SPU::SPU(Bus *bus)
+    : bus(bus),
+      ram(std::make_unique<uint8_t[]>(SPU_RAM_SIZE)) {
     reset();
 }
 
@@ -22,9 +24,44 @@ void SPU::reset() {
 
     irq_address_register = 0;
     data_transfer_address_register = 0;
+    data_transfer_address = 0;
     control_register = 0;
     data_transfer_control_register = 0;
     status_register = 0;
+}
+
+bool SPU::dma_write_to_spu_requested() const {
+    return Bit::getBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
+}
+
+bool SPU::dma_read_from_spu_requested() const {
+    return Bit::getBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
+}
+
+void SPU::start_dma_transfer() {
+    LOGT_SPU(std::format("Preparing DMA transfer to/from SPU"));
+    Bit::setBit(status_register, SPU_STATUS_TRANSFER_BUSY);
+    data_transfer_address = 8 * data_transfer_address_register;
+    LOGT_SPU(std::format("DMA transfer address is 0x{:05X}", data_transfer_address));
+}
+
+void SPU::write_to_ram(uint16_t value) {
+    LOGT_SPU(std::format("Write 0x{:04X} to SPU RAM @0x{:05X}", value, data_transfer_address));
+    *((uint16_t*)(ram.get() + data_transfer_address)) = value;
+    data_transfer_address += 2;
+}
+
+uint16_t SPU::read_from_ram() {
+    uint16_t value = *((uint16_t*)(ram.get() + data_transfer_address));
+    LOGT_SPU(std::format("Read 0x{:04X} from SPU RAM @0x{:05X}", value, data_transfer_address));
+    data_transfer_address += 2;
+    return value;
+}
+
+void SPU::finish_dma_transfer() {
+    LOGT_SPU(std::format("Finishing DMA transfer to/from SPU"));
+    Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
+    issue_interrupt_if_enabled();
 }
 
 void SPU::handle_control_write(uint32_t address, uint16_t value) {
@@ -67,12 +104,9 @@ void SPU::handle_control_write(uint32_t address, uint16_t value) {
                 LOGT_SPU(std::format("Stop SPU RAM transfer"));
                 break;
             case 1: // manual write
-                Bit::setBit(status_register, SPU_STATUS_TRANSFER_BUSY);
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
-                // TODO Perform manual transfer
-                LOGW_SPU(std::format("Unimplemented manual transfer to SPU RAM requested"));
-                Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
+                perform_manual_transfer();
                 break;
             case 2: // DMA write (to SPU RAM)
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
@@ -203,6 +237,23 @@ template <>
 uint8_t SPU::read(uint32_t address) {
     throw exceptions::UnimplementedAddressingError(std::format("SPU: byte read @0x{:08X}", address));
     return 0;
+}
+
+void SPU::perform_manual_transfer() {
+    Bit::setBit(status_register, SPU_STATUS_TRANSFER_BUSY);
+    LOGW_SPU(std::format("Unimplemented manual transfer to SPU RAM requested"));
+    // TODO Implement
+    Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
+}
+
+void SPU::issue_interrupt_if_enabled() {
+    LOGT_SPU(std::format("Checking if interrupt is enabled"));
+    if (Bit::getBit(control_register, SPU_CONTROL_ENABLE)
+        && Bit::getBit(control_register, SPU_CONTROL_IRQ9_ENABLE)) {
+        LOGT_SPU(std::format("Issuing interrupt"));
+        Bit::setBit(status_register, SPU_STATUS_IRQ9_FLAG);
+        bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_SPU);
+    }
 }
 
 }
