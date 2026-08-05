@@ -139,7 +139,8 @@ T Bus::read(uint32_t address) {
     LOGT_BUS(std::format(" [@0x{:08X} -> ", address));
     T value = 0;
 
-    if ((address & 0x1FE00000) == 0x00000000) { // Main RAM
+    if ((address & 0x1F800000) == 0x00000000) { // Main RAM
+        address &= 0x001F'FFFF; // First 2MiB mirrored to first 8MiB, TODO: Use setting
         if (cpu.cp0.statusRegisterIsolateCacheIsSet()) {
             value = memory.readDCache<T>(address);
 
@@ -228,7 +229,8 @@ template <typename T>
 void Bus::write(uint32_t address, T value) {
     LOGT_BUS(std::format(" [0x{:0{}X} -> @0x{:08X}]", value, 2*sizeof(T), address));
 
-    if ((address & 0x1FE00000) == 0x00000000) { // Main RAM
+    if ((address & 0x1F80'0000) == 0x00000000) { // Main RAM
+        address &= 0x001F'FFFF; // First 2MiB mirrored to first 8MiB, TODO: Use setting
         if (cpu.cp0.statusRegisterIsolateCacheIsSet()) {
             return memory.writeDCache<T>(address, value);
 
