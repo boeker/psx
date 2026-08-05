@@ -545,7 +545,7 @@ void DMA::transfer_to_spu() {
 
         // Set interrupt flag
         if ((dmaInterruptRegister >> DICR_ENABLE_FLAG_DMA4) & 1) {
-            LOG_DMA(std::format("Channel 4 (GPU) setting IRQ flag"));
+            LOG_DMA(std::format("Channel 4 (SPU) setting IRQ flag"));
 
             dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_FLAG_DMA4);
             processDICRUpdate();
@@ -559,7 +559,73 @@ void DMA::transfer_to_spu() {
 }
 
 void DMA::transfer_from_spu() {
-    LOGW_DMA(std::format("Channel 4 (SPU) transfer: from SPU not implemented!"));
+    LOG_DMA(std::format("Channel 4 (SPU) transfer: from SPU"));
+    uint32_t syncMode = (dmaChannelControl[4] >> DCHR_SYNC_MODE0) & 3;
+    uint32_t memoryAddressStep = (dmaChannelControl[4] >> DCHR_MEMORY_ADDRESS_STEP) & 1;
+    bool choppingEnabled = (dmaChannelControl[4] >> DCHR_CHOPPING_ENABLE) & 1;
+
+    if (choppingEnabled) {
+        LOG_DMA(std::format("Channel 4 (SPU) transfer: chopping enabled but not implemented"));
+    }
+
+    if (syncMode == 1) { // sync blocks to DMA requests
+        uint32_t address = dmaBaseAddress[4];
+
+        LOG_DMA(std::format("Channel 4 (SPU) transfer: block transfer @0x{:08X}",
+                            address));
+
+        bus->spu.start_dma_transfer();
+
+        uint32_t blockSize = dmaBlockControl[4] & 0x0000FFFF;
+        uint32_t numberOfBlocks = (dmaBlockControl[4] >> 16) & 0x0000FFFF;
+
+        for (uint32_t i = 0; i < numberOfBlocks; ++i) {
+            LOG_DMA(std::format("Channel 4 (SPU) transfer: start of block 0x{:08X}",
+                                address));
+
+            uint32_t previousAddress = address; // to update base address register
+            for (uint32_t j = 0; j < blockSize; ++j) {
+                uint16_t hw1 = bus->spu.read_from_ram();
+                uint16_t hw2 = bus->spu.read_from_ram();
+                uint32_t word = static_cast<uint32_t>(hw1) | (static_cast<uint32_t>(hw2) << 16);
+                LOGT_DMA(std::format("Channel 4 (GPU) transfer: reading 0x{:08X}",
+                                       word));
+
+                bus->write<uint32_t>(address, word);
+
+                previousAddress = address;
+                if (memoryAddressStep == 0) {
+                    address += 4;
+                } else {
+                    address -= 4;
+                }
+            }
+
+            // decrement counter in block control register
+            dmaBlockControl[4] = (dmaBlockControl[4] & 0x0000FFFF) | (numberOfBlocks << 16);
+            // update base address to end of block
+            dmaBaseAddress[4] = previousAddress;
+
+            // do we have to resume CPU operation?
+        }
+
+
+        // Clear start/busy on completion of transfer
+        dmaChannelControl[4] = dmaChannelControl[4] & ~(1 << DCHR_START_BUSY);
+
+        // Set interrupt flag
+        if ((dmaInterruptRegister >> DICR_ENABLE_FLAG_DMA4) & 1) {
+            LOG_DMA(std::format("Channel 4 (SPU) setting IRQ flag"));
+
+            dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_FLAG_DMA4);
+            processDICRUpdate();
+        }
+
+        bus->spu.finish_dma_transfer();
+
+    } else {
+        LOG_DMA(std::format("Transfer from SPU: sync mode {:d} not implemented", syncMode));
+    }
 }
 
 void DMA::transfer_to_mdec() {
