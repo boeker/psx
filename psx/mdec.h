@@ -4,7 +4,9 @@
 #include <cstdint>
 #include <deque>
 #include <iostream>
+#include <iterator>
 #include <string>
+#include <vector>
 
 namespace PSX {
 
@@ -43,6 +45,8 @@ namespace PSX {
 #define MDEC_CMD_PARAMETER_WORDS_REMAINING0 0
 #define MDEC_CMD_COLOR 0 // for set_iqtab, 0 = luminance only, 1 = luminance and color
 
+#define MDEC_END_OF_BLOCK 0xFE00
+
 class Bus;
 
 class MacroblockDecoder {
@@ -57,6 +61,12 @@ private:
     };
     State state;
 
+    std::vector<uint8_t> luminance_quantization_table;
+    std::vector<uint8_t> color_quantization_table;
+    std::vector<uint16_t> scale_table;
+
+    std::deque<uint16_t> macroblock_input_queue;
+
     std::deque<uint32_t> data_out_queue;
     std::deque<uint32_t> data_in_queue;
     bool received_all_parameters;
@@ -64,7 +74,6 @@ private:
 
     bool data_in_enabled;
     bool data_out_enabled;
-
 
     uint8_t data_output_depth;
     bool data_output_signed;
@@ -83,6 +92,10 @@ private:
     void set_iqtab(uint32_t command); // 2
     void set_scale(uint32_t command); // 3
     void no_function(uint32_t command); // 0, 4...7
+
+    template<std::input_iterator ITER, std::sentinel_for<ITER> SENT>
+    static void trace_values_as_table(ITER begin, SENT end);
+    void decode_collected_macroblocks();
 
 public:
     MacroblockDecoder(Bus *bus);

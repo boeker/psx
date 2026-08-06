@@ -3,6 +3,7 @@
 #include <cassert>
 #include <format>
 #include <sstream>
+#include <string>
 
 #include "bus.h"
 #include "exceptions/exceptions.h"
@@ -73,6 +74,8 @@ void MacroblockDecoder::decode_macroblock(uint32_t command) {
 void MacroblockDecoder::set_iqtab(uint32_t command) {
     LOGT_MDEC("set_iqtab");
     state = State::CMD_SET_IQTAB;
+    luminance_quantization_table.clear();
+    color_quantization_table.clear();
     extract_data_output_bits(command);
     if (!Bit::getBit(command, MDEC_CMD_COLOR)) {
         LOGT_MDEC(std::format("Luminance only, setting remaining parameter words to 64/4 - 1 = 15"));
@@ -86,6 +89,7 @@ void MacroblockDecoder::set_iqtab(uint32_t command) {
 void MacroblockDecoder::set_scale(uint32_t command) {
     LOGT_MDEC("set_scale");
     state = State::CMD_SET_SCALE;
+    scale_table.clear();
     extract_data_output_bits(command);
     LOGT_MDEC(std::format("Setting remaining parameter words to 64/2 - 1 = 31"));
     remaining_parameter_words = 31;
@@ -99,6 +103,54 @@ void MacroblockDecoder::no_function(uint32_t command) {
     LOGT_MDEC(std::format("Remaining parameter words: 0x{:04X}", remaining_parameter_words));
 }
 
+template<std::input_iterator ITER, std::sentinel_for<ITER> SENT>
+void MacroblockDecoder::trace_values_as_table(ITER begin, SENT end) {
+    std::stringstream ss;
+    auto it = begin;
+    while (it != end) {
+        for (uint32_t i = 0; i < 8 && it != end; ++i, ++it) {
+            ss << std::format("0x{:0{}X}", *it, 2 * sizeof(std::iter_value_t<ITER>)) << ((i < 7) ? ", " : ",");
+        }
+        LOGT_MDEC(ss.str());
+        ss.str(std::string());
+    }
+}
+
+void MacroblockDecoder::decode_collected_macroblocks() {
+    LOGT_MDEC("Decoding collected macroblocks");
+    LOGT_MDEC(std::format("Data Output Depth: {:d}", data_output_depth));
+    LOGT_MDEC(std::format("Data Output Signed: {:s}", data_output_signed));
+    LOGT_MDEC(std::format("Data Output Bit 15: {:s}", data_output_bit15));
+
+    LOGT_MDEC(std::format("Luminance Quantization Table ({:d} bytes):", luminance_quantization_table.size()));
+    trace_values_as_table(luminance_quantization_table.cbegin(), luminance_quantization_table.cend());
+
+    LOGT_MDEC(std::format("Color Quantization Table ({:d} bytes):", color_quantization_table.size()));
+    trace_values_as_table(color_quantization_table.cbegin(), color_quantization_table.cend());
+
+    LOGT_MDEC(std::format("Scale Table ({:d} halfwords):", scale_table.size()));
+    trace_values_as_table(scale_table.cbegin(), scale_table.cend());
+
+    LOGT_MDEC(std::format("Macroblock Input Queue ({:d} halfwords):", macroblock_input_queue.size()));
+    std::stringstream ss;
+    for (uint16_t value : macroblock_input_queue) {
+        ss << std::format("0x{:02X}", value);
+
+        if (value == MDEC_END_OF_BLOCK) {
+            LOGT_MDEC(ss.str());
+            ss.str(std::string());
+        } else {
+            ss << ", ";
+        }
+    }
+    // Check if input ended without end-of-block marker
+    if (!ss.str().empty()) {
+        LOGW_MDEC(std::format("Macroblock input ended without end-of-block marker: {:s}", ss.str()));
+    }
+
+    // TODO Continue
+}
+
 MacroblockDecoder::MacroblockDecoder(Bus *bus) {
     this->bus = bus;
 
@@ -107,6 +159,13 @@ MacroblockDecoder::MacroblockDecoder(Bus *bus) {
 
 void MacroblockDecoder::reset() {
     state = State::IDLE;
+
+    luminance_quantization_table.clear();
+    color_quantization_table.clear();
+    scale_table.clear();
+
+    macroblock_input_queue.clear();
+
     data_out_queue.clear();
     data_in_queue.clear();
     received_all_parameters = false;
@@ -154,15 +213,28 @@ void MacroblockDecoder::process(uint32_t value) {
         switch (state) {
             case State::CMD_DECODE_MACROBLOCK:
                 LOGT_MDEC(std::format("Received macroblock value 0x{:08X}", value));
-                // TODO: Store and process
+                macroblock_input_queue.push_back(value & 0xFFFF);
+                macroblock_input_queue.push_back((value >> 16) & 0xFFFF);
+
                 break;
             case State::CMD_SET_IQTAB:
                 LOGT_MDEC(std::format("Received iqtab value 0x{:08X}", value));
-                // TODO: Store
+                if (luminance_quantization_table.size() < 64) {
+                    luminance_quantization_table.push_back(value & 0xFF);
+                    luminance_quantization_table.push_back((value >> 8) & 0xFF);
+                    luminance_quantization_table.push_back((value >> 16) & 0xFF);
+                    luminance_quantization_table.push_back((value >> 24) & 0xFF);
+                } else {
+                    color_quantization_table.push_back(value & 0xFF);
+                    color_quantization_table.push_back((value >> 8) & 0xFF);
+                    color_quantization_table.push_back((value >> 16) & 0xFF);
+                    color_quantization_table.push_back((value >> 24) & 0xFF);
+                }
                 break;
             case State::CMD_SET_SCALE:
                 LOGT_MDEC(std::format("Received scale value 0x{:08X}", value));
-                // TODO: Store
+                scale_table.push_back(value & 0xFFFF);
+                scale_table.push_back((value >> 16) & 0xFFFF);
                 break;
             case State::IDLE: // Not reachable
                 break;
@@ -171,6 +243,9 @@ void MacroblockDecoder::process(uint32_t value) {
         --remaining_parameter_words;
         if (remaining_parameter_words == 0xFFFF) { // The stored value is minus one
             LOGT_MDEC(std::format("Received last parameter word"));
+            if (state == State::CMD_DECODE_MACROBLOCK) {
+                decode_collected_macroblocks();
+            }
             state = State::IDLE;
             received_all_parameters = true;
         }
