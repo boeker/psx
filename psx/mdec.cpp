@@ -189,16 +189,25 @@ void MacroblockDecoder::decode_collected_blocks() {
                 // TODO: Replace dummy data
                 LOGW_MDEC(std::format("24 bit macroblocks not implemented: producing dummy macroblock"));
                 for (uint32_t i = 0; i < 384; ++i) {
-                    data_output_queue.push_back(0x00FF); // color pattern
+                    //data_output_queue.push_back(0x00FF); // color pattern
+                    data_output_queue.push_back((0xFFFF * i) / 384); // color pattern
                 }
 
             } else { // 15 bit: 16 * 16 * 16 bit values = 256 halfwords
                 // TODO: Replace dummy data
                 LOGW_MDEC(std::format("16 bit macroblocks not implemented: producing dummy macroblock"));
                 for (uint32_t i = 0; i < 256; ++i) {
-                    data_output_queue.push_back(0x001F); // blue
+                    //data_output_queue.push_back(0x001F); // blue
+                    data_output_queue.push_back((0xFFFF * i) / 256); // color pattern
                 }
             }
+
+            cr.clear();
+            cb.clear();
+            y1.clear();
+            y2.clear();
+            y3.clear();
+            y4.clear();
         }
 
         if (first_success) {
@@ -220,16 +229,54 @@ bool MacroblockDecoder::rle_decode_next_block(std::vector<uint16_t>& buffer) {
 
     LOGT_MDEC(std::format("Decoding RLE-encoded block"));
 
-    // TODO Decode
-    // Just throw away for now
+    // Collected encoded block for trace
+    std::vector<uint16_t> debug;
+
+    // DCT halfword
+    uint16_t dct = data_input_queue.front();
+    data_input_queue.pop_front();
+    debug.push_back(dct);
+    uint16_t quantization_factor = dct >> 10; // 6 bits, unsigned
+    uint16_t dc = dct & 0x03FF; // 10 bits, signed
+    buffer.push_back(quantization_factor);
+    buffer.push_back(dc);
+
+    // 0 to 63 RLE halfwords
     while (!data_input_queue.empty() && data_input_queue.front() != MDEC_END_OF_BLOCK) {
+        uint16_t rle = data_input_queue.front();
         data_input_queue.pop_front();
+        debug.push_back(rle);
+
+        uint16_t len = rle >> 10; // 6 bits, unsigned
+        uint16_t ac = rle & 0x03FF; // 10 bits, signed
+        for (uint16_t i = 0; i < len; ++i) {
+            buffer.push_back(0U);
+        }
+        buffer.push_back(ac);
     }
 
     if (data_input_queue.empty()) {
         // We did not end with an end-of-block marker. This is wrong!
         LOGW_MDEC(std::format("RLE-encoded block ended unexpectedly"));
         return false;
+    }
+
+    // EOB: pad rest of block with 0
+    debug.push_back(data_input_queue.front());
+    data_input_queue.pop_front();
+    while (buffer.size() < 64 + 1) {
+        buffer.push_back(0U);
+    }
+
+    // Trace for debugging purposes
+    LOGT_MDEC(std::format("RLE-encoded block:"));
+    trace_values_as_table(debug.cbegin(), debug.cend());
+    LOGT_MDEC(std::format("Decoded block (quantization_factor = 0x{:04X}):", buffer[0]));
+    trace_values_as_table(++buffer.cbegin(), buffer.cend());
+
+    if (buffer.size() > 64 + 1) {
+        LOGW_MDEC(std::format("Decoded block has unexpected size {:d} > 64 + 1", buffer.size()));
+        buffer.resize(64 + 1);
     }
 
     return true;
