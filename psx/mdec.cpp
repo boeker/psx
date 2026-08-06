@@ -23,7 +23,7 @@ std::ostream& operator<<(std::ostream &os, const MacroblockDecoder &mdec) {
 uint32_t MacroblockDecoder::get_status_register() const {
     uint32_t reg = static_cast<uint32_t>(remaining_parameter_words);
 
-    Bit::setBit(reg, MDEC_STATUS_DATA_OUT_QUEUE_EMPTY, data_out_queue.empty());
+    Bit::setBit(reg, MDEC_STATUS_DATA_OUT_QUEUE_EMPTY, data_output_queue.empty());
     Bit::setBit(reg, MDEC_STATUS_DATA_IN_QUEUE_FULL, received_all_parameters);
     Bit::setBit(reg, MDEC_STATUS_CMD_BUSY, state != State::IDLE);
     Bit::setBit(reg, MDEC_STATUS_DATA_IN_REQ, data_in_request());
@@ -116,39 +116,123 @@ void MacroblockDecoder::trace_values_as_table(ITER begin, SENT end) {
     }
 }
 
-void MacroblockDecoder::decode_collected_macroblocks() {
-    LOGT_MDEC("Decoding collected macroblocks");
+void MacroblockDecoder::decode_collected_blocks() {
+    LOGT_MDEC("Decoding collected blocks");
+
+    // Dump encoding information
     LOGT_MDEC(std::format("Data Output Depth: {:d}", data_output_depth));
     LOGT_MDEC(std::format("Data Output Signed: {:s}", data_output_signed));
     LOGT_MDEC(std::format("Data Output Bit 15: {:s}", data_output_bit15));
 
+    // Dump tables
     LOGT_MDEC(std::format("Luminance Quantization Table ({:d} bytes):", luminance_quantization_table.size()));
     trace_values_as_table(luminance_quantization_table.cbegin(), luminance_quantization_table.cend());
-
     LOGT_MDEC(std::format("Color Quantization Table ({:d} bytes):", color_quantization_table.size()));
     trace_values_as_table(color_quantization_table.cbegin(), color_quantization_table.cend());
-
     LOGT_MDEC(std::format("Scale Table ({:d} halfwords):", scale_table.size()));
     trace_values_as_table(scale_table.cbegin(), scale_table.cend());
 
-    LOGT_MDEC(std::format("Macroblock Input Queue ({:d} halfwords):", macroblock_input_queue.size()));
-    std::stringstream ss;
-    for (uint16_t value : macroblock_input_queue) {
-        ss << std::format("0x{:02X}", value);
+    // Dump input blocks
+    //LOGT_MDEC(std::format("Block Input Queue ({:d} halfwords):", data_input_queue.size()));
+    //std::stringstream ss;
+    //for (uint16_t value : data_input_queue) {
+    //    ss << std::format("0x{:02X}", value);
 
-        if (value == MDEC_END_OF_BLOCK) {
-            LOGT_MDEC(ss.str());
-            ss.str(std::string());
-        } else {
-            ss << ", ";
+    //    if (value == MDEC_END_OF_BLOCK) {
+    //        LOGT_MDEC(ss.str());
+    //        ss.str(std::string());
+    //    } else {
+    //        ss << ", ";
+    //    }
+    //}
+    //// Check if input ended without end-of-block marker
+    //if (!ss.str().empty()) {
+    //    LOGW_MDEC(std::format("Macroblock input ended without end-of-block marker: {:s}", ss.str()));
+    //}
+
+    // Decompress and combine blocks into macroblocks
+    assert(data_output_depth <= 3); // 0 = 4bit, 1 = 8bit, 2 = 24bit, 3 = 15bit
+    if (data_output_depth == 0 || data_output_depth == 1) { // Monochrome
+        std::vector<uint16_t> y;
+        while (rle_decode_next_block(y)) {
+            // TODO Decode
+            if (data_output_depth == 0) { // 4bit: 8 * 8 * 4 bit values = 16 halfwords
+                // TODO: Replace dummy data
+                LOGW_MDEC(std::format("4 bit macroblocks not implemented: producing dummy macroblock"));
+                for (uint32_t i = 0; i < 16; ++i) {
+                    data_output_queue.push_back(0x48CF);
+                }
+
+            } else { // 8 bit: 8 * 8 * 8 bit values = 32 halfwords
+                // TODO: Replace dummy data
+                LOGW_MDEC(std::format("8 bit macroblocks not implemented: producing dummy macroblock"));
+                for (uint32_t i = 0; i < 32; ++i) {
+                    data_output_queue.push_back(0x7FFF);
+                }
+            }
+
+            y.clear();
         }
+
+    } else { // Colored
+        std::vector<uint16_t> cr, cb, y1, y2, y3, y4;
+        bool first_success;
+
+        while ((first_success = rle_decode_next_block(cr))
+               && rle_decode_next_block(cb)
+               && rle_decode_next_block(y1)
+               && rle_decode_next_block(y2)
+               && rle_decode_next_block(y3)
+               && rle_decode_next_block(y4)) {
+            // TODO Decode
+            if (data_output_depth == 2) { // 24 bit: 16 * 16 * 24 bit values = 384 halfwords
+                // TODO: Replace dummy data
+                LOGW_MDEC(std::format("24 bit macroblocks not implemented: producing dummy macroblock"));
+                for (uint32_t i = 0; i < 384; ++i) {
+                    data_output_queue.push_back(0x00FF); // color pattern
+                }
+
+            } else { // 15 bit: 16 * 16 * 16 bit values = 256 halfwords
+                // TODO: Replace dummy data
+                LOGW_MDEC(std::format("16 bit macroblocks not implemented: producing dummy macroblock"));
+                for (uint32_t i = 0; i < 256; ++i) {
+                    data_output_queue.push_back(0x001F); // blue
+                }
+            }
+        }
+
+        if (first_success) {
+            // The first block was decoded successfully, but a subsequent block failed
+            LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
+        }
+
     }
-    // Check if input ended without end-of-block marker
-    if (!ss.str().empty()) {
-        LOGW_MDEC(std::format("Macroblock input ended without end-of-block marker: {:s}", ss.str()));
+}
+
+bool MacroblockDecoder::rle_decode_next_block(std::vector<uint16_t>& buffer) {
+    while (!data_input_queue.empty() && data_input_queue.front() == MDEC_END_OF_BLOCK) {
+        data_input_queue.pop_front();
+    }
+    if (data_input_queue.empty()) {
+        // No block left
+        return false;
     }
 
-    // TODO Continue
+    LOGT_MDEC(std::format("Decoding RLE-encoded block"));
+
+    // TODO Decode
+    // Just throw away for now
+    while (!data_input_queue.empty() && data_input_queue.front() != MDEC_END_OF_BLOCK) {
+        data_input_queue.pop_front();
+    }
+
+    if (data_input_queue.empty()) {
+        // We did not end with an end-of-block marker. This is wrong!
+        LOGW_MDEC(std::format("RLE-encoded block ended unexpectedly"));
+        return false;
+    }
+
+    return true;
 }
 
 MacroblockDecoder::MacroblockDecoder(Bus *bus) {
@@ -164,10 +248,9 @@ void MacroblockDecoder::reset() {
     color_quantization_table.clear();
     scale_table.clear();
 
-    macroblock_input_queue.clear();
+    data_input_queue.clear();
+    data_output_queue.clear();
 
-    data_out_queue.clear();
-    data_in_queue.clear();
     received_all_parameters = false;
     remaining_parameter_words = 0;
 
@@ -213,8 +296,8 @@ void MacroblockDecoder::process(uint32_t value) {
         switch (state) {
             case State::CMD_DECODE_MACROBLOCK:
                 LOGT_MDEC(std::format("Received macroblock value 0x{:08X}", value));
-                macroblock_input_queue.push_back(value & 0xFFFF);
-                macroblock_input_queue.push_back((value >> 16) & 0xFFFF);
+                data_input_queue.push_back(value & 0xFFFF);
+                data_input_queue.push_back((value >> 16) & 0xFFFF);
 
                 break;
             case State::CMD_SET_IQTAB:
@@ -244,7 +327,7 @@ void MacroblockDecoder::process(uint32_t value) {
         if (remaining_parameter_words == 0xFFFF) { // The stored value is minus one
             LOGT_MDEC(std::format("Received last parameter word"));
             if (state == State::CMD_DECODE_MACROBLOCK) {
-                decode_collected_macroblocks();
+                decode_collected_blocks();
             }
             state = State::IDLE;
             received_all_parameters = true;

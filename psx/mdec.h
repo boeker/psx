@@ -65,10 +65,11 @@ private:
     std::vector<uint8_t> color_quantization_table;
     std::vector<uint16_t> scale_table;
 
-    std::deque<uint16_t> macroblock_input_queue;
+    // Stores the incoming, RLE-coded blocks
+    std::deque<uint16_t> data_input_queue;
+    // Stores the outgoing, decompressed macroblocks
+    std::deque<uint16_t> data_output_queue;
 
-    std::deque<uint32_t> data_out_queue;
-    std::deque<uint32_t> data_in_queue;
     bool received_all_parameters;
     uint16_t remaining_parameter_words;
 
@@ -95,7 +96,8 @@ private:
 
     template<std::input_iterator ITER, std::sentinel_for<ITER> SENT>
     static void trace_values_as_table(ITER begin, SENT end);
-    void decode_collected_macroblocks();
+    void decode_collected_blocks();
+    bool rle_decode_next_block(std::vector<uint16_t>& buffer);
 
 public:
     MacroblockDecoder(Bus *bus);
