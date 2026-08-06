@@ -231,6 +231,14 @@ void DMA::transfer(uint32_t channel) {
                 LOG_DMA(std::format("Channel 0: transfer to main RAM not possible"));
             }
             break;
+        case 1:
+            if (fromMainRAM) {
+                LOG_DMA(std::format("Channel 1: transfer from main RAM not possible"));
+
+            } else {
+                transfer_from_mdec();
+            }
+            break;
         case 2:
             if (fromMainRAM) {
                 transferToGPU();
@@ -766,6 +774,72 @@ void DMA::transferFromCDROM() {
 
     } else {
         LOG_DMA(std::format("Transfer from CDROM: sync mode {:d} not implemented", syncMode));
+    }
+}
+
+void DMA::transfer_from_mdec() {
+    LOG_DMA(std::format("Channel 1 (MDECOut) transfer: from MDEC"));
+    uint32_t syncMode = (dmaChannelControl[1] >> DCHR_SYNC_MODE0) & 3;
+    uint32_t memoryAddressStep = (dmaChannelControl[1] >> DCHR_MEMORY_ADDRESS_STEP) & 1;
+    bool choppingEnabled = (dmaChannelControl[1] >> DCHR_CHOPPING_ENABLE) & 1;
+
+    if (choppingEnabled) {
+        LOG_DMA(std::format("Channel 1 (MDECOut) transfer: chopping enabled but not implemented"));
+    }
+
+    if (syncMode == 1) { // sync blocks to DMA requests
+        uint32_t address = dmaBaseAddress[1];
+
+        LOG_DMA(std::format("Channel 1 (MDECOut) transfer: block transfer @0x{:08X}",
+                            address));
+
+        uint32_t blockSize = dmaBlockControl[1] & 0x0000FFFF;
+        uint32_t numberOfBlocks = (dmaBlockControl[1] >> 16) & 0x0000FFFF;
+
+        for (uint32_t i = 0; i < numberOfBlocks; ++i) {
+            LOG_DMA(std::format("Channel 1 (MDECOut) transfer: start of block 0x{:08X}",
+                                address));
+
+            uint32_t previousAddress = address; // to update base address register
+            for (uint32_t j = 0; j < blockSize; ++j) {
+                uint16_t hw1 = bus->mdec.read();
+                uint16_t hw2 = bus->mdec.read();
+                uint32_t word = static_cast<uint32_t>(hw1) | (static_cast<uint32_t>(hw2) << 16);
+                LOGT_DMA(std::format("Channel 1 (MDECOut) transfer: reading 0x{:08X}",
+                                       word));
+
+                bus->write<uint32_t>(address, word);
+
+                previousAddress = address;
+                if (memoryAddressStep == 0) {
+                    address += 4;
+                } else {
+                    address -= 4;
+                }
+            }
+
+            // decrement counter in block control register
+            dmaBlockControl[1] = (dmaBlockControl[1] & 0x0000FFFF) | (numberOfBlocks << 16);
+            // update base address to end of block
+            dmaBaseAddress[1] = previousAddress;
+
+            // do we have to resume CPU operation?
+        }
+
+
+        // Clear start/busy on completion of transfer
+        dmaChannelControl[1] = dmaChannelControl[1] & ~(1 << DCHR_START_BUSY);
+
+        // Set interrupt flag
+        if ((dmaInterruptRegister >> DICR_ENABLE_FLAG_DMA1) & 1) {
+            LOG_DMA(std::format("Channel 1 (MDECOut) setting IRQ flag"));
+
+            dmaInterruptRegister = dmaInterruptRegister | (1 << DICR_IRQ_FLAG_DMA1);
+            processDICRUpdate();
+        }
+
+    } else {
+        LOG_DMA(std::format("Transfer from MDEC: sync mode {:d} not implemented", syncMode));
     }
 }
 

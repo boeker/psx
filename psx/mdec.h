@@ -107,6 +107,7 @@ public:
     bool data_out_request() const;
 
     void process(uint32_t value);
+    uint16_t read();
 
     template <typename T>
     void write(uint32_t address, T value);

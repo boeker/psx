@@ -269,7 +269,7 @@ bool MacroblockDecoder::data_in_request() const {
 }
 
 bool MacroblockDecoder::data_out_request() const {
-    return data_out_enabled && false; // TODO Replace false by "have something to send"
+    return data_out_enabled && !data_output_queue.empty();
 }
 
 void MacroblockDecoder::process(uint32_t value) {
@@ -333,6 +333,18 @@ void MacroblockDecoder::process(uint32_t value) {
             received_all_parameters = true;
         }
     }
+}
+
+uint16_t MacroblockDecoder::read() {
+    uint16_t value = 0;
+    if (!data_output_queue.empty()) {
+        value = data_output_queue.front();
+        data_output_queue.pop_front();
+    } else {
+        LOGW_MDEC("Read from MDEC, but output queue is empty!");
+    }
+
+    return value;
 }
 
 template <>

@@ -121,6 +121,7 @@ public:
     void transfer_to_spu();
     void transfer_from_spu();
     void transfer_to_mdec();
+    void transfer_from_mdec();
     void transferFromCDROM();
 
 private:
