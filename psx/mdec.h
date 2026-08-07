@@ -66,7 +66,7 @@ private:
 
     std::vector<uint8_t> luminance_quantization_table;
     std::vector<uint8_t> color_quantization_table;
-    std::vector<uint16_t> scale_table;
+    std::vector<int16_t> scale_table;
 
     // Stores the incoming, RLE-coded blocks
     std::deque<uint16_t> data_input_queue;
@@ -98,7 +98,7 @@ private:
     void no_function(uint32_t command); // 0, 4...7
 
     template<std::input_iterator ITER, std::sentinel_for<ITER> SENT>
-    static void trace_values_as_table(ITER begin, SENT end);
+    static void trace_values_as_table(ITER begin, SENT end, uint32_t width = 8);
     void decode_collected_blocks();
 
     static int16_t sign_extend(uint16_t value);
@@ -115,11 +115,11 @@ private:
     bool decode_next_block_stepwise(const std::vector<uint8_t>& q_table, std::vector<int16_t>& block);
     // Reads, RLE-decodes, zagzigs, and de-quantizes the next block from the input queue
     bool decode_next_block(const std::vector<uint8_t>& quant, std::vector<int16_t>& buffer);
-    static uint8_t index(uint8_t i, uint8_t j) { return j * 8 + i; }
-    void idct(std::vector<int16_t>& result, std::vector<int16_t>& block);
+    static uint8_t index(uint8_t i, uint8_t j) { return i * 8 + j; }
+    void idct(std::vector<int32_t>& result, std::vector<int16_t>& block);
     static int16_t clamp_color(int16_t value);
     void yuv_to_rgb(std::vector<uint8_t>& r, std::vector<uint8_t>& g, std::vector<uint8_t>& b,
-                    const std::vector<int16_t>& cr, const std::vector<int16_t>& cb, const std::vector<int16_t>& y,
+                    const std::vector<int32_t>& cr, const std::vector<int32_t>& cb, const std::vector<int32_t>& y,
                     uint8_t x_offset, uint8_t y_offset);
 
 public:

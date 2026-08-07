@@ -115,12 +115,12 @@ void MacroblockDecoder::no_function(uint32_t command) {
 }
 
 template<std::input_iterator ITER, std::sentinel_for<ITER> SENT>
-void MacroblockDecoder::trace_values_as_table(ITER begin, SENT end) {
+void MacroblockDecoder::trace_values_as_table(ITER begin, SENT end, uint32_t width) {
     std::stringstream ss;
     auto it = begin;
     while (it != end) {
-        for (uint32_t i = 0; i < 8 && it != end; ++i, ++it) {
-            ss << std::format("0x{:0{}X}", static_cast<std::make_unsigned_t<std::iter_value_t<ITER>>>(*it), 2 * sizeof(std::iter_value_t<ITER>)) << ((i < 7) ? ", " : ",");
+        for (uint32_t i = 0; i < width && it != end; ++i, ++it) {
+            ss << std::format("0x{:0{}X}", static_cast<std::make_unsigned_t<std::iter_value_t<ITER>>>(*it), 2 * sizeof(std::iter_value_t<ITER>)) << ((i < width - 1) ? ", " : ",");
         }
         LOGT_MDEC(ss.str());
         ss.str(std::string());
@@ -187,34 +187,61 @@ void MacroblockDecoder::decode_collected_blocks() {
 
     } else { // Colored
         std::vector<int16_t> cr, cb, y1, y2, y3, y4;
-        bool first_success;
-
         std::vector<uint8_t> macroblock_r, macroblock_g, macroblock_b;
 
-        while ((first_success = decode_next_block_stepwise(color_quantization_table, cr))
-               && decode_next_block_stepwise(color_quantization_table, cb)
-               && decode_next_block_stepwise(luminance_quantization_table, y1)
-               && decode_next_block_stepwise(luminance_quantization_table, y2)
-               && decode_next_block_stepwise(luminance_quantization_table, y3)
-               && decode_next_block_stepwise(luminance_quantization_table, y4)) {
-            // TODO Decode
-            if (data_output_depth == 2) { // 24 bit: 16 * 16 * 24 bit values = 384 halfwords
-                std::vector<int16_t> cr_uncomp, cb_uncomp, y1_uncomp, y2_uncomp, y3_uncomp, y4_uncomp;
-                idct(cr_uncomp, cr);
-                idct(cb_uncomp, cb);
-                idct(y1_uncomp, y1);
-                idct(y2_uncomp, y2);
-                idct(y3_uncomp, y3);
-                idct(y4_uncomp, y4);
+        while (true) {
+            LOGT_MDEC(std::format("Decoding and uncompressing block Cr"));
+            std::vector<int32_t> cr_uncomp, cb_uncomp, y1_uncomp, y2_uncomp, y3_uncomp, y4_uncomp;
+            if (!decode_next_block_stepwise(color_quantization_table, cr)) {
+                break;
+            }
+            idct(cr_uncomp, cr);
 
-                yuv_to_rgb(macroblock_r, macroblock_g, macroblock_b,
-                           cr_uncomp, cb_uncomp, y1_uncomp, 0, 0);
-                yuv_to_rgb(macroblock_r, macroblock_g, macroblock_b,
-                           cr_uncomp, cb_uncomp, y2_uncomp, 8, 0);
-                yuv_to_rgb(macroblock_r, macroblock_g, macroblock_b,
-                           cr_uncomp, cb_uncomp, y3_uncomp, 0, 8);
-                yuv_to_rgb(macroblock_r, macroblock_g, macroblock_b,
-                           cr_uncomp, cb_uncomp, y4_uncomp, 8, 8);
+            LOGT_MDEC(std::format("Decoding and uncompressing block Cb"));
+            if (!decode_next_block_stepwise(color_quantization_table, cb)) {
+                LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
+                break;
+            }
+            idct(cb_uncomp, cb);
+
+            LOGT_MDEC(std::format("Decoding and uncompressing block Y1"));
+            if (!decode_next_block_stepwise(color_quantization_table, y1)) {
+                LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
+                break;
+            }
+            idct(y1_uncomp, y1);
+
+            LOGT_MDEC(std::format("Decoding and uncompressing block Y2"));
+            if (!decode_next_block_stepwise(color_quantization_table, y2)) {
+                LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
+                break;
+            }
+            idct(y2_uncomp, y2);
+
+            LOGT_MDEC(std::format("Decoding and uncompressing block Y3"));
+            if (!decode_next_block_stepwise(color_quantization_table, y3)) {
+                LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
+                break;
+            }
+            idct(y3_uncomp, y3);
+
+            LOGT_MDEC(std::format("Decoding and uncompressing block Y4"));
+            if (!decode_next_block_stepwise(color_quantization_table, y4)) {
+                LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
+                break;
+            }
+            idct(y4_uncomp, y4);
+
+            yuv_to_rgb(macroblock_r, macroblock_g, macroblock_b,
+                       cr_uncomp, cb_uncomp, y1_uncomp, 0, 0);
+            yuv_to_rgb(macroblock_r, macroblock_g, macroblock_b,
+                       cr_uncomp, cb_uncomp, y2_uncomp, 8, 0);
+            yuv_to_rgb(macroblock_r, macroblock_g, macroblock_b,
+                       cr_uncomp, cb_uncomp, y3_uncomp, 0, 8);
+            yuv_to_rgb(macroblock_r, macroblock_g, macroblock_b,
+                       cr_uncomp, cb_uncomp, y4_uncomp, 8, 8);
+
+            if (data_output_depth == 2) { // 24 bit: 16 * 16 * 24 bit values = 384 halfwords
 
                 LOGT_MDEC(std::format("Writing macroblock as 24 bit colors"));
                 std::vector<uint8_t> macroblock;
@@ -231,11 +258,15 @@ void MacroblockDecoder::decode_collected_blocks() {
                 }
 
             } else { // 15 bit: 16 * 16 * 16 bit values = 256 halfwords
-                // TODO: Replace dummy data
-                LOGW_MDEC(std::format("16 bit macroblocks not implemented: producing dummy macroblock"));
+                LOGT_MDEC(std::format("Writing macroblock as 15 bit colors"));
+                std::vector<uint8_t> macroblock;
+                assert(macroblock_r.size() == 256);
+                assert(macroblock_g.size() == 256);
+                assert(macroblock_b.size() == 256);
                 for (uint32_t i = 0; i < 256; ++i) {
-                    //data_output_queue.push_back(0x001F); // blue
-                    data_output_queue.push_back((0xFFFF * i) / 256); // color pattern
+                    data_output_queue.push_back((static_cast<uint16_t>(macroblock_b[i] >> 3) << 10)
+                                                | (static_cast<uint16_t>(macroblock_g[i] >> 3) << 5)
+                                                | (static_cast<uint16_t>(macroblock_r[i] >> 3)));
                 }
             }
 
@@ -245,11 +276,6 @@ void MacroblockDecoder::decode_collected_blocks() {
             y2.clear();
             y3.clear();
             y4.clear();
-        }
-
-        if (first_success) {
-            // The first block was decoded successfully, but a subsequent block failed
-            LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
         }
 
     }
@@ -360,7 +386,7 @@ void MacroblockDecoder::zagzig_block(std::vector<int16_t>& zagzig_block, const s
         zagzig_block.insert(zagzig_block.end(), zigzag_block.cbegin(), zigzag_block.cend());
     } else {
         for (uint32_t i = 0; i < 64; ++i) {
-            zagzig_block.push_back(zigzag_block[i]);
+            zagzig_block.push_back(zigzag_block[zagzig[i]]);
         }
         // Quantization factor
         zagzig_block.push_back(zigzag_block[64]);
@@ -483,35 +509,41 @@ bool MacroblockDecoder::decode_next_block(const std::vector<uint8_t>& quant, std
     return true;
 }
 
-void MacroblockDecoder::idct(std::vector<int16_t>& result, std::vector<int16_t>& block) {
+void MacroblockDecoder::idct(std::vector<int32_t>& result, std::vector<int16_t>& block) {
     // Computes IDCT^T * B * IDCT, where IDCT is the IDCT matrix and B the block
-    LOGT_MDEC(std::format("IDCT"));
+    LOGT_MDEC(std::format("Performing IDCT"));
 
     assert(block.size() == 64);
     result.resize(64);
 
+    std::vector<int32_t> temp;
+    temp.resize(64);
+
     // IDCT^T * B
     for (uint8_t i = 0; i < 8; ++i) {
         for (uint8_t j = 0; j < 8; ++j) {
-            int16_t sum = 0;
+            int32_t sum = 0;
             for (uint8_t k = 0; k < 8; ++k) {
-                sum += (scale_table[index(k, i)] / 8) * block[index(k, j)];
+                sum += (scale_table[index(k, i)] / 8) * static_cast<int32_t>(block[index(k, j)]);
+            }
+            temp[index(i, j)] = (sum + 0x0FFF) / 0x2000;
+        }
+    }
+
+    // block * IDCT
+    for (uint8_t i = 0; i < 8; ++i) {
+        for (uint8_t j = 0; j < 8; ++j) {
+            int32_t sum = 0;
+            for (uint8_t k = 0; k < 8; ++k) {
+                sum += static_cast<int32_t>(temp[index(i, k)]) * (scale_table[index(k, j)] / 8);
             }
             result[index(i, j)] = (sum + 0x0FFF) / 0x2000;
         }
     }
 
-    std::swap(block, result);
-    // block * IDCT
-    for (uint8_t i = 0; i < 8; ++i) {
-        for (uint8_t j = 0; j < 8; ++j) {
-            int16_t sum = 0;
-            for (uint8_t k = 0; k < 8; ++k) {
-                sum += block[index(i, k)] * (scale_table[index(k, j)] / 8);
-            }
-            result[index(i, j)] = (sum + 0x0FFF) / 0x2000;
-        }
-    }
+    // Trace for debugging purposes
+    LOGT_MDEC(std::format("Performed IDCT:"));
+    trace_values_as_table(result.cbegin(), result.cend());
 }
 
 int16_t MacroblockDecoder::clamp_color(int16_t value) {
@@ -521,9 +553,9 @@ int16_t MacroblockDecoder::clamp_color(int16_t value) {
 }
 
 void MacroblockDecoder::yuv_to_rgb(std::vector<uint8_t>& r, std::vector<uint8_t>& g, std::vector<uint8_t>& b,
-                                   const std::vector<int16_t>& cr, const std::vector<int16_t>& cb, const std::vector<int16_t>& y_block,
+                                   const std::vector<int32_t>& cr, const std::vector<int32_t>& cb, const std::vector<int32_t>& y_block,
                                    uint8_t x_offset, uint8_t y_offset) {
-    LOGT_MDEC(std::format("Converting YUV blocks to (part of) RGB macroblock"));
+    LOGT_MDEC(std::format("Converting YUV blocks to (part of) RGB macroblock (offset {:d}, {:d})", x_offset, y_offset));
     r.resize(16 * 16);
     g.resize(16 * 16);
     b.resize(16 * 16);
@@ -554,6 +586,14 @@ void MacroblockDecoder::yuv_to_rgb(std::vector<uint8_t>& r, std::vector<uint8_t>
             b[coord] = b_value;
         }
     }
+
+    LOGT_MDEC(std::format("Converted YUV blocks to (part of) RGB macroblock:"));
+    LOGT_MDEC("Macroblock (red):");
+    trace_values_as_table(r.cbegin(), r.cend(), 16);
+    LOGT_MDEC("Macroblock (green):");
+    trace_values_as_table(g.cbegin(), g.cend(), 16);
+    LOGT_MDEC("Macroblock (blue):");
+    trace_values_as_table(b.cbegin(), b.cend(), 16);
 }
 
 MacroblockDecoder::MacroblockDecoder(Bus *bus) {
