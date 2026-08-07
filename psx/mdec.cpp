@@ -205,28 +205,28 @@ void MacroblockDecoder::decode_collected_blocks() {
             idct(cb_uncomp, cb);
 
             LOGT_MDEC(std::format("Decoding and uncompressing block Y1"));
-            if (!decode_next_block_stepwise(color_quantization_table, y1)) {
+            if (!decode_next_block_stepwise(luminance_quantization_table, y1)) {
                 LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
                 break;
             }
             idct(y1_uncomp, y1);
 
             LOGT_MDEC(std::format("Decoding and uncompressing block Y2"));
-            if (!decode_next_block_stepwise(color_quantization_table, y2)) {
+            if (!decode_next_block_stepwise(luminance_quantization_table, y2)) {
                 LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
                 break;
             }
             idct(y2_uncomp, y2);
 
             LOGT_MDEC(std::format("Decoding and uncompressing block Y3"));
-            if (!decode_next_block_stepwise(color_quantization_table, y3)) {
+            if (!decode_next_block_stepwise(luminance_quantization_table, y3)) {
                 LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
                 break;
             }
             idct(y3_uncomp, y3);
 
             LOGT_MDEC(std::format("Decoding and uncompressing block Y4"));
-            if (!decode_next_block_stepwise(color_quantization_table, y4)) {
+            if (!decode_next_block_stepwise(luminance_quantization_table, y4)) {
                 LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
                 break;
             }
@@ -386,7 +386,7 @@ void MacroblockDecoder::zagzig_block(std::vector<int16_t>& zagzig_block, const s
         zagzig_block.insert(zagzig_block.end(), zigzag_block.cbegin(), zigzag_block.cend());
     } else {
         for (uint32_t i = 0; i < 64; ++i) {
-            zagzig_block.push_back(zigzag_block[zagzig[i]]);
+            zagzig_block.push_back(zigzag_block[zigzag[i]]);
         }
         // Quantization factor
         zagzig_block.push_back(zigzag_block[64]);
@@ -562,8 +562,8 @@ void MacroblockDecoder::yuv_to_rgb(std::vector<uint8_t>& r, std::vector<uint8_t>
 
     for (uint32_t y = 0; y < 8; ++y) {
         for (uint32_t x = 0; x < 8; ++x) {
-            float r_fl = cr[(x_offset + x) / 2 + (y_offset + y) / 2 * 8];
-            float b_fl = cb[(x_offset + x) / 2 + (y_offset + y) / 2 * 8];
+            float r_fl = cr[(x_offset + x) / 2 + ((y_offset + y) / 2) * 8];
+            float b_fl = cb[(x_offset + x) / 2 + ((y_offset + y) / 2) * 8];
             float g_fl = -0.3437 * b_fl - 0.7143 * r_fl;
             r_fl = 1.402 * r_fl;
             b_fl = 1.772 * b_fl;
