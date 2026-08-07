@@ -289,9 +289,9 @@ int16_t MacroblockDecoder::sign_extend(uint16_t value) {
     }
 }
 
-int16_t MacroblockDecoder::clamp(int16_t value) {
-    int16_t clamped = std::min(static_cast<int16_t>(0x03FF), value);
-    clamped = std::max(static_cast<int16_t>(-0x0400), clamped);
+int16_t MacroblockDecoder::clamp(int32_t value) {
+    int32_t clamped = std::min(static_cast<int32_t>(0x03FF), value);
+    clamped = std::max(static_cast<int32_t>(-0x0400), clamped);
     return clamped;
 }
 
@@ -406,12 +406,12 @@ void MacroblockDecoder::dequantize_block(const std::vector<uint8_t>& q_table, st
 
     if (quantization_factor == 0) {
         for (uint32_t i = 0; i < 64; ++i) {
-            dequantized_block.push_back(clamp(quantized_block[i] * 2));
+            dequantized_block.push_back(clamp(static_cast<int32_t>(quantized_block[i]) * 2));
         }
     } else {
         dequantized_block.push_back(clamp(quantized_block[0] * q_table[0]));
         for (uint32_t i = 1; i < 64; ++i) {
-            dequantized_block.push_back(clamp((quantized_block[i] * q_table[i] * quantization_factor + 4) / 8));
+            dequantized_block.push_back(clamp((static_cast<int32_t>(quantized_block[i]) * q_table[i] * quantization_factor + 4) / 8));
         }
     }
 
@@ -546,9 +546,9 @@ void MacroblockDecoder::idct(std::vector<int32_t>& result, std::vector<int16_t>&
     trace_values_as_table(result.cbegin(), result.cend());
 }
 
-int16_t MacroblockDecoder::clamp_color(int16_t value) {
-    int16_t clamped = std::min(static_cast<int16_t>(127), value);
-    clamped = std::max(static_cast<int16_t>(-128), clamped);
+int16_t MacroblockDecoder::clamp_color(int32_t value) {
+    int32_t clamped = std::min(static_cast<int32_t>(127), value);
+    clamped = std::max(static_cast<int32_t>(-128), clamped);
     return clamped;
 }
 
@@ -562,16 +562,16 @@ void MacroblockDecoder::yuv_to_rgb(std::vector<uint8_t>& r, std::vector<uint8_t>
 
     for (uint32_t y = 0; y < 8; ++y) {
         for (uint32_t x = 0; x < 8; ++x) {
-            float r_fl = cr[(x_offset + x) / 2 * (y_offset + y) / 2 * 8];
-            float b_fl = cb[(x_offset + x) / 2 * (y_offset + y) / 2 * 8];
-            float g_fl = -0.3437 * b_fl + 0.7143 * r_fl;
+            float r_fl = cr[(x_offset + x) / 2 + (y_offset + y) / 2 * 8];
+            float b_fl = cb[(x_offset + x) / 2 + (y_offset + y) / 2 * 8];
+            float g_fl = -0.3437 * b_fl - 0.7143 * r_fl;
             r_fl = 1.402 * r_fl;
             b_fl = 1.772 * b_fl;
 
-            int16_t y_value = y_block[x * y * 8];
-            int16_t r_value = clamp_color(y_value + static_cast<int16_t>(r_fl));
-            int16_t g_value = clamp_color(y_value + static_cast<int16_t>(g_fl));
-            int16_t b_value = clamp_color(y_value + static_cast<int16_t>(b_fl));
+            int32_t y_value = y_block[x + y * 8];
+            int16_t r_value = clamp_color(y_value + static_cast<int32_t>(r_fl));
+            int16_t g_value = clamp_color(y_value + static_cast<int32_t>(g_fl));
+            int16_t b_value = clamp_color(y_value + static_cast<int32_t>(b_fl));
 
             if (!data_output_signed) {
                 r_value += 128;
