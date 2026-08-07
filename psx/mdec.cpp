@@ -120,7 +120,7 @@ void MacroblockDecoder::trace_values_as_table(ITER begin, SENT end) {
     auto it = begin;
     while (it != end) {
         for (uint32_t i = 0; i < 8 && it != end; ++i, ++it) {
-            ss << std::format("0x{:0{}X}", *it, 2 * sizeof(std::iter_value_t<ITER>)) << ((i < 7) ? ", " : ",");
+            ss << std::format("0x{:0{}X}", static_cast<std::make_unsigned_t<std::iter_value_t<ITER>>>(*it), 2 * sizeof(std::iter_value_t<ITER>)) << ((i < 7) ? ", " : ",");
         }
         LOGT_MDEC(ss.str());
         ss.str(std::string());
@@ -165,7 +165,7 @@ void MacroblockDecoder::decode_collected_blocks() {
     assert(data_output_depth <= 3); // 0 = 4bit, 1 = 8bit, 2 = 24bit, 3 = 15bit
     if (data_output_depth == 0 || data_output_depth == 1) { // Monochrome
         std::vector<int16_t> y;
-        while (decode_next_block(luminance_quantization_table, y)) {
+        while (decode_next_block_stepwise(luminance_quantization_table, y)) {
             // TODO Decode
             if (data_output_depth == 0) { // 4bit: 8 * 8 * 4 bit values = 16 halfwords
                 // TODO: Replace dummy data
@@ -191,12 +191,12 @@ void MacroblockDecoder::decode_collected_blocks() {
 
         std::vector<uint8_t> macroblock_r, macroblock_g, macroblock_b;
 
-        while ((first_success = decode_next_block(color_quantization_table, cr))
-               && decode_next_block(color_quantization_table, cb)
-               && decode_next_block(luminance_quantization_table, y1)
-               && decode_next_block(luminance_quantization_table, y2)
-               && decode_next_block(luminance_quantization_table, y3)
-               && decode_next_block(luminance_quantization_table, y4)) {
+        while ((first_success = decode_next_block_stepwise(color_quantization_table, cr))
+               && decode_next_block_stepwise(color_quantization_table, cb)
+               && decode_next_block_stepwise(luminance_quantization_table, y1)
+               && decode_next_block_stepwise(luminance_quantization_table, y2)
+               && decode_next_block_stepwise(luminance_quantization_table, y3)
+               && decode_next_block_stepwise(luminance_quantization_table, y4)) {
             // TODO Decode
             if (data_output_depth == 2) { // 24 bit: 16 * 16 * 24 bit values = 384 halfwords
                 std::vector<int16_t> cr_uncomp, cb_uncomp, y1_uncomp, y2_uncomp, y3_uncomp, y4_uncomp;
@@ -267,6 +267,148 @@ int16_t MacroblockDecoder::clamp(int16_t value) {
     int16_t clamped = std::min(static_cast<int16_t>(0x03FF), value);
     clamped = std::max(static_cast<int16_t>(-0x0400), clamped);
     return clamped;
+}
+
+bool MacroblockDecoder::read_next_block(std::vector<uint16_t>& block) {
+    LOGT_MDEC(std::format("Reading RLE-encoded block"));
+    assert(block.empty());
+
+    // Read the next block from the input queue. Do not decode.
+    while (!data_input_queue.empty() && data_input_queue.front() == MDEC_END_OF_BLOCK) {
+        data_input_queue.pop_front();
+    }
+
+    if (data_input_queue.empty()) {
+        // No block left
+        return false;
+    }
+
+    while (!data_input_queue.empty() && data_input_queue.front() != MDEC_END_OF_BLOCK) {
+        block.push_back(data_input_queue.front());
+        data_input_queue.pop_front();
+    }
+
+    if (data_input_queue.empty()) {
+        // We did not end with an end-of-block marker. This is wrong!
+        LOGW_MDEC(std::format("RLE-encoded block ended unexpectedly"));
+        return false;
+    }
+
+    // End-of-block marker
+    block.push_back(data_input_queue.front());
+    data_input_queue.pop_front();
+
+    // Trace for debugging purposes
+    LOGT_MDEC(std::format("Read RLE-encoded block:"));
+    trace_values_as_table(block.cbegin(), block.cend());
+
+    return true;
+}
+
+void MacroblockDecoder::rle_decode_block(std::vector<int16_t>& decoded_block, const std::vector<uint16_t>& encoded_block) {
+    LOGT_MDEC(std::format("RLE-decoding block"));
+    assert(decoded_block.empty());
+    assert(!encoded_block.empty());
+
+    // RLE-decode the encoded block. Do not zagzig or de-quantize.
+    auto it = encoded_block.cbegin();
+
+    // DCT halfword
+    uint16_t dct = *(it++);
+    uint16_t quantization_factor = dct >> 10; // 6 bits, unsigned
+    int16_t dc = sign_extend(dct & 0x03FF); // 10 bits, signed
+    decoded_block.push_back(dc);
+
+    // 0 to 63 RLE halfwords
+    for (; it != encoded_block.cend() && *it != MDEC_END_OF_BLOCK; ++it) {
+        uint16_t rle = *it;
+
+        uint16_t len = rle >> 10; // 6 bits, unsigned
+        int16_t ac = sign_extend(rle & 0x03FF); // 10 bits, signed
+
+        for (uint16_t i = 0; i < len; ++i) {
+            decoded_block.push_back(0U);
+        }
+        decoded_block.push_back(ac);
+    }
+
+    assert(it != encoded_block.cend() && *it == MDEC_END_OF_BLOCK);
+    assert(++it == encoded_block.cend());
+
+    // EOB: pad rest of block with 0
+    while (decoded_block.size() < 64) {
+        decoded_block.push_back(0U);
+    }
+
+    // Append quantization factor to block
+    decoded_block.push_back(quantization_factor);
+
+    // Trace for debugging purposes
+    LOGT_MDEC(std::format("RLE-decoded block (with appended quantization_factor):"));
+    trace_values_as_table(decoded_block.cbegin(), decoded_block.cend());
+}
+
+void MacroblockDecoder::zagzig_block(std::vector<int16_t>& zagzig_block, const std::vector<int16_t>& zigzag_block) {
+    LOGT_MDEC(std::format("Zagzigging block"));
+    assert(zagzig_block.empty());
+    assert(zigzag_block.size() == 64 + 1);
+
+    int16_t quantization_factor = zigzag_block[64];
+
+    if (quantization_factor == 0) {
+        LOGT_MDEC(std::format("Quantization factor is zero, not zagzigging"));
+        zagzig_block.insert(zagzig_block.end(), zigzag_block.cbegin(), zigzag_block.cend());
+    } else {
+        for (uint32_t i = 0; i < 64; ++i) {
+            zagzig_block.push_back(zigzag_block[i]);
+        }
+        // Quantization factor
+        zagzig_block.push_back(zigzag_block[64]);
+    }
+
+    // Trace for debugging purposes
+    LOGT_MDEC(std::format("Zagzigged block:"));
+    trace_values_as_table(zagzig_block.cbegin(), zagzig_block.cend());
+}
+
+void MacroblockDecoder::dequantize_block(const std::vector<uint8_t>& q_table, std::vector<int16_t>& dequantized_block, const std::vector<int16_t>& quantized_block) {
+    LOGT_MDEC(std::format("De-quantizing block"));
+    assert(dequantized_block.empty());
+    assert(quantized_block.size() == 64 + 1);
+
+    int16_t quantization_factor = quantized_block[64];
+
+    if (quantization_factor == 0) {
+        for (uint32_t i = 0; i < 64; ++i) {
+            dequantized_block.push_back(clamp(quantized_block[i] * 2));
+        }
+    } else {
+        dequantized_block.push_back(clamp(quantized_block[0] * q_table[0]));
+        for (uint32_t i = 1; i < 64; ++i) {
+            dequantized_block.push_back(clamp((quantized_block[i] * q_table[i] * quantization_factor + 4) / 8));
+        }
+    }
+
+    // Trace for debugging purposes
+    LOGT_MDEC(std::format("De-quantized block:"));
+    trace_values_as_table(dequantized_block.cbegin(), dequantized_block.cend());
+}
+
+bool MacroblockDecoder::decode_next_block_stepwise(const std::vector<uint8_t>& q_table, std::vector<int16_t>& block) {
+    LOGT_MDEC(std::format("Decoding RLE-encoded block step by step"));
+    assert(block.empty());
+
+    std::vector<uint16_t> next_block;
+    if (!read_next_block(next_block)) {
+        return false;
+    }
+    std::vector<int16_t> rle_decoded_block;
+    rle_decode_block(rle_decoded_block, next_block);
+    std::vector<int16_t> zagzigged_block;
+    zagzig_block(zagzigged_block, rle_decoded_block);
+    dequantize_block(q_table, block, zagzigged_block);
+
+    return true;
 }
 
 bool MacroblockDecoder::decode_next_block(const std::vector<uint8_t>& quant, std::vector<int16_t>& buffer) {

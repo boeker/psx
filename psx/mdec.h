@@ -103,6 +103,17 @@ private:
 
     static int16_t sign_extend(uint16_t value);
     static int16_t clamp(int16_t value);
+    // Reads the next block from the input queue into the provided buffer
+    bool read_next_block(std::vector<uint16_t>& block);
+    // Decode the RLE-encoded block
+    void rle_decode_block(std::vector<int16_t>& decoded_block, const std::vector<uint16_t>& encoded_block);
+    // Undo zigzag order
+    void zagzig_block(std::vector<int16_t>& zagzig_blck, const std::vector<int16_t>& zigzag_block);
+    // De-quantize block
+    void dequantize_block(const std::vector<uint8_t>& q_table, std::vector<int16_t>& dequantized_block, const std::vector<int16_t>& quantized_block);
+    // Reads, RLE-decodes, zagzigs, and de-quantizes the next block from the input queue with debug output after every step
+    bool decode_next_block_stepwise(const std::vector<uint8_t>& q_table, std::vector<int16_t>& block);
+    // Reads, RLE-decodes, zagzigs, and de-quantizes the next block from the input queue
     bool decode_next_block(const std::vector<uint8_t>& quant, std::vector<int16_t>& buffer);
     static uint8_t index(uint8_t i, uint8_t j) { return j * 8 + i; }
     void idct(std::vector<int16_t>& result, std::vector<int16_t>& block);
