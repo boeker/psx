@@ -14,6 +14,17 @@ using namespace util;
 
 namespace PSX {
 
+uint8_t MacroblockDecoder::zigzag[] = {
+     0,  1,  5,  6, 14, 15, 27, 28,
+     2,  4,  7, 13, 16, 26, 29, 42,
+     3,  8, 12, 17, 25, 30, 41, 43,
+     9, 11, 18, 24, 31, 40, 44, 53,
+    10, 19, 23, 32, 39, 45, 52, 54,
+    20, 22, 33, 38, 46, 51, 55, 60,
+    21, 34, 37, 47, 50, 56, 59, 61,
+    35, 36, 48, 49, 57, 58, 62, 63
+};
+
 std::ostream& operator<<(std::ostream &os, const MacroblockDecoder &mdec) {
     os << "Status Register: " << MacroblockDecoder::get_status_register_explanation(mdec.get_status_register());
 
@@ -153,8 +164,8 @@ void MacroblockDecoder::decode_collected_blocks() {
     // Decompress and combine blocks into macroblocks
     assert(data_output_depth <= 3); // 0 = 4bit, 1 = 8bit, 2 = 24bit, 3 = 15bit
     if (data_output_depth == 0 || data_output_depth == 1) { // Monochrome
-        std::vector<uint16_t> y;
-        while (rle_decode_next_block(y)) {
+        std::vector<int16_t> y;
+        while (decode_next_block(luminance_quantization_table, y)) {
             // TODO Decode
             if (data_output_depth == 0) { // 4bit: 8 * 8 * 4 bit values = 16 halfwords
                 // TODO: Replace dummy data
@@ -175,22 +186,48 @@ void MacroblockDecoder::decode_collected_blocks() {
         }
 
     } else { // Colored
-        std::vector<uint16_t> cr, cb, y1, y2, y3, y4;
+        std::vector<int16_t> cr, cb, y1, y2, y3, y4;
         bool first_success;
 
-        while ((first_success = rle_decode_next_block(cr))
-               && rle_decode_next_block(cb)
-               && rle_decode_next_block(y1)
-               && rle_decode_next_block(y2)
-               && rle_decode_next_block(y3)
-               && rle_decode_next_block(y4)) {
+        std::vector<uint8_t> macroblock_r, macroblock_g, macroblock_b;
+
+        while ((first_success = decode_next_block(color_quantization_table, cr))
+               && decode_next_block(color_quantization_table, cb)
+               && decode_next_block(luminance_quantization_table, y1)
+               && decode_next_block(luminance_quantization_table, y2)
+               && decode_next_block(luminance_quantization_table, y3)
+               && decode_next_block(luminance_quantization_table, y4)) {
             // TODO Decode
             if (data_output_depth == 2) { // 24 bit: 16 * 16 * 24 bit values = 384 halfwords
-                // TODO: Replace dummy data
-                LOGW_MDEC(std::format("24 bit macroblocks not implemented: producing dummy macroblock"));
-                for (uint32_t i = 0; i < 384; ++i) {
-                    //data_output_queue.push_back(0x00FF); // color pattern
-                    data_output_queue.push_back((0xFFFF * i) / 384); // color pattern
+                std::vector<int16_t> cr_uncomp, cb_uncomp, y1_uncomp, y2_uncomp, y3_uncomp, y4_uncomp;
+                idct(cr_uncomp, cr);
+                idct(cb_uncomp, cb);
+                idct(y1_uncomp, y1);
+                idct(y2_uncomp, y2);
+                idct(y3_uncomp, y3);
+                idct(y4_uncomp, y4);
+
+                yuv_to_rgb(macroblock_r, macroblock_g, macroblock_b,
+                           cr_uncomp, cb_uncomp, y1_uncomp, 0, 0);
+                yuv_to_rgb(macroblock_r, macroblock_g, macroblock_b,
+                           cr_uncomp, cb_uncomp, y2_uncomp, 8, 0);
+                yuv_to_rgb(macroblock_r, macroblock_g, macroblock_b,
+                           cr_uncomp, cb_uncomp, y3_uncomp, 0, 8);
+                yuv_to_rgb(macroblock_r, macroblock_g, macroblock_b,
+                           cr_uncomp, cb_uncomp, y4_uncomp, 8, 8);
+
+                LOGT_MDEC(std::format("Writing macroblock as 24 bit colors"));
+                std::vector<uint8_t> macroblock;
+                assert(macroblock_r.size() == 256);
+                assert(macroblock_g.size() == 256);
+                assert(macroblock_b.size() == 256);
+                for (uint32_t i = 0; i < 256; ++i) {
+                    macroblock.push_back(macroblock_r[i]);
+                    macroblock.push_back(macroblock_g[i]);
+                    macroblock.push_back(macroblock_b[i]);
+                }
+                for (uint32_t i = 0; i < macroblock.size(); i += 2) {
+                    data_output_queue.push_back((static_cast<uint16_t>(macroblock[i + 1]) << 8) | static_cast<uint16_t>(macroblock[i]));
                 }
 
             } else { // 15 bit: 16 * 16 * 16 bit values = 256 halfwords
@@ -218,7 +255,22 @@ void MacroblockDecoder::decode_collected_blocks() {
     }
 }
 
-bool MacroblockDecoder::rle_decode_next_block(std::vector<uint16_t>& buffer) {
+int16_t MacroblockDecoder::sign_extend(uint16_t value) {
+    if (value & 0x0200) {
+        return 0xFC00 | value;
+    } else {
+        return value;
+    }
+}
+
+int16_t MacroblockDecoder::clamp(int16_t value) {
+    int16_t clamped = std::min(static_cast<int16_t>(0x03FF), value);
+    clamped = std::max(static_cast<int16_t>(-0x0400), clamped);
+    return clamped;
+}
+
+bool MacroblockDecoder::decode_next_block(const std::vector<uint8_t>& quant, std::vector<int16_t>& buffer) {
+    // RLE-decoded, zagzig, and de-quantize
     while (!data_input_queue.empty() && data_input_queue.front() == MDEC_END_OF_BLOCK) {
         data_input_queue.pop_front();
     }
@@ -228,31 +280,42 @@ bool MacroblockDecoder::rle_decode_next_block(std::vector<uint16_t>& buffer) {
     }
 
     LOGT_MDEC(std::format("Decoding RLE-encoded block"));
-
-    // Collected encoded block for trace
-    std::vector<uint16_t> debug;
+    buffer.resize(64);
 
     // DCT halfword
     uint16_t dct = data_input_queue.front();
     data_input_queue.pop_front();
-    debug.push_back(dct);
     uint16_t quantization_factor = dct >> 10; // 6 bits, unsigned
-    uint16_t dc = dct & 0x03FF; // 10 bits, signed
-    buffer.push_back(quantization_factor);
-    buffer.push_back(dc);
+    int16_t dc = sign_extend(dct & 0x03FF); // 10 bits, signed
+
+    if (quantization_factor == 0) {
+        buffer[0] = clamp(dc * 2);
+    } else {
+        buffer[0] = clamp(dc * quant[0]);
+    }
 
     // 0 to 63 RLE halfwords
+    uint8_t pos = 1;
     while (!data_input_queue.empty() && data_input_queue.front() != MDEC_END_OF_BLOCK) {
         uint16_t rle = data_input_queue.front();
         data_input_queue.pop_front();
-        debug.push_back(rle);
 
         uint16_t len = rle >> 10; // 6 bits, unsigned
-        uint16_t ac = rle & 0x03FF; // 10 bits, signed
+        int16_t ac = sign_extend(rle & 0x03FF); // 10 bits, signed
         for (uint16_t i = 0; i < len; ++i) {
-            buffer.push_back(0U);
+            assert(pos < 64);
+            if (quantization_factor == 0) {
+                buffer[pos++] = 0;
+            } else {
+                buffer[zagzig[pos++]] = 0;
+            }
         }
-        buffer.push_back(ac);
+        assert(pos < 64);
+        if (quantization_factor == 0) {
+            buffer[pos++] = clamp(ac * 2);
+        } else {
+            buffer[zagzig[pos++]] = clamp((ac * quant[pos] * quantization_factor + 4) / 8);
+        }
     }
 
     if (data_input_queue.empty()) {
@@ -262,28 +325,101 @@ bool MacroblockDecoder::rle_decode_next_block(std::vector<uint16_t>& buffer) {
     }
 
     // EOB: pad rest of block with 0
-    debug.push_back(data_input_queue.front());
     data_input_queue.pop_front();
-    while (buffer.size() < 64 + 1) {
-        buffer.push_back(0U);
+    while (pos < 64) {
+        if (quantization_factor == 0) {
+            buffer[pos++] = 0;
+        } else {
+            buffer[zagzig[pos++]] = 0;
+        }
     }
 
     // Trace for debugging purposes
-    LOGT_MDEC(std::format("RLE-encoded block:"));
-    trace_values_as_table(debug.cbegin(), debug.cend());
-    LOGT_MDEC(std::format("Decoded block (quantization_factor = 0x{:04X}):", buffer[0]));
+    LOGT_MDEC(std::format("Decoded block (quantization_factor = 0x{:04X}):", quantization_factor));
     trace_values_as_table(++buffer.cbegin(), buffer.cend());
-
-    if (buffer.size() > 64 + 1) {
-        LOGW_MDEC(std::format("Decoded block has unexpected size {:d} > 64 + 1", buffer.size()));
-        buffer.resize(64 + 1);
-    }
 
     return true;
 }
 
+void MacroblockDecoder::idct(std::vector<int16_t>& result, std::vector<int16_t>& block) {
+    // Computes IDCT^T * B * IDCT, where IDCT is the IDCT matrix and B the block
+    LOGT_MDEC(std::format("IDCT"));
+
+    assert(block.size() == 64);
+    result.resize(64);
+
+    // IDCT^T * B
+    for (uint8_t i = 0; i < 8; ++i) {
+        for (uint8_t j = 0; j < 8; ++j) {
+            int16_t sum = 0;
+            for (uint8_t k = 0; k < 8; ++k) {
+                sum += (scale_table[index(k, i)] / 8) * block[index(k, j)];
+            }
+            result[index(i, j)] = (sum + 0x0FFF) / 0x2000;
+        }
+    }
+
+    std::swap(block, result);
+    // block * IDCT
+    for (uint8_t i = 0; i < 8; ++i) {
+        for (uint8_t j = 0; j < 8; ++j) {
+            int16_t sum = 0;
+            for (uint8_t k = 0; k < 8; ++k) {
+                sum += block[index(i, k)] * (scale_table[index(k, j)] / 8);
+            }
+            result[index(i, j)] = (sum + 0x0FFF) / 0x2000;
+        }
+    }
+}
+
+int16_t MacroblockDecoder::clamp_color(int16_t value) {
+    int16_t clamped = std::min(static_cast<int16_t>(127), value);
+    clamped = std::max(static_cast<int16_t>(-128), clamped);
+    return clamped;
+}
+
+void MacroblockDecoder::yuv_to_rgb(std::vector<uint8_t>& r, std::vector<uint8_t>& g, std::vector<uint8_t>& b,
+                                   const std::vector<int16_t>& cr, const std::vector<int16_t>& cb, const std::vector<int16_t>& y_block,
+                                   uint8_t x_offset, uint8_t y_offset) {
+    LOGT_MDEC(std::format("Converting YUV blocks to (part of) RGB macroblock"));
+    r.resize(16 * 16);
+    g.resize(16 * 16);
+    b.resize(16 * 16);
+
+    for (uint32_t y = 0; y < 8; ++y) {
+        for (uint32_t x = 0; x < 8; ++x) {
+            float r_fl = cr[(x_offset + x) / 2 * (y_offset + y) / 2 * 8];
+            float b_fl = cb[(x_offset + x) / 2 * (y_offset + y) / 2 * 8];
+            float g_fl = -0.3437 * b_fl + 0.7143 * r_fl;
+            r_fl = 1.402 * r_fl;
+            b_fl = 1.772 * b_fl;
+
+            int16_t y_value = y_block[x * y * 8];
+            int16_t r_value = clamp_color(y_value + static_cast<int16_t>(r_fl));
+            int16_t g_value = clamp_color(y_value + static_cast<int16_t>(g_fl));
+            int16_t b_value = clamp_color(y_value + static_cast<int16_t>(b_fl));
+
+            if (!data_output_signed) {
+                r_value += 128;
+                g_value += 128;
+                b_value += 128;
+            }
+
+            uint32_t coord = x_offset + x + (y_offset + y) * 16;
+            assert(coord < 256);
+            r[coord] = r_value;
+            g[coord] = g_value;
+            b[coord] = b_value;
+        }
+    }
+}
+
 MacroblockDecoder::MacroblockDecoder(Bus *bus) {
     this->bus = bus;
+
+    for (uint8_t i = 0; i < 64; ++i) {
+        zagzig[zigzag[i]] = i;
+    }
 
     reset();
 }

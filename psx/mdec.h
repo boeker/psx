@@ -51,6 +51,9 @@ class Bus;
 
 class MacroblockDecoder {
 private:
+    static uint8_t zigzag[64];
+    uint8_t zagzig[64];
+
     Bus *bus;
 
     enum class State {
@@ -97,7 +100,16 @@ private:
     template<std::input_iterator ITER, std::sentinel_for<ITER> SENT>
     static void trace_values_as_table(ITER begin, SENT end);
     void decode_collected_blocks();
-    bool rle_decode_next_block(std::vector<uint16_t>& buffer);
+
+    static int16_t sign_extend(uint16_t value);
+    static int16_t clamp(int16_t value);
+    bool decode_next_block(const std::vector<uint8_t>& quant, std::vector<int16_t>& buffer);
+    static uint8_t index(uint8_t i, uint8_t j) { return j * 8 + i; }
+    void idct(std::vector<int16_t>& result, std::vector<int16_t>& block);
+    static int16_t clamp_color(int16_t value);
+    void yuv_to_rgb(std::vector<uint8_t>& r, std::vector<uint8_t>& g, std::vector<uint8_t>& b,
+                    const std::vector<int16_t>& cr, const std::vector<int16_t>& cb, const std::vector<int16_t>& y,
+                    uint8_t x_offset, uint8_t y_offset);
 
 public:
     MacroblockDecoder(Bus *bus);
