@@ -225,6 +225,16 @@ private:
     void GP0FillRectangleInVRAM();
     // 0x20
     void GP0MonochromeThreePointPolygonOpaque();
+    // 0x22
+    void GP0MonochromeThreePointPolygonSemiTransparent();
+    // 0x24
+    void GP0TexturedThreePointPolygonOpaqueTextureBlending();
+    // 0x25
+    void GP0TexturedThreePointPolygonOpaqueRawTexture();
+    // 0x26
+    void GP0TexturedThreePointPolygonSemiTransparentTextureBlending();
+    // 0x27
+    void GP0TexturedThreePointPolygonSemiTransparentRawTexture();
     // 0x28
     void GP0MonochromeFourPointPolygonOpaque();
     // 0x29 Same as 0x28?
@@ -235,14 +245,26 @@ private:
     void GP0TexturedFourPointPolygonOpaqueTextureBlending();
     // 0x2D
     void GP0TexturedFourPointPolygonOpaqueRawTexture();
+    // 0x2E
+    void GP0TexturedFourPointPolygonSemiTransparentTextureBlending();
     // 0x2F
     void GP0TexturedFourPointPolygonSemiTransparentRawTexture();
     // 0x30
     void GP0ShadedThreePointPolygonOpaque();
+    // 0x32
+    void GP0ShadedThreePointPolygonSemiTransparent();
+    // 0x34
+    void GP0ShadedTexturedThreePointPolygonOpaqueTextureBlending();
+    // 0x36
+    void GP0ShadedTexturedThreePointPolygonSemiTransparentTextureBlending();
     // 0x38
     void GP0ShadedFourPointPolygonOpaque();
+    // 0x3A
+    void GP0ShadedFourPointPolygonSemiTransparent();
     // 0x3C
     void GP0ShadedTexturedFourPointPolygonOpaqueTextureBlending();
+    // 0x3E
+    void GP0ShadedTexturedFourPointPolygonSemiTransparentTextureBlending();
     // 0x60
     void GP0MonochromeRectangleVariableSizeOpaque();
     // 0x62

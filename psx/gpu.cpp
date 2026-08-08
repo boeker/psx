@@ -604,8 +604,14 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x20
     &GPU::GP0MonochromeThreePointPolygonOpaque,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown,
+    &GPU::GP0MonochromeThreePointPolygonSemiTransparent,
+    &GPU::GP0Unknown,
+    // 0x24
+    &GPU::GP0TexturedThreePointPolygonOpaqueTextureBlending,
+    &GPU::GP0TexturedThreePointPolygonOpaqueRawTexture,
+    &GPU::GP0TexturedThreePointPolygonSemiTransparentTextureBlending,
+    &GPU::GP0TexturedThreePointPolygonSemiTransparentRawTexture,
     // 0x28
     &GPU::GP0MonochromeFourPointPolygonOpaque,
     &GPU::GP0MonochromeFourPointPolygonOpaque,
@@ -615,18 +621,30 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0TexturedFourPointPolygonOpaqueTextureBlending,
     // 0x2D
     &GPU::GP0TexturedFourPointPolygonOpaqueRawTexture,
-    &GPU::GP0Unknown,
+    // 0x2E
+    &GPU::GP0TexturedFourPointPolygonSemiTransparentTextureBlending,
+    // 0x2F
     &GPU::GP0TexturedFourPointPolygonSemiTransparentRawTexture,
     // 0x30
     &GPU::GP0ShadedThreePointPolygonOpaque,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown,
+    &GPU::GP0ShadedThreePointPolygonSemiTransparent,
+    &GPU::GP0Unknown,
+    // 0x34
+    &GPU::GP0ShadedTexturedThreePointPolygonOpaqueTextureBlending,
+    &GPU::GP0Unknown,
+    &GPU::GP0ShadedTexturedThreePointPolygonSemiTransparentTextureBlending,
+    &GPU::GP0Unknown,
     // 0x38
     &GPU::GP0ShadedFourPointPolygonOpaque,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown,
+    &GPU::GP0ShadedFourPointPolygonSemiTransparent,
+    &GPU::GP0Unknown,
     // 0x3C
     &GPU::GP0ShadedTexturedFourPointPolygonOpaqueTextureBlending,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown,
+    &GPU::GP0ShadedTexturedFourPointPolygonSemiTransparentTextureBlending,
+    &GPU::GP0Unknown,
     // 0x40
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
@@ -725,9 +743,9 @@ const uint8_t GPU::gp0ParameterNumbers[] = {
     // 0x10
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x20
-    3, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 4, 8, 8, 0, 8,
+    3, 0, 3, 0, 6, 6, 6, 6, 4, 4, 4, 4, 8, 8, 8, 8,
     // 0x30
-    5, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 11, 0, 0, 0,
+    5, 0, 5, 0, 8, 0, 8, 0, 7, 0, 7, 0, 11, 0, 11, 0,
     // 0x40
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x50
@@ -801,6 +819,114 @@ void GPU::GP0MonochromeThreePointPolygonOpaque() {
     Triangle t(v1, c, v2, c, v3, c);
 
     renderer->drawTriangle(t);
+}
+
+void GPU::GP0MonochromeThreePointPolygonSemiTransparent() {
+    // 0x22
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[1]);
+    Vertex v3(gp0Parameters[2]);
+
+    LOGT_GPU(std::format("GP0 - MonochromeThreePointPolygonSemiTransparent({}, {}, {}, {})",
+                         c, v1, v2, v3));
+
+    Triangle t(v1, c, v2, c, v3, c);
+
+    renderer->drawTriangle(t);
+}
+
+void GPU::GP0TexturedThreePointPolygonOpaqueTextureBlending() {
+    // 0x24
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[2]);
+    Vertex v3(gp0Parameters[4]);
+
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t texpage = gp0Parameters[3] >> 16;
+
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    TextureCoordinate tc2(gp0Parameters[3] & 0xFFFF);
+    TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
+
+    LOGT_GPU(std::format("GP0 - TexturedThreePointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {})",
+                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3));
+
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+}
+
+void GPU::GP0TexturedThreePointPolygonOpaqueRawTexture() {
+    // 0x25
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[2]);
+    Vertex v3(gp0Parameters[4]);
+
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t texpage = gp0Parameters[3] >> 16;
+
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    TextureCoordinate tc2(gp0Parameters[3] & 0xFFFF);
+    TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
+
+    LOGT_GPU(std::format("GP0 - TexturedThreePointPolygonOpaqueRawTexture(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {})",
+                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3));
+
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+}
+
+void GPU::GP0TexturedThreePointPolygonSemiTransparentTextureBlending() {
+    // 0x26
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[2]);
+    Vertex v3(gp0Parameters[4]);
+
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t texpage = gp0Parameters[3] >> 16;
+
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    TextureCoordinate tc2(gp0Parameters[3] & 0xFFFF);
+    TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
+
+    LOGT_GPU(std::format("GP0 - TexturedThreePointPolygonSemiTransparentTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {})",
+                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3));
+
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+}
+
+void GPU::GP0TexturedThreePointPolygonSemiTransparentRawTexture() {
+    // 0x27
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[2]);
+    Vertex v3(gp0Parameters[4]);
+
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t texpage = gp0Parameters[3] >> 16;
+
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    TextureCoordinate tc2(gp0Parameters[3] & 0xFFFF);
+    TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
+
+    LOGT_GPU(std::format("GP0 - TexturedThreePointPolygonSemiTransparentRawTexture(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {})",
+                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3));
+
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
 }
 
 void GPU::GP0MonochromeFourPointPolygonOpaque() {
@@ -897,6 +1023,35 @@ void GPU::GP0TexturedFourPointPolygonOpaqueRawTexture() {
     renderer->drawTexturedTriangle(t2);
 }
 
+void GPU::GP0TexturedFourPointPolygonSemiTransparentTextureBlending() {
+    // 0x2E
+    // TODO: TextureBlending
+    // TODO: SemiTransparent
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[2]);
+    Vertex v3(gp0Parameters[4]);
+    Vertex v4(gp0Parameters[6]);
+
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t texpage = gp0Parameters[3] >> 16;
+
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    TextureCoordinate tc2(gp0Parameters[3] & 0xFFFF);
+    TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
+    TextureCoordinate tc4(gp0Parameters[7] & 0xFFFF);
+
+    LOGT_GPU(std::format("GP0 - TexturedFourPointPolygonSemiTransparentTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
+                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3, v4, tc4));
+
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
 void GPU::GP0TexturedFourPointPolygonSemiTransparentRawTexture() {
     // 0x2F
     // TODO: What is the difference to TextureBlending? You ignore the color
@@ -943,6 +1098,77 @@ void GPU::GP0ShadedThreePointPolygonOpaque() {
     renderer->drawTriangle(t);
 }
 
+void GPU::GP0ShadedThreePointPolygonSemiTransparent() {
+    // 0x32
+    Color c1(gp0);
+    Color c2(gp0Parameters[1]);
+    Color c3(gp0Parameters[3]);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[2]);
+    Vertex v3(gp0Parameters[4]);
+
+    LOGT_GPU(std::format("GP0 - ShadedThreePointPolygonSemiTransparent({}, {}, {}, {}, {}, {})",
+                         c1, v1, c2, v2, c3, v3));
+
+    Triangle t(v1, c1, v2, c2, v3, c3);
+    renderer->drawTriangle(t);
+}
+
+void GPU::GP0ShadedTexturedThreePointPolygonOpaqueTextureBlending() {
+    // 0x34
+    Color c1(gp0);
+    Color c2(gp0Parameters[2]);
+    Color c3(gp0Parameters[5]);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[3]);
+    Vertex v3(gp0Parameters[6]);
+
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t texpage = gp0Parameters[4] >> 16;
+
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    TextureCoordinate tc2(gp0Parameters[4] & 0xFFFF);
+    TextureCoordinate tc3(gp0Parameters[7] & 0xFFFF);
+
+    LOGT_GPU(std::format("GP0 - ShadedTexturedThreePointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
+                         palette, texpage, c1, v1, tc1, c2, v2, tc2, c3, v3, tc3));
+
+    // TODO Use colors
+
+    TexturedTriangle t(c1, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+}
+
+void GPU::GP0ShadedTexturedThreePointPolygonSemiTransparentTextureBlending() {
+    // 0x36
+    Color c1(gp0);
+    Color c2(gp0Parameters[2]);
+    Color c3(gp0Parameters[5]);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[3]);
+    Vertex v3(gp0Parameters[6]);
+
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t texpage = gp0Parameters[4] >> 16;
+
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    TextureCoordinate tc2(gp0Parameters[4] & 0xFFFF);
+    TextureCoordinate tc3(gp0Parameters[7] & 0xFFFF);
+
+    LOGT_GPU(std::format("GP0 - ShadedTexturedThreePointPolygonSemiTransparentTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
+                         palette, texpage, c1, v1, tc1, c2, v2, tc2, c3, v3, tc3));
+
+    // TODO Use colors
+
+    TexturedTriangle t(c1, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+}
+
 void GPU::GP0ShadedFourPointPolygonOpaque() {
     // 0x38
     Color c1(gp0);
@@ -956,6 +1182,28 @@ void GPU::GP0ShadedFourPointPolygonOpaque() {
     Vertex v4(gp0Parameters[6]);
 
     LOGT_GPU(std::format("GP0 - ShadedFourPointPolygonOpaque({}, {}, {}, {}, {}, {}, {}, {})",
+                         c1, v1, c2, v2, c3, v3, c4, v4));
+
+    Triangle t(v1, c1, v2, c2, v3, c3);
+    Triangle t2(v2, c2, v3, c3, v4, c4);
+
+    renderer->drawTriangle(t);
+    renderer->drawTriangle(t2);
+}
+
+void GPU::GP0ShadedFourPointPolygonSemiTransparent() {
+    // 0x3A
+    Color c1(gp0);
+    Color c2(gp0Parameters[1]);
+    Color c3(gp0Parameters[3]);
+    Color c4(gp0Parameters[5]);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[2]);
+    Vertex v3(gp0Parameters[4]);
+    Vertex v4(gp0Parameters[6]);
+
+    LOGT_GPU(std::format("GP0 - ShadedFourPointPolygonSemiTransparent({}, {}, {}, {}, {}, {}, {}, {})",
                          c1, v1, c2, v2, c3, v3, c4, v4));
 
     Triangle t(v1, c1, v2, c2, v3, c3);
@@ -986,6 +1234,38 @@ void GPU::GP0ShadedTexturedFourPointPolygonOpaqueTextureBlending() {
     TextureCoordinate tc4(gp0Parameters[10] & 0xFFFF);
 
     LOGT_GPU(std::format("GP0 - ShadedTexturedFourPointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
+                         palette, texpage, c1, v1, tc1, c2, v2, tc2, c3, v3, tc3, c4, v4, tc4));
+
+    // TODO Use colors
+
+    TexturedTriangle t(c1, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c1, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
+void GPU::GP0ShadedTexturedFourPointPolygonSemiTransparentTextureBlending() {
+    // 0x3E
+    Color c1(gp0);
+    Color c2(gp0Parameters[2]);
+    Color c3(gp0Parameters[5]);
+    Color c4(gp0Parameters[8]);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[3]);
+    Vertex v3(gp0Parameters[6]);
+    Vertex v4(gp0Parameters[9]);
+
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t texpage = gp0Parameters[4] >> 16;
+
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    TextureCoordinate tc2(gp0Parameters[4] & 0xFFFF);
+    TextureCoordinate tc3(gp0Parameters[7] & 0xFFFF);
+    TextureCoordinate tc4(gp0Parameters[10] & 0xFFFF);
+
+    LOGT_GPU(std::format("GP0 - ShadedTexturedFourPointPolygonSemiTransparentTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
                          palette, texpage, c1, v1, tc1, c2, v2, tc2, c3, v3, tc3, c4, v4, tc4));
 
     // TODO Use colors
