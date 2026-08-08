@@ -84,6 +84,7 @@ public:
     void clear();
     void push(uint32_t command);
     uint32_t pop();
+    uint32_t front();
     bool isEmpty();
     bool isFull();
 };
@@ -265,22 +266,76 @@ private:
     void GP0ShadedTexturedFourPointPolygonOpaqueTextureBlending();
     // 0x3E
     void GP0ShadedTexturedFourPointPolygonSemiTransparentTextureBlending();
+    // 0x40
+    void GP0MonochromeLineOpaque();
+    // 0x41 Same as 0x40?
+    // 0x42
+    void GP0MonochromeLineSemiTransparent();
+    // 0x43 Same as 0x42?
+    // 0x48
+    void GP0MonochromePolyLineOpaque();
+    // 0x4A
+    void GP0MonochromePolyLineSemiTransparent();
+    // 0x50
+    void GP0ShadedLineOpaque();
+    // 0x51 Same as 0x50?
+    // 0x52
+    void GP0ShadedLineSemiTransparent();
+    // 0x53 Same as 0x52?
+    // 0x58
+    void GP0ShadedPolyLineOpaque();
+    // 0x5A
+    void GP0ShadedPolyLineSemiTransparent();
     // 0x60
     void GP0MonochromeRectangleVariableSizeOpaque();
+    // 0x61 Same as 0x60?
     // 0x62
     void GP0MonochromeRectangleVariableSizeSemiTransparent();
+    // 0x63 Same as 0x62?
     // 0x64
     void GP0TexturedRectangleVariableSizeOpaqueTextureBlending();
     // 0x65
     void GP0TexturedRectangleVariableSizeOpaqueRawTexture();
     // 0x66
     void GP0TexturedRectangleVariableSizeSemiTransparentTextureBlending();
+    // 0x67
+    void GP0TexturedRectangleVariableSizeSemiTransparentRawTexture();
     // 0x68
     void GP0MonochromeRectangleDotOpaque();
+    // 0x6A
+    void GP0MonochromeRectangleDotSemiTransparent();
+    // 0x6C
+    void GP0TexturedRectangle1x1OpaqueTextureBlending();
+    // 0x6D
+    void GP0TexturedRectangle1x1OpaqueRawTexture();
+    // 0x6E
+    void GP0TexturedRectangle1x1SemiTransparentTextureBlending();
+    // 0x6F
+    void GP0TexturedRectangle1x1SemiTransparentRawTexture();
+    // 0x70
+    void GP0MonochromeRectangle8x8Opaque();
+    // 0x72
+    void GP0MonochromeRectangle8x8SemiTransparent();
     // 0x74
     void GP0TexturedRectangle8x8OpaqueTextureBlending();
     // 0x75
     void GP0TexturedRectangle8x8OpaqueRawTexture();
+    // 0x76
+    void GP0TexturedRectangle8x8SemiTransparentTextureBlending();
+    // 0x77
+    void GP0TexturedRectangle8x8SemiTransparentRawTexture();
+    // 0x78
+    void GP0MonochromeRectangle16x16Opaque();
+    // 0x7A
+    void GP0MonochromeRectangle16x16SemiTransparent();
+    // 0x7C
+    void GP0TexturedRectangle16x16OpaqueTextureBlending();
+    // 0x7D
+    void GP0TexturedRectangle16x16OpaqueRawTexture();
+    // 0x7E
+    void GP0TexturedRectangle16x16SemiTransparentTextureBlending();
+    // 0x7F
+    void GP0TexturedRectangle16x16SemiTransparentRawTexture();
     // 0x80
     void GP0CopyRectangle();
     // 0xA0

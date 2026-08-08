@@ -65,6 +65,17 @@ uint32_t CommandQueue::pop() {
     return 0;
 }
 
+uint32_t CommandQueue::front() {
+    if (elements > 0) {
+        uint32_t value = queue[out];
+        return value;
+    }
+
+    throw std::runtime_error("Queue is empty");
+
+    return 0;
+}
+
 bool CommandQueue::isEmpty() {
     return elements == 0;
 }
@@ -152,11 +163,16 @@ void GPU::catchUpToCPU(uint32_t cpuCycles) {
                 break;
 
             case State::WAITING_FOR_GP0_PARAMS:
-                while (gp0Parameters.size() < neededParams
-                       && !queue.isEmpty()) {
+                while ((neededParams != 42 && gp0Parameters.size() < neededParams && !queue.isEmpty())
+                        || (neededParams == 42 && !queue.isEmpty())) { // 42 neededParams means that we wait for 0x5555'5555
                     gp0Parameters.push_back(queue.pop());
+
+                    if (neededParams == 42 && gp0Parameters.back() == 0x5555'5555) {
+                        continue;
+                    }
                 }
-                if (gp0Parameters.size() == neededParams) {
+                if ((neededParams != 42 && gp0Parameters.size() == neededParams)
+                    || (neededParams == 42 && !gp0Parameters.empty() && gp0Parameters.back() == 0x5555'5555)) {
                     state = EXECUTING_CP0;
 
                 } else {
@@ -646,40 +662,73 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0ShadedTexturedFourPointPolygonSemiTransparentTextureBlending,
     &GPU::GP0Unknown,
     // 0x40
+    &GPU::GP0MonochromeLineOpaque,
+    &GPU::GP0MonochromeLineOpaque,
+    &GPU::GP0MonochromeLineSemiTransparent,
+    &GPU::GP0MonochromeLineSemiTransparent,
+    // 0x44
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x48
+    &GPU::GP0MonochromePolyLineOpaque,
+    &GPU::GP0Unknown,
+    &GPU::GP0MonochromePolyLineSemiTransparent,
+    &GPU::GP0Unknown,
+    // 0x4C
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x50
+    &GPU::GP0ShadedLineOpaque,
+    &GPU::GP0ShadedLineOpaque,
+    &GPU::GP0ShadedLineSemiTransparent,
+    &GPU::GP0ShadedLineSemiTransparent,
+    // 0x54
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    // 0x58
+    &GPU::GP0ShadedPolyLineOpaque,
+    &GPU::GP0Unknown,
+    &GPU::GP0ShadedPolyLineSemiTransparent,
+    &GPU::GP0Unknown,
+    // 0x5C
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
     // 0x60
     &GPU::GP0MonochromeRectangleVariableSizeOpaque,
-    &GPU::GP0Unknown,
-    // 0x62
+    &GPU::GP0MonochromeRectangleVariableSizeOpaque,
     &GPU::GP0MonochromeRectangleVariableSizeSemiTransparent,
-    &GPU::GP0Unknown,
+    &GPU::GP0MonochromeRectangleVariableSizeSemiTransparent,
     // 0x64
     &GPU::GP0TexturedRectangleVariableSizeOpaqueTextureBlending,
-    // 0x65
     &GPU::GP0TexturedRectangleVariableSizeOpaqueRawTexture,
     &GPU::GP0TexturedRectangleVariableSizeSemiTransparentTextureBlending,
-    &GPU::GP0Unknown,
+    &GPU::GP0TexturedRectangleVariableSizeSemiTransparentRawTexture,
     // 0x68
     &GPU::GP0MonochromeRectangleDotOpaque,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Unknown,
+    &GPU::GP0MonochromeRectangleDotSemiTransparent,
+    &GPU::GP0Unknown,
+    // 0x6C
+    &GPU::GP0TexturedRectangle1x1OpaqueTextureBlending,
+    &GPU::GP0TexturedRectangle1x1OpaqueRawTexture,
+    &GPU::GP0TexturedRectangle1x1SemiTransparentTextureBlending,
+    &GPU::GP0TexturedRectangle1x1SemiTransparentRawTexture,
     // 0x70
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0MonochromeRectangle8x8Opaque,
+    &GPU::GP0Unknown,
+    &GPU::GP0MonochromeRectangle8x8SemiTransparent,
+    &GPU::GP0Unknown,
     // 0x74
     &GPU::GP0TexturedRectangle8x8OpaqueTextureBlending,
-    // 0x75
     &GPU::GP0TexturedRectangle8x8OpaqueRawTexture,
-    &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0TexturedRectangle8x8SemiTransparentTextureBlending,
+    &GPU::GP0TexturedRectangle8x8SemiTransparentRawTexture,
+    // 0x78
+    &GPU::GP0MonochromeRectangle16x16Opaque,
+    &GPU::GP0Unknown,
+    &GPU::GP0MonochromeRectangle16x16SemiTransparent,
+    &GPU::GP0Unknown,
+    // 0x7C
+    &GPU::GP0TexturedRectangle16x16OpaqueTextureBlending,
+    &GPU::GP0TexturedRectangle16x16OpaqueRawTexture,
+    &GPU::GP0TexturedRectangle16x16SemiTransparentTextureBlending,
+    &GPU::GP0TexturedRectangle16x16SemiTransparentRawTexture,
     // 0x80
     &GPU::GP0CopyRectangle,
     &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
@@ -747,13 +796,13 @@ const uint8_t GPU::gp0ParameterNumbers[] = {
     // 0x30
     5, 0, 5, 0, 8, 0, 8, 0, 7, 0, 7, 0, 11, 0, 11, 0,
     // 0x40
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    2, 2, 2, 2, 0, 0, 0, 0, 42, 0, 42, 0, 0, 0, 0, 0,
     // 0x50
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    3, 3, 3, 3, 0, 0, 0, 0, 42, 0, 42, 0, 0, 0, 0, 0,
     // 0x60
-    2, 0, 2, 0, 3, 3, 3, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+    2, 2, 2, 2, 3, 3, 3, 3, 1, 0, 1, 0, 2, 2, 2, 2,
     // 0x70
-    0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 1, 0, 2, 2, 2, 2, 1, 0, 1, 0, 2, 2, 2, 2,
     // 0x80
     3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x90
@@ -1277,6 +1326,170 @@ void GPU::GP0ShadedTexturedFourPointPolygonSemiTransparentTextureBlending() {
     renderer->drawTexturedTriangle(t2);
 }
 
+void GPU::GP0MonochromeLineOpaque() {
+    // 0x40
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[1]);
+
+    LOGT_GPU(std::format("GP0 - MonochromeLineOpaque({}, {}, {})",
+                         c, v1, v2));
+
+    Triangle t(v1, c, v2, c, v2, c);
+
+    renderer->drawTriangle(t);
+}
+
+void GPU::GP0MonochromeLineSemiTransparent() {
+    // 0x41
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[1]);
+
+    LOGT_GPU(std::format("GP0 - MonochromeLineSemiTransparent({}, {}, {})",
+                         c, v1, v2));
+
+    Triangle t(v1, c, v2, c, v2, c);
+
+    renderer->drawTriangle(t);
+}
+
+void GPU::GP0MonochromePolyLineOpaque() {
+    // 0x48
+    Color c(gp0);
+
+    std::vector<Vertex> vs;
+    for (uint32_t param : gp0Parameters) {
+        if (param == 0x5555'5555) {
+            break;
+        }
+        vs.emplace_back(param);
+    }
+
+    LOGT_GPU(std::format("GP0 - MonochromePolyLineOpaque({}, {:d} vertices)",
+                         c, vs.size()));
+
+    for (uint32_t i = 0; i + 1 < vs.size(); ++i) {
+        Triangle t(vs[i], c, vs[i+1], c, vs[i+1], c);
+        renderer->drawTriangle(t);
+    }
+}
+
+void GPU::GP0MonochromePolyLineSemiTransparent() {
+    // 0x4A
+    Color c(gp0);
+
+    std::vector<Vertex> vs;
+    for (uint32_t param : gp0Parameters) {
+        if (param == 0x5555'5555) {
+            break;
+        }
+        vs.emplace_back(param);
+    }
+
+    LOGT_GPU(std::format("GP0 - MonochromePolyLineSemiTransparent({}, {:d} vertices)",
+                         c, vs.size()));
+
+    for (uint32_t i = 0; i + 1 < vs.size(); ++i) {
+        Triangle t(vs[i], c, vs[i+1], c, vs[i+1], c);
+        renderer->drawTriangle(t);
+    }
+}
+
+void GPU::GP0ShadedLineOpaque() {
+    // 0x50
+    Color c1(gp0);
+    Color c2(gp0Parameters[1]);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[2]);
+
+    LOGT_GPU(std::format("GP0 - ShadedLineOpaque({}, {}, {}, {})",
+                         c1, v1, c2, v2));
+
+    Triangle t(v1, c1, v2, c2, v2, c2);
+
+    renderer->drawTriangle(t);
+}
+
+void GPU::GP0ShadedLineSemiTransparent() {
+    // 0x51
+    Color c1(gp0);
+    Color c2(gp0Parameters[1]);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(gp0Parameters[2]);
+
+    LOGT_GPU(std::format("GP0 - ShadedLineSemiTransparent({}, {}, {}, {})",
+                         c1, v1, c2, v2));
+
+    Triangle t(v1, c1, v2, c2, v2, c2);
+
+    renderer->drawTriangle(t);
+}
+
+void GPU::GP0ShadedPolyLineOpaque() {
+    // 0x58
+    std::vector<Color> cs;
+    cs.emplace_back(gp0);
+    for (uint32_t i = 1; i < gp0Parameters.size(); i += 2) {
+        if (gp0Parameters[i] == 0x5555'5555) {
+            break;
+        }
+        cs.emplace_back(gp0Parameters[i]);
+    }
+
+    std::vector<Vertex> vs;
+    for (uint32_t i = 0; i < gp0Parameters.size(); i += 2) {
+        if (gp0Parameters[i] == 0x5555'5555) {
+            break;
+        }
+        vs.emplace_back(gp0Parameters[i]);
+    }
+
+    LOGT_GPU(std::format("GP0 - ShadedPolyLineOpaque({:d} colors, {:d} vertices)",
+                         cs.size(), vs.size()));
+
+    assert(cs.size() == vs.size());
+
+    for (uint32_t i = 0; i + 1 < cs.size(); ++i) {
+        Triangle t(vs[i], cs[i], vs[i+1], cs[i+1], vs[i+1], cs[i+1]);
+        renderer->drawTriangle(t);
+    }
+}
+
+void GPU::GP0ShadedPolyLineSemiTransparent() {
+    // 0x58
+    std::vector<Color> cs;
+    cs.emplace_back(gp0);
+    for (uint32_t i = 1; i < gp0Parameters.size(); i += 2) {
+        if (gp0Parameters[i] == 0x5555'5555) {
+            break;
+        }
+        cs.emplace_back(gp0Parameters[i]);
+    }
+
+    std::vector<Vertex> vs;
+    for (uint32_t i = 0; i < gp0Parameters.size(); i += 2) {
+        if (gp0Parameters[i] == 0x5555'5555) {
+            break;
+        }
+        vs.emplace_back(gp0Parameters[i]);
+    }
+
+    LOGT_GPU(std::format("GP0 - ShadedPolySemiTransparent({:d} colors, {:d} vertices)",
+                         cs.size(), vs.size()));
+
+    assert(cs.size() == vs.size());
+
+    for (uint32_t i = 0; i + 1 < cs.size(); ++i) {
+        Triangle t(vs[i], cs[i], vs[i+1], cs[i+1], vs[i+1], cs[i+1]);
+        renderer->drawTriangle(t);
+    }
+}
+
 void GPU::GP0MonochromeRectangleVariableSizeOpaque() {
     // 0x60
     Color c(gp0);
@@ -1412,6 +1625,36 @@ void GPU::GP0TexturedRectangleVariableSizeSemiTransparentTextureBlending() {
     renderer->drawTexturedTriangle(t2);
 }
 
+void GPU::GP0TexturedRectangleVariableSizeSemiTransparentRawTexture() {
+    // 0x67
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]); // upper left edge
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t width = gp0Parameters[2] & 0xFFFF;
+    uint16_t height = gp0Parameters[2] >> 16;
+
+    LOGT_GPU(std::format("GP0 - TexturedRectangleVariableSizeSemiTransparentRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+                         c, v1, tc1, palette, width, height));
+
+    Vertex v2(v1.x + width, v1.y);
+    Vertex v3(v1.x, v1.y + height);
+    Vertex v4(v1.x + width, v1.y + height);
+
+    // TODO SemiTransparent
+    TextureCoordinate tc2(tc1.x + width, tc1.y);
+    TextureCoordinate tc3(tc1.x, tc1.y + height);
+    TextureCoordinate tc4(tc1.x + width, tc1.y + height);
+
+    uint16_t texpage = gpuStatusRegister & 0x09FF; // Bits 0 to 8 and 11
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
 void GPU::GP0MonochromeRectangleDotOpaque() {
     // 0x68
     Color c(gp0);
@@ -1422,6 +1665,184 @@ void GPU::GP0MonochromeRectangleDotOpaque() {
     Vertex v4(v1.x + 1, v1.y + 1);
 
     LOGT_GPU(std::format("GP0 - MonochromeRectangleDotOpaque({}, {})",
+                          c, v1));
+
+    Triangle t(v1, c, v2, c, v3, c);
+    Triangle t2(v2, c, v3, c, v4, c);
+
+    renderer->drawTriangle(t);
+    renderer->drawTriangle(t2);
+}
+
+void GPU::GP0MonochromeRectangleDotSemiTransparent() {
+    // 0x6A
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(v1.x + 1, v1.y);
+    Vertex v3(v1.x, v1.y + 1);
+    Vertex v4(v1.x + 1, v1.y + 1);
+
+    LOGT_GPU(std::format("GP0 - MonochromeRectangleDotSemiTransparent({}, {})",
+                          c, v1));
+
+    Triangle t(v1, c, v2, c, v3, c);
+    Triangle t2(v2, c, v3, c, v4, c);
+
+    renderer->drawTriangle(t);
+    renderer->drawTriangle(t2);
+}
+
+void GPU::GP0TexturedRectangle1x1OpaqueTextureBlending() {
+    // 0x6C
+    // TODO texture blending
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]); // upper left edge
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t width = 1;
+    uint16_t height = 1;
+
+    LOGT_GPU(std::format("GP0 - TexturedRectangle1x1OpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+                         c, v1, tc1, palette, width, height));
+
+    Vertex v2(v1.x + width, v1.y);
+    Vertex v3(v1.x, v1.y + height);
+    Vertex v4(v1.x + width, v1.y + height);
+
+    // TODO Handle texture coordinates larger than 255 (repeat instead of stretch)
+    TextureCoordinate tc2(tc1.x + width, tc1.y);
+    TextureCoordinate tc3(tc1.x, tc1.y + height);
+    TextureCoordinate tc4(tc1.x + width, tc1.y + height);
+
+    uint16_t texpage = gpuStatusRegister & 0x09FF; // Bits 0 to 8 and 11
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
+void GPU::GP0TexturedRectangle1x1OpaqueRawTexture() {
+    // 0x6D
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]); // upper left edge
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t width = 1;
+    uint16_t height = 1;
+
+    LOGT_GPU(std::format("GP0 - TexturedRectangle1x1OpaqueRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+                         c, v1, tc1, palette, width, height));
+
+    Vertex v2(v1.x + width, v1.y);
+    Vertex v3(v1.x, v1.y + height);
+    Vertex v4(v1.x + width, v1.y + height);
+
+    // TODO Handle texture coordinates larger than 255 (repeat instead of stretch)
+    TextureCoordinate tc2(tc1.x + width, tc1.y);
+    TextureCoordinate tc3(tc1.x, tc1.y + height);
+    TextureCoordinate tc4(tc1.x + width, tc1.y + height);
+
+    uint16_t texpage = gpuStatusRegister & 0x09FF; // Bits 0 to 8 and 11
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
+void GPU::GP0TexturedRectangle1x1SemiTransparentTextureBlending() {
+    // 0x6E
+    // TODO texture blending
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]); // upper left edge
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t width = 1;
+    uint16_t height = 1;
+
+    LOGT_GPU(std::format("GP0 - TexturedRectangle1x1SemiTransparentTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+                         c, v1, tc1, palette, width, height));
+
+    Vertex v2(v1.x + width, v1.y);
+    Vertex v3(v1.x, v1.y + height);
+    Vertex v4(v1.x + width, v1.y + height);
+
+    // TODO Handle texture coordinates larger than 255 (repeat instead of stretch)
+    TextureCoordinate tc2(tc1.x + width, tc1.y);
+    TextureCoordinate tc3(tc1.x, tc1.y + height);
+    TextureCoordinate tc4(tc1.x + width, tc1.y + height);
+
+    uint16_t texpage = gpuStatusRegister & 0x09FF; // Bits 0 to 8 and 11
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
+void GPU::GP0TexturedRectangle1x1SemiTransparentRawTexture() {
+    // 0x6F
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]); // upper left edge
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t width = 1;
+    uint16_t height = 1;
+
+    LOGT_GPU(std::format("GP0 - TexturedRectangle1x1SemiTransparentRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+                         c, v1, tc1, palette, width, height));
+
+    Vertex v2(v1.x + width, v1.y);
+    Vertex v3(v1.x, v1.y + height);
+    Vertex v4(v1.x + width, v1.y + height);
+
+    // TODO Handle texture coordinates larger than 255 (repeat instead of stretch)
+    TextureCoordinate tc2(tc1.x + width, tc1.y);
+    TextureCoordinate tc3(tc1.x, tc1.y + height);
+    TextureCoordinate tc4(tc1.x + width, tc1.y + height);
+
+    uint16_t texpage = gpuStatusRegister & 0x09FF; // Bits 0 to 8 and 11
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+void GPU::GP0MonochromeRectangle8x8Opaque() {
+    // 0x70
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(v1.x + 8, v1.y);
+    Vertex v3(v1.x, v1.y + 8);
+    Vertex v4(v1.x + 8, v1.y + 8);
+
+    LOGT_GPU(std::format("GP0 - MonochromeRectangle8x8Opaque({}, {})",
+                          c, v1));
+
+    Triangle t(v1, c, v2, c, v3, c);
+    Triangle t2(v2, c, v3, c, v4, c);
+
+    renderer->drawTriangle(t);
+    renderer->drawTriangle(t2);
+}
+
+void GPU::GP0MonochromeRectangle8x8SemiTransparent() {
+    // 0x72
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(v1.x + 8, v1.y);
+    Vertex v3(v1.x, v1.y + 8);
+    Vertex v4(v1.x + 8, v1.y + 8);
+
+    LOGT_GPU(std::format("GP0 - MonochromeRectangle8x8SemiTransparent({}, {})",
                           c, v1));
 
     Triangle t(v1, c, v2, c, v3, c);
@@ -1472,7 +1893,228 @@ void GPU::GP0TexturedRectangle8x8OpaqueRawTexture() {
     uint16_t width = 8;
     uint16_t height = 8;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle8x8OpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+    LOGT_GPU(std::format("GP0 - TexturedRectangle8x8OpaqueRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+                         c, v1, tc1, palette, width, height));
+
+    Vertex v2(v1.x + width, v1.y);
+    Vertex v3(v1.x, v1.y + height);
+    Vertex v4(v1.x + width, v1.y + height);
+
+    // TODO Handle texture coordinates larger than 255 (repeat instead of stretch)
+    TextureCoordinate tc2(tc1.x + width, tc1.y);
+    TextureCoordinate tc3(tc1.x, tc1.y + height);
+    TextureCoordinate tc4(tc1.x + width, tc1.y + height);
+
+    uint16_t texpage = gpuStatusRegister & 0x09FF; // Bits 0 to 8 and 11
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
+void GPU::GP0TexturedRectangle8x8SemiTransparentTextureBlending() {
+    // 0x76
+    // TODO texture blending
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]); // upper left edge
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t width = 8;
+    uint16_t height = 8;
+
+    LOGT_GPU(std::format("GP0 - TexturedRectangle8x8SemiTransparentTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+                         c, v1, tc1, palette, width, height));
+
+    Vertex v2(v1.x + width, v1.y);
+    Vertex v3(v1.x, v1.y + height);
+    Vertex v4(v1.x + width, v1.y + height);
+
+    // TODO Handle texture coordinates larger than 255 (repeat instead of stretch)
+    TextureCoordinate tc2(tc1.x + width, tc1.y);
+    TextureCoordinate tc3(tc1.x, tc1.y + height);
+    TextureCoordinate tc4(tc1.x + width, tc1.y + height);
+
+    uint16_t texpage = gpuStatusRegister & 0x09FF; // Bits 0 to 8 and 11
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
+void GPU::GP0TexturedRectangle8x8SemiTransparentRawTexture() {
+    // 0x77
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]); // upper left edge
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t width = 8;
+    uint16_t height = 8;
+
+    LOGT_GPU(std::format("GP0 - TexturedRectangle8x8SemiTransparentRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+                         c, v1, tc1, palette, width, height));
+
+    Vertex v2(v1.x + width, v1.y);
+    Vertex v3(v1.x, v1.y + height);
+    Vertex v4(v1.x + width, v1.y + height);
+
+    // TODO Handle texture coordinates larger than 255 (repeat instead of stretch)
+    TextureCoordinate tc2(tc1.x + width, tc1.y);
+    TextureCoordinate tc3(tc1.x, tc1.y + height);
+    TextureCoordinate tc4(tc1.x + width, tc1.y + height);
+
+    uint16_t texpage = gpuStatusRegister & 0x09FF; // Bits 0 to 8 and 11
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
+void GPU::GP0MonochromeRectangle16x16Opaque() {
+    // 0x78
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(v1.x + 16, v1.y);
+    Vertex v3(v1.x, v1.y + 16);
+    Vertex v4(v1.x + 16, v1.y + 16);
+
+    LOGT_GPU(std::format("GP0 - MonochromeRectangle16x16Opaque({}, {})",
+                          c, v1));
+
+    Triangle t(v1, c, v2, c, v3, c);
+    Triangle t2(v2, c, v3, c, v4, c);
+
+    renderer->drawTriangle(t);
+    renderer->drawTriangle(t2);
+}
+
+void GPU::GP0MonochromeRectangle16x16SemiTransparent() {
+    // 0x7A
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]);
+    Vertex v2(v1.x + 16, v1.y);
+    Vertex v3(v1.x, v1.y + 16);
+    Vertex v4(v1.x + 16, v1.y + 16);
+
+    LOGT_GPU(std::format("GP0 - MonochromeRectangle16x16SemiTransparent({}, {})",
+                          c, v1));
+
+    Triangle t(v1, c, v2, c, v3, c);
+    Triangle t2(v2, c, v3, c, v4, c);
+
+    renderer->drawTriangle(t);
+    renderer->drawTriangle(t2);
+}
+
+void GPU::GP0TexturedRectangle16x16OpaqueTextureBlending() {
+    // 0x7C
+    // TODO texture blending
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]); // upper left edge
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t width = 16;
+    uint16_t height = 16;
+
+    LOGT_GPU(std::format("GP0 - TexturedRectangle16x16OpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+                         c, v1, tc1, palette, width, height));
+
+    Vertex v2(v1.x + width, v1.y);
+    Vertex v3(v1.x, v1.y + height);
+    Vertex v4(v1.x + width, v1.y + height);
+
+    // TODO Handle texture coordinates larger than 255 (repeat instead of stretch)
+    TextureCoordinate tc2(tc1.x + width, tc1.y);
+    TextureCoordinate tc3(tc1.x, tc1.y + height);
+    TextureCoordinate tc4(tc1.x + width, tc1.y + height);
+
+    uint16_t texpage = gpuStatusRegister & 0x09FF; // Bits 0 to 8 and 11
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
+void GPU::GP0TexturedRectangle16x16OpaqueRawTexture() {
+    // 0x7D
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]); // upper left edge
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t width = 16;
+    uint16_t height = 16;
+
+    LOGT_GPU(std::format("GP0 - TexturedRectangle16x16OpaqueRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+                         c, v1, tc1, palette, width, height));
+
+    Vertex v2(v1.x + width, v1.y);
+    Vertex v3(v1.x, v1.y + height);
+    Vertex v4(v1.x + width, v1.y + height);
+
+    // TODO Handle texture coordinates larger than 255 (repeat instead of stretch)
+    TextureCoordinate tc2(tc1.x + width, tc1.y);
+    TextureCoordinate tc3(tc1.x, tc1.y + height);
+    TextureCoordinate tc4(tc1.x + width, tc1.y + height);
+
+    uint16_t texpage = gpuStatusRegister & 0x09FF; // Bits 0 to 8 and 11
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
+void GPU::GP0TexturedRectangle16x16SemiTransparentTextureBlending() {
+    // 0x7E
+    // TODO texture blending
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]); // upper left edge
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t width = 16;
+    uint16_t height = 16;
+
+    LOGT_GPU(std::format("GP0 - TexturedRectangle16x16SemiTransparentTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
+                         c, v1, tc1, palette, width, height));
+
+    Vertex v2(v1.x + width, v1.y);
+    Vertex v3(v1.x, v1.y + height);
+    Vertex v4(v1.x + width, v1.y + height);
+
+    // TODO Handle texture coordinates larger than 255 (repeat instead of stretch)
+    TextureCoordinate tc2(tc1.x + width, tc1.y);
+    TextureCoordinate tc3(tc1.x, tc1.y + height);
+    TextureCoordinate tc4(tc1.x + width, tc1.y + height);
+
+    uint16_t texpage = gpuStatusRegister & 0x09FF; // Bits 0 to 8 and 11
+    TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
+    TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
+
+    renderer->drawTexturedTriangle(t);
+    renderer->drawTexturedTriangle(t2);
+}
+
+void GPU::GP0TexturedRectangle16x16SemiTransparentRawTexture() {
+    // 0x7F
+    Color c(gp0);
+
+    Vertex v1(gp0Parameters[0]); // upper left edge
+    TextureCoordinate tc1(gp0Parameters[1] & 0xFFFF);
+    uint16_t palette = gp0Parameters[1] >> 16;
+    uint16_t width = 16;
+    uint16_t height = 16;
+
+    LOGT_GPU(std::format("GP0 - TexturedRectangle16x16SemiTransparentRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
                          c, v1, tc1, palette, width, height));
 
     Vertex v2(v1.x + width, v1.y);
