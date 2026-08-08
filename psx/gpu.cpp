@@ -605,24 +605,26 @@ void GPU::update_display_area() {
 const GPU::Command GPU::gp0Commands[] = {
     // 0x00
     &GPU::GP0NOP,
-    // 0x01
     &GPU::GP0ClearCache,
-    // 0x02
     &GPU::GP0FillRectangleInVRAM,
-    &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0Mystery,
+    // 0x04
+    &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP,
+    &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP,
+    &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP,
     // 0x10
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
-    &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown, &GPU::GP0Unknown,
+    &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP,
+    // 0x14
+    &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP,
+    // 0x18
+    &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP,
+    // 0x1C
+    &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0NOP, &GPU::GP0Unknown,
     // 0x20
     &GPU::GP0MonochromeThreePointPolygonOpaque,
-    &GPU::GP0Unknown,
+    &GPU::GP0MonochromeThreePointPolygonOpaque,
     &GPU::GP0MonochromeThreePointPolygonSemiTransparent,
-    &GPU::GP0Unknown,
+    &GPU::GP0MonochromeThreePointPolygonSemiTransparent,
     // 0x24
     &GPU::GP0TexturedThreePointPolygonOpaqueTextureBlending,
     &GPU::GP0TexturedThreePointPolygonOpaqueRawTexture,
@@ -635,32 +637,29 @@ const GPU::Command GPU::gp0Commands[] = {
     &GPU::GP0MonochromeFourPointPolygonSemiTransparent,
     // 0x2C
     &GPU::GP0TexturedFourPointPolygonOpaqueTextureBlending,
-    // 0x2D
     &GPU::GP0TexturedFourPointPolygonOpaqueRawTexture,
-    // 0x2E
     &GPU::GP0TexturedFourPointPolygonSemiTransparentTextureBlending,
-    // 0x2F
     &GPU::GP0TexturedFourPointPolygonSemiTransparentRawTexture,
     // 0x30
     &GPU::GP0ShadedThreePointPolygonOpaque,
-    &GPU::GP0Unknown,
+    &GPU::GP0ShadedThreePointPolygonOpaque,
     &GPU::GP0ShadedThreePointPolygonSemiTransparent,
-    &GPU::GP0Unknown,
+    &GPU::GP0ShadedThreePointPolygonSemiTransparent,
     // 0x34
     &GPU::GP0ShadedTexturedThreePointPolygonOpaqueTextureBlending,
-    &GPU::GP0Unknown,
+    &GPU::GP0ShadedTexturedThreePointPolygonOpaqueTextureBlending,
     &GPU::GP0ShadedTexturedThreePointPolygonSemiTransparentTextureBlending,
-    &GPU::GP0Unknown,
+    &GPU::GP0ShadedTexturedThreePointPolygonSemiTransparentTextureBlending,
     // 0x38
     &GPU::GP0ShadedFourPointPolygonOpaque,
-    &GPU::GP0Unknown,
+    &GPU::GP0ShadedFourPointPolygonOpaque,
     &GPU::GP0ShadedFourPointPolygonSemiTransparent,
-    &GPU::GP0Unknown,
+    &GPU::GP0ShadedFourPointPolygonSemiTransparent,
     // 0x3C
     &GPU::GP0ShadedTexturedFourPointPolygonOpaqueTextureBlending,
-    &GPU::GP0Unknown,
+    &GPU::GP0ShadedTexturedFourPointPolygonOpaqueTextureBlending,
     &GPU::GP0ShadedTexturedFourPointPolygonSemiTransparentTextureBlending,
-    &GPU::GP0Unknown,
+    &GPU::GP0ShadedTexturedFourPointPolygonSemiTransparentTextureBlending,
     // 0x40
     &GPU::GP0MonochromeLineOpaque,
     &GPU::GP0MonochromeLineOpaque,
@@ -792,9 +791,9 @@ const uint8_t GPU::gp0ParameterNumbers[] = {
     // 0x10
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     // 0x20
-    3, 0, 3, 0, 6, 6, 6, 6, 4, 4, 4, 4, 8, 8, 8, 8,
+    3, 3, 3, 3, 6, 6, 6, 6, 4, 4, 4, 4, 8, 8, 8, 8,
     // 0x30
-    5, 0, 5, 0, 8, 0, 8, 0, 7, 0, 7, 0, 11, 0, 11, 0,
+    5, 5, 5, 5, 8, 8, 8, 8, 7, 7, 7, 7, 11, 11, 11, 11,
     // 0x40
     2, 2, 2, 2, 0, 0, 0, 0, 42, 0, 42, 0, 0, 0, 0, 0,
     // 0x50
@@ -852,6 +851,10 @@ void GPU::GP0FillRectangleInVRAM() {
                          c, topLeftX, topLeftY, width, height));
 
     renderer->fillRectangleInVRAM(c, topLeftX, topLeftY, width, height);
+}
+
+void GPU::GP0Mystery() {
+    LOG_GPU(std::format("GP0 - Mystery"));
 }
 
 void GPU::GP0MonochromeThreePointPolygonOpaque() {

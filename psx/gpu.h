@@ -224,10 +224,14 @@ private:
     void GP0ClearCache();
     // 0x02
     void GP0FillRectangleInVRAM();
+    // 0x03
+    void GP0Mystery();
     // 0x20
     void GP0MonochromeThreePointPolygonOpaque();
+    // 0x21 Same as 0x20?
     // 0x22
     void GP0MonochromeThreePointPolygonSemiTransparent();
+    // 0x23 Same as 0x22?
     // 0x24
     void GP0TexturedThreePointPolygonOpaqueTextureBlending();
     // 0x25
@@ -252,20 +256,28 @@ private:
     void GP0TexturedFourPointPolygonSemiTransparentRawTexture();
     // 0x30
     void GP0ShadedThreePointPolygonOpaque();
+    // 0x31 Same as 0x30?
     // 0x32
     void GP0ShadedThreePointPolygonSemiTransparent();
+    // 0x33 Same as 0x32?
     // 0x34
     void GP0ShadedTexturedThreePointPolygonOpaqueTextureBlending();
+    // 0x35 Same as 0x34?
     // 0x36
     void GP0ShadedTexturedThreePointPolygonSemiTransparentTextureBlending();
+    // 0x37 Same as 0x36?
     // 0x38
     void GP0ShadedFourPointPolygonOpaque();
+    // 0x39 Same as 0x38?
     // 0x3A
     void GP0ShadedFourPointPolygonSemiTransparent();
+    // 0x3B Same as 0x3A?
     // 0x3C
     void GP0ShadedTexturedFourPointPolygonOpaqueTextureBlending();
+    // 0x3D Same as 0x3C?
     // 0x3E
     void GP0ShadedTexturedFourPointPolygonSemiTransparentTextureBlending();
+    // 0x3F Same as 0x3E?
     // 0x40
     void GP0MonochromeLineOpaque();
     // 0x41 Same as 0x40?
