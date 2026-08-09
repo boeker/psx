@@ -182,9 +182,15 @@ private:
     void init();
     uint8_t init_response();
     uint8_t init_second_response();
+    // 0x0B
+    void mute();
+    uint8_t mute_response();
     // 0x0C
     void demute();
     uint8_t demute_response();
+    // 0x0D
+    void set_filter();
+    uint8_t set_filter_response();
     // 0x0E
     void set_mode();
     uint8_t set_mode_response();

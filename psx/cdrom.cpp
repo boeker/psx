@@ -503,9 +503,9 @@ const CDROM::Command CDROM::commands[] = {
     &CDROM::stop, // 0x08
     &CDROM::pause, // 0x09
     &CDROM::init, // 0x0A
-    &CDROM::unknown,
+    &CDROM::mute, // 0x0B
     &CDROM::demute, // 0x0C
-    &CDROM::unknown,
+    &CDROM::set_filter, // 0x0D
     &CDROM::set_mode, //0x0E
     &CDROM::unknown,
     // 0x10
@@ -886,6 +886,21 @@ uint8_t CDROM::init_second_response() {
     return 2;
 }
 
+void CDROM::mute() {
+    LOG_CDROM(prependState(std::format("========> Mute(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::mute_response);
+}
+
+uint8_t CDROM::mute_response() {
+    LOG_CDROM(prependState(std::format("========> Mute(): Response <========")));
+
+    // TODO Do something?
+    LOGW_CDROM(prependState(std::format("Mute() not implemented!")));
+
+    push_drive_state_to_response_queue();
+    return 3;
+}
+
 void CDROM::demute() {
     LOG_CDROM(prependState(std::format("========> Demute(): Command <========")));
     scheduled_responses.emplace_back(&CDROM::demute_response);
@@ -895,6 +910,24 @@ uint8_t CDROM::demute_response() {
     LOG_CDROM(prependState(std::format("========> Demute(): Response <========")));
 
     // TODO Do something?
+    LOGW_CDROM(prependState(std::format("Demute() not implemented!")));
+
+    push_drive_state_to_response_queue();
+    return 3;
+}
+
+void CDROM::set_filter() {
+    LOG_CDROM(prependState(std::format("========> SetFilter(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::set_filter_response);
+}
+
+uint8_t CDROM::set_filter_response() {
+    uint8_t file = parameter_queue.pop();
+    uint8_t channel = parameter_queue.pop();
+    LOG_CDROM(prependState(std::format("========> SetFilter(0x{:02X}, 0x{:02X}): Response <========", file, channel)));
+
+    // TODO Implement
+    LOGW_CDROM(prependState(std::format("SetFilter() not implemented!")));
 
     push_drive_state_to_response_queue();
     return 3;
