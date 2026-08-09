@@ -210,6 +210,7 @@ private:
     uint32_t get_cycles_per_pixel();
     void update_drawing_area();
     void update_display_area();
+    void update_display_area_color_depth();
 
     // GPU commands
     typedef void (GPU::*Command) ();

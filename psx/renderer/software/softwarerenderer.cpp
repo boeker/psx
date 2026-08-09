@@ -43,6 +43,25 @@ void SoftwareRenderer::initialize() {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
 
+    // store screen in a separate texture
+    glGenFramebuffers(1, &screenFramebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, screenFramebuffer);
+
+    glCheckError();
+
+    // texture attachment
+    glGenTextures(1, &screenTexture);
+    glBindTexture(GL_TEXTURE_2D, screenTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 512, 0, GL_RGBA,  GL_UNSIGNED_SHORT_1_5_5_5_REV, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screenTexture, 0);
+
+    glCheckError();
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+
     // bind default framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -72,6 +91,7 @@ void SoftwareRenderer::reset() {
     display_area_top_left_y = 0;
     display_area_width = 640;
     display_area_height = 480;
+    display_area_24_bit = false;
 }
 
 void SoftwareRenderer::clear() {
@@ -114,10 +134,13 @@ void SoftwareRenderer::computeVRAMViewport() {
 
 void SoftwareRenderer::swapBuffers() {
     // upload vram to texture
-    glBindTexture(GL_TEXTURE_2D, vramTexture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA,  GL_UNSIGNED_SHORT_1_5_5_5_REV, vram);
-
-    glCheckError();
+    glBindTexture(GL_TEXTURE_2D, screenTexture);
+    if (display_area_24_bit) {
+    //if (true) {
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 682, 512, GL_RGB,  GL_UNSIGNED_BYTE, vram);
+    } else {
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA,  GL_UNSIGNED_SHORT_1_5_5_5_REV, vram);
+    }
 
     // compute viewport coordinates from window size
     computeViewport();
@@ -128,8 +151,8 @@ void SoftwareRenderer::swapBuffers() {
     // set new viewport
     glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
 
-    // blit vram framebuffer to default framebuffer
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, vramFramebuffer);
+    // blit screen framebuffer to default framebuffer
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, screenFramebuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     //glBlitFramebuffer(0, 0, 1024, 512,
     glBlitFramebuffer(display_area_top_left_x, display_area_top_left_y, display_area_top_left_x + display_area_width, display_area_top_left_y + display_area_height,
@@ -142,6 +165,10 @@ void SoftwareRenderer::swapBuffers() {
     screen->swapBuffers();
 
     if (vramViewer && vramViewer->isVisible()) {
+        glBindTexture(GL_TEXTURE_2D, vramTexture);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA,  GL_UNSIGNED_SHORT_1_5_5_5_REV, vram);
+        glCheckError();
+
         computeVRAMViewport();
 
         // VRAM-viewer window
@@ -213,6 +240,10 @@ void SoftwareRenderer::set_display_area(uint32_t x, uint32_t y, uint32_t width, 
     display_area_width = width;
     display_area_height = height;
 
+}
+
+void SoftwareRenderer::set_display_area_color_depth(bool enable_24_bit) {
+    display_area_24_bit = enable_24_bit;
 }
 
 void SoftwareRenderer::drawTriangle(const Triangle &triangle) {

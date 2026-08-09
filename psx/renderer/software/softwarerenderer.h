@@ -34,6 +34,7 @@ public:
     void set_drawing_area(uint32_t top_left_x, uint32_t top_left_y, uint32_t bot_right_x, uint32_t bot_right_y) override;
     void set_drawing_offset(int32_t x, int32_t y) override;
     void set_display_area(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
+    void set_display_area_color_depth(bool enable_24_bit) override;
 
     void drawTriangle(const Triangle &triangle) override;
     void drawTexturedTriangle(const TexturedTriangle &triangle) override;
@@ -139,6 +140,9 @@ private:
     unsigned int vramFramebuffer;
     unsigned int vramTexture;
 
+    unsigned int screenFramebuffer;
+    unsigned int screenTexture;
+
     int viewportX, viewportY;
     int viewportWidth, viewportHeight;
     int vramViewportX, vramViewportY;
@@ -156,6 +160,7 @@ private:
     uint32_t display_area_top_left_y;
     uint32_t display_area_width;
     uint32_t display_area_height;
+    bool display_area_24_bit;
 };
 
 }

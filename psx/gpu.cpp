@@ -602,6 +602,13 @@ void GPU::update_display_area() {
     renderer->set_display_area(startOfDisplayAreaX, startOfDisplayAreaY, width, height);
 }
 
+void GPU::update_display_area_color_depth() {
+    bool enable_24_bit = Bit::getBit(gpuStatusRegister, GPUSTAT_DISPLAY_AREA_COLOR_DEPTH);
+
+    LOGV_GPU(std::format("Updating display area color depth: 24 bit color = {:s}", enable_24_bit));
+    renderer->set_display_area_color_depth(enable_24_bit);
+}
+
 const GPU::Command GPU::gp0Commands[] = {
     // 0x00
     &GPU::GP0NOP,
@@ -2458,7 +2465,8 @@ void GPU::GP1DisplayMode() {
         setGPUStatusRegisterBit(GPUSTAT_INTERLACE_FIELD, 1);
     }
 
-    // TODO: Handle updated video mode, display area color depth, reverseflag
+    // TODO: Handle updated video mode, reverseflag
+    update_display_area_color_depth();
 
     // Resolution might have changed, which affects the display area through the number of cycles per pixel
     update_display_area();
