@@ -194,6 +194,12 @@ private:
     // 0x0E
     void set_mode();
     uint8_t set_mode_response();
+    // 0x10
+    void get_loc_l();
+    uint8_t get_loc_l_response();
+    // 0x11
+    void get_loc_p();
+    uint8_t get_loc_p_response();
     // 0x13
     void get_tn();
     uint8_t get_tn_response();
@@ -204,6 +210,10 @@ private:
     void seek_l();
     uint8_t seek_l_response();
     uint8_t seek_l_second_response();
+    // 0x16
+    void seek_p();
+    uint8_t seek_p_response();
+    uint8_t seek_p_second_response();
     // 0x19
     void test();
     // 0x1A

@@ -509,11 +509,14 @@ const CDROM::Command CDROM::commands[] = {
     &CDROM::set_mode, //0x0E
     &CDROM::unknown,
     // 0x10
-    &CDROM::unknown, &CDROM::unknown, &CDROM::unknown,
+    &CDROM::get_loc_l, // 0x10
+    &CDROM::get_loc_p, // 0x11
+    &CDROM::unknown,
     &CDROM::get_tn, // 0x13
     &CDROM::get_td, // 0x14
     &CDROM::seek_l, // 0x15
-    &CDROM::unknown, &CDROM::unknown,
+    &CDROM::seek_p, // 0x16
+    &CDROM::unknown,
     &CDROM::unknown,
     &CDROM::test, // 0x19
     &CDROM::get_id, // 0x1A
@@ -948,6 +951,57 @@ uint8_t CDROM::set_mode_response() {
     return 3;
 }
 
+void CDROM::get_loc_l() {
+    LOG_CDROM(prependState(std::format("========> GetLocL(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::get_loc_l_response);
+}
+
+uint8_t CDROM::get_loc_l_response() {
+    LOG_CDROM(prependState(std::format("========> GetLocL(): Response <========")));
+
+    if (!cd) {
+        return no_disc_response();
+    }
+
+    auto index = cd->get_current_position();
+
+    // TODO fetch information from last read sector
+    response_queue.push((index.minutes / 10) * 0x10 + (index.minutes % 10));
+    response_queue.push((index.seconds / 10) * 0x10 + (index.seconds % 10));
+    response_queue.push((index.sectors / 10) * 0x10 + (index.sectors % 10));
+    response_queue.push(0x02); // mode TODO
+    response_queue.push(0x00); // file TODO
+    response_queue.push(0x00); // channel TODO
+    response_queue.push(0x00); // sm TODO
+    response_queue.push(0x00); // ci TODO
+    return 3;
+}
+
+void CDROM::get_loc_p() {
+    LOG_CDROM(prependState(std::format("========> GetLocP(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::get_loc_p_response);
+}
+
+uint8_t CDROM::get_loc_p_response() {
+    LOG_CDROM(prependState(std::format("========> GetLocP(): Response <========")));
+
+    if (!cd) {
+        return no_disc_response();
+    }
+
+    auto index = cd->get_current_position();
+
+    response_queue.push(0x01); // track TODO do not use hardcoded value
+    response_queue.push(0x01); // index TODO do not use hardcoded value
+    response_queue.push((index.minutes / 10) * 0x10 + (index.minutes % 10)); // TODO within track
+    response_queue.push((index.seconds / 10) * 0x10 + (index.seconds % 10)); // TODO within track
+    response_queue.push((index.sectors / 10) * 0x10 + (index.sectors % 10)); // TODO within track
+    response_queue.push((index.minutes / 10) * 0x10 + (index.minutes % 10));
+    response_queue.push((index.seconds / 10) * 0x10 + (index.seconds % 10));
+    response_queue.push((index.sectors / 10) * 0x10 + (index.sectors % 10));
+    return 3;
+}
+
 void CDROM::get_tn() {
     LOG_CDROM(prependState(std::format("========> GetTN(): Command <========")));
     scheduled_responses.emplace_back(&CDROM::get_tn_response);
@@ -1014,6 +1068,34 @@ uint8_t CDROM::seek_l_second_response() {
     return 2;
 }
 
+void CDROM::seek_p() {
+    LOG_CDROM(prependState(std::format("========> SeekP(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::seek_p_response);
+}
+
+uint8_t CDROM::seek_p_response() {
+    LOG_CDROM(prependState(std::format("========> SeekP(): Initial Response <========")));
+
+    if (!cd) {
+        return no_disc_response();
+    }
+
+    scheduled_responses.emplace_back(&CDROM::seek_p_second_response);
+
+    drive_state = SEEKING;
+    push_drive_state_to_response_queue();
+    return 3;
+}
+
+uint8_t CDROM::seek_p_second_response() {
+    LOG_CDROM(prependState(std::format("========> SeekP(): Second Response <========")));
+
+    cd->seek_to_bcd(amm, ass, asect);
+
+    drive_state = MOTOR_ON;
+    push_drive_state_to_response_queue();
+    return 2;
+}
 void CDROM::test() {
     function = parameter_queue.pop();
     LOG_CDROM(prependState(std::format("========> Test(0x{:02X}): Command <========", function)));
