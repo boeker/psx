@@ -4,6 +4,9 @@
 #include <cstring>
 #include <format>
 
+#include <SDL3/SDL_hints.h>
+#include <SDL3/SDL_init.h>
+
 #include "bus.h"
 #include "util/bit.h"
 #include "util/log.h"
@@ -16,7 +19,38 @@ namespace PSX {
 SPU::SPU(Bus *bus)
     : bus(bus),
       ram(std::make_unique<uint8_t[]>(SPU_RAM_SIZE)) {
+    SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
+    SDL_Init(SDL_INIT_AUDIO);
+    audio_spec.format = SDL_AUDIO_U8;
+    audio_spec.channels = 2;
+    audio_spec.freq = 44100;
+    audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &audio_spec, nullptr, nullptr);
+    if (!audio_stream) {
+        LOGW_SPU(std::format("Audio stream could not be opened: {:s}", SDL_GetError()));
+    }
+    if (!SDL_ResumeAudioStreamDevice(audio_stream)) {
+        LOGW_SPU(std::format("Audio stream could not be started"));
+    }
+
+    //// Short audio test
+    //for (uint32_t i = 0; i < 10; ++i) {
+    //    std::vector<uint8_t> foo;
+    //    for (uint32_t t = 0; t < 1000; ++t) {
+    //        foo.push_back(0xFF);
+    //    }
+    //    for (uint32_t t = 0; t < 1000; ++t) {
+    //        foo.push_back(0x0);
+    //    }
+    //    if (!SDL_PutAudioStreamData(audio_stream, foo.data(), 2000)) {
+    //        LOGW_SPU(std::format("Error writing data to audio stream"));
+    //    }
+    //}
+
     reset();
+}
+
+SPU::~SPU() {
+    SDL_DestroyAudioStream(audio_stream);
 }
 
 void SPU::reset() {

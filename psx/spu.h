@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <memory>
 
+#include <SDL3/SDL_audio.h>
+
 #define SPU_RAM_SIZE (512 * 1024)
 
 #define SPU_CONTROL_ENABLE 15 // 0 = off, 1 = on
@@ -36,13 +38,15 @@
 #define SPU_STATUS_EXTERNAL_AUDIO_ENABLE 1 // cf. SPU_CONTROL
 #define SPU_STATUS_CD_AUDIO_ENABLE 0 // cf. SPU_CONTROL
 
-
 namespace PSX {
 
 class Bus;
 
 class SPU {
 private:
+    SDL_AudioSpec audio_spec;
+    SDL_AudioStream* audio_stream;
+
     Bus *bus;
 
     std::unique_ptr<uint8_t[]> ram;
@@ -63,6 +67,7 @@ private:
 
 public:
     SPU(Bus *bus);
+    ~SPU();
     void reset();
 
     bool dma_write_to_spu_requested() const;

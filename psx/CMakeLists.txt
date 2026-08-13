@@ -1,5 +1,10 @@
 add_library(psx)
 
+# 1. Look for a SDL3 package,
+# 2. look for the SDL3-shared component, and
+# 3. fail if the shared component cannot be found.
+find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
+
 target_compile_features(psx PUBLIC cxx_std_20)
 
 target_sources(psx PRIVATE
@@ -42,3 +47,6 @@ target_include_directories(psx PRIVATE
     "${CMAKE_SOURCE_DIR}/psx"
 )
 
+target_link_libraries(psx PRIVATE
+    SDL3::SDL3
+)
