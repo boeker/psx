@@ -6,6 +6,8 @@
 
 #include <SDL3/SDL_audio.h>
 
+#include "util/queue.h"
+
 #define SPU_RAM_SIZE (512 * 1024)
 
 #define SPU_CONTROL_ENABLE 15 // 0 = off, 1 = on
@@ -57,7 +59,7 @@ private:
     uint16_t data_transfer_address_register;
     uint32_t data_transfer_address;
     // 0x1F80'1DA8: SPU RAM Data Transfer Queue (stores up to 32 halfwords)
-    // TODO
+    util::RingBuffer<uint16_t, 32> data_transfer_queue;
     // 0x1F80'1DAA: SPU Control Register (SPUCNT)
     uint16_t control_register;
     // 0x1F80'1DAC: SPU RAM Data Transfer Control (halfword, should be 0x0004)

@@ -59,6 +59,7 @@ void SPU::reset() {
     irq_address_register = 0;
     data_transfer_address_register = 0;
     data_transfer_address = 0;
+    data_transfer_queue.clear();
     control_register = 0;
     data_transfer_control_register = 0;
     status_register = 0;
@@ -73,10 +74,12 @@ bool SPU::dma_read_from_spu_requested() const {
 }
 
 void SPU::start_dma_transfer() {
-    LOGT_SPU(std::format("Preparing DMA transfer to/from SPU"));
+    LOGV_SPU(std::format("Preparing DMA transfer to/from SPU"));
     Bit::setBit(status_register, SPU_STATUS_TRANSFER_BUSY);
-    data_transfer_address = 8 * data_transfer_address_register;
-    LOGT_SPU(std::format("DMA transfer address is 0x{:05X}", data_transfer_address));
+    if (data_transfer_control_register != 0x0004) { // 0x0004 is normal transfer
+        LOGW_SPU(std::format("Unimplemented transfer type 0x{:04X}", data_transfer_control_register));
+    }
+    LOGV_SPU(std::format("DMA transfer address is 0x{:05X}", data_transfer_address));
 }
 
 void SPU::write_to_ram(uint16_t value) {
@@ -93,7 +96,7 @@ uint16_t SPU::read_from_ram() {
 }
 
 void SPU::finish_dma_transfer() {
-    LOGT_SPU(std::format("Finishing DMA transfer to/from SPU"));
+    LOGV_SPU(std::format("Finishing DMA transfer to/from SPU"));
     Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
     issue_interrupt_if_enabled();
 }
@@ -104,15 +107,19 @@ void SPU::handle_control_write(uint32_t address, uint16_t value) {
 
     uint32_t offset = address & 0x0000'00FF;
     if (offset == 0x0A4) {
-        LOGT_SPU(std::format("Setting RAM IRQ Address to 0x{:04X}", value));
+        LOGV_SPU(std::format("Setting RAM IRQ Address to 0x{:04X}", value));
         irq_address_register = value;
         // TODO: Implement interrupts via this register
     } else if (offset == 0xA6) {
-        LOGT_SPU(std::format("Setting RAM Data Transfer Address to 0x{:04X}", value));
+        LOGV_SPU(std::format("Setting RAM Data Transfer Address to 0x{:04X}", value));
         data_transfer_address_register = value;
+        data_transfer_address = 8 * data_transfer_address_register;
+        LOGV_SPU(std::format("Updated actual address to 0x{:05X}", data_transfer_address));
     } else if (offset == 0xA8) {
-        LOGW_SPU(std::format("Unimplemented write to RAM Data Transfer Queue @0x{:08X}", address));
-        // TODO
+        LOGT_SPU(std::format("Write to RAM Data Transfer Queue: 0x{:04X}", value));
+        if (!data_transfer_queue.push(value)) {
+            LOGW_SPU(std::format("Write to full RAM Data Transfer Queue!"));
+        }
     } else if (offset == 0xAA) {
         control_register = value;
 
@@ -123,7 +130,7 @@ void SPU::handle_control_write(uint32_t address, uint16_t value) {
         if (Bit::getBit(status_register, SPU_STATUS_IRQ9_FLAG)
             && !Bit::getBit(value, SPU_CONTROL_IRQ9_ENABLE)) {
             Bit::clearBit(status_register, SPU_STATUS_IRQ9_FLAG);
-            LOGT_SPU(std::format("Acknowledged IRQ9"));
+            LOGV_SPU(std::format("Acknowledged IRQ9"));
         }
 
         // Bit 7
@@ -135,7 +142,7 @@ void SPU::handle_control_write(uint32_t address, uint16_t value) {
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
-                LOGT_SPU(std::format("Stop SPU RAM transfer"));
+                LOGV_SPU(std::format("Stop SPU RAM transfer"));
                 break;
             case 1: // manual write
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
@@ -146,22 +153,18 @@ void SPU::handle_control_write(uint32_t address, uint16_t value) {
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
                 Bit::setBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
-                LOGW_SPU(std::format("Unimplemented DMA transfer to SPU RAM requested"));
-                // TODO: Implement DMA transfer
                 break;
             case 3: // DMA read (from SPU RAM)
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
                 Bit::setBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
-                LOGW_SPU(std::format("Unimplemented DMA transfer from SPU RAM requested"));
-                // TODO: Implement DMA transfer
                 break;
             case 4:
                 assert(false);
         }
 
     } else if (offset == 0xAC) {
-        LOGT_SPU(std::format("Setting RAM Data Transfer Control to 0x{:04X}", value));
+        LOGV_SPU(std::format("Setting RAM Data Transfer Control to 0x{:04X}", value));
         data_transfer_control_register = value;
     } else if (offset == 0xAE) {
         LOGW_SPU(std::format("Attempted write to read-only Status Register @0x{:08X}", address));
@@ -178,21 +181,21 @@ uint16_t SPU::handle_control_read(uint32_t address) {
     uint32_t offset = address & 0x0000'00FF;
     if (offset == 0x0A4) {
         value = irq_address_register;
-        LOGT_SPU(std::format("Read from RAM IRQ Address: 0x{:04X}", value));
+        LOGV_SPU(std::format("Read from RAM IRQ Address: 0x{:04X}", value));
     } else if (offset == 0xA6) {
         value = data_transfer_address_register;
-        LOGT_SPU(std::format("Read from RAM Data Transfer Address: 0x{:04X}", value));
+        LOGV_SPU(std::format("Read from RAM Data Transfer Address: 0x{:04X}", value));
     } else if (offset == 0xA8) {
         LOGW_SPU(std::format("Attempted read from RAM Data Transfer Queue"));
     } else if (offset == 0xAA) {
-        LOGT_SPU(std::format("Read from Control Register @0x{:08X}", address));
+        LOGV_SPU(std::format("Read from Control Register @0x{:08X}", address));
         // TODO Explain
         return control_register;
     } else if (offset == 0xAC) {
         value = data_transfer_control_register;
-        LOGT_SPU(std::format("Read from RAM Data Transfer Control: 0x{:04X}", value));
+        LOGV_SPU(std::format("Read from RAM Data Transfer Control: 0x{:04X}", value));
     } else if (offset == 0xAE) {
-        LOGT_SPU(std::format("Read from Status Register @0x{:08X}", address));
+        LOGV_SPU(std::format("Read from Status Register @0x{:08X}", address));
         // TODO Explain
         return status_register;
     } else {
@@ -275,16 +278,24 @@ uint8_t SPU::read(uint32_t address) {
 
 void SPU::perform_manual_transfer() {
     Bit::setBit(status_register, SPU_STATUS_TRANSFER_BUSY);
-    LOGW_SPU(std::format("Unimplemented manual transfer to SPU RAM requested"));
-    // TODO Implement
+    LOGV_SPU(std::format("Manual transfer to SPU RAM to 0x{:05X}", data_transfer_address));
+
+    if (data_transfer_control_register != 0x0004) { // 0x0004 is normal transfer
+        LOGW_SPU(std::format("Unimplemented transfer type 0x{:04X}", data_transfer_control_register));
+    }
+
+    while (!data_transfer_queue.is_empty()) {
+        write_to_ram(data_transfer_queue.pop());
+    }
+
     Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
 }
 
 void SPU::issue_interrupt_if_enabled() {
-    LOGT_SPU(std::format("Checking if interrupt is enabled"));
+    LOGV_SPU(std::format("Checking if interrupt is enabled"));
     if (Bit::getBit(control_register, SPU_CONTROL_ENABLE)
         && Bit::getBit(control_register, SPU_CONTROL_IRQ9_ENABLE)) {
-        LOGT_SPU(std::format("Issuing interrupt"));
+        LOGV_SPU(std::format("Issuing interrupt"));
         Bit::setBit(status_register, SPU_STATUS_IRQ9_FLAG);
         bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_SPU);
     }

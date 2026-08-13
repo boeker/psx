@@ -7,19 +7,19 @@
 
 namespace util {
 
-template<unsigned int N>
-class Queue {
+template<typename T, unsigned int N>
+class RingBuffer {
 private:
-    uint8_t queue[N];
+    T queue[N];
     uint8_t in;
     uint8_t out;
     uint8_t elements;
 
-    template<unsigned int M>
-    friend std::ostream& operator<<(std::ostream &os, const Queue<M> &queue);
+    template<typename S, unsigned int M>
+    friend std::ostream& operator<<(std::ostream &os, const RingBuffer<S, M> &queue);
 
 public:
-    Queue() {
+    RingBuffer() {
         clear();
     }
 
@@ -33,25 +33,28 @@ public:
         elements = 0;
     }
 
-    void push(uint8_t parameter) {
+    bool push(T parameter) {
         if (elements < N) {
             queue[in] = parameter;
 
             in = (in + 1) % N;
             ++elements;
+            return true;
         }
+
+        return false;
     }
 
-    uint8_t pop() {
+    T pop() {
         if (elements > 0) {
-            uint8_t value = queue[out];
+            T value = queue[out];
 
             out = (out + 1) % N;
             --elements;
             return value;
         }
 
-        throw std::runtime_error("Queue is empty");
+        throw std::runtime_error("RingBuffer is empty");
 
         return 0;
     }
@@ -65,11 +68,14 @@ public:
     }
 };
 
+template <unsigned int N>
+using Queue = RingBuffer<uint8_t, N>;
+
 }
 
-template<unsigned int N>
-std::ostream& operator<<(std::ostream &os, const util::Queue<N> &queue) {
-    util::Queue<N> copy = queue;
+template<typename T, unsigned int N>
+std::ostream& operator<<(std::ostream &os, const util::RingBuffer<T, N> &queue) {
+    util::RingBuffer<T, N> copy = queue;
 
     if (!copy.isEmpty()) {
         os << std::format("0x{:08X}", copy.pop());
