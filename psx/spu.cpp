@@ -278,7 +278,7 @@ uint8_t SPU::read(uint32_t address) {
 
 void SPU::perform_manual_transfer() {
     Bit::setBit(status_register, SPU_STATUS_TRANSFER_BUSY);
-    LOGV_SPU(std::format("Manual transfer to SPU RAM to 0x{:05X}", data_transfer_address));
+    LOGV_SPU(std::format("Manual transfer of 0x{:02X} halfwords to SPU RAM @0x{:05X}", data_transfer_queue.size(), data_transfer_address));
 
     if (data_transfer_control_register != 0x0004) { // 0x0004 is normal transfer
         LOGW_SPU(std::format("Unimplemented transfer type 0x{:04X}", data_transfer_control_register));

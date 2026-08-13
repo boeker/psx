@@ -66,6 +66,10 @@ public:
     bool is_full() {
         return elements == N;
     }
+
+    uint8_t size() {
+        return elements;
+    }
 };
 
 template <unsigned int N>
