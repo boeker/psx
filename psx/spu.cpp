@@ -16,6 +16,42 @@ using namespace util;
 
 namespace PSX {
 
+std::string SPU::get_control_register_explanation(uint16_t reg) {
+    std::stringstream ss;
+
+    ss << std::format("ENABLE[{:01b}], ", (reg >> SPU_CONTROL_ENABLE) & 1);
+    ss << std::format("MUTE[{:01b}], ", (reg >> SPU_CONTROL_MUTE) & 1);
+    ss << std::format("NOISE_FREQUENCY_SHIFT[{:02d}], ", (reg >> SPU_CONTROL_NOISE_FREQUENCY_SHIFT0) & 0xF);
+    ss << std::format("NOISE_FREQUENCY_STEP[{:01d}], ", (reg >> SPU_CONTROL_NOISE_FREQUENCY_STEP0) & 0x3);
+    ss << std::format("REVERB_MASTER_ENABLE[{:01b}], ", (reg >> SPU_CONTROL_REVERB_MASTER_ENABLE) & 1);
+    ss << std::format("IRQ9_ENABLE[{:01b}], ", (reg >> SPU_CONTROL_IRQ9_ENABLE) & 1);
+    ss << std::format("RAM_TRANSFER_MODE[{:01X}]", (reg >> SPU_CONTROL_RAM_TRANSFER_MODE0) & 0x3);
+    ss << std::format("EXTERNAL_AUDIO_REVERB[{:01b}], ", (reg >> SPU_CONTROL_EXTERNAL_AUDIO_REVERB) & 1);
+    ss << std::format("CD_AUDIO_REVERB[{:01b}], ", (reg >> SPU_CONTROL_CD_AUDIO_REVERB) & 1);
+    ss << std::format("EXTERNAL_AUDIO_ENABLE[{:01b}], ", (reg >> SPU_CONTROL_EXTERNAL_AUDIO_ENABLE) & 1);
+    ss << std::format("CD_AUDIO_ENABLE[{:01b}]", (reg >> SPU_CONTROL_CD_AUDIO_ENABLE) & 1);
+
+    return ss.str();
+}
+
+std::string SPU::get_status_register_explanation(uint16_t reg) {
+    std::stringstream ss;
+
+    ss << std::format("CAPTURE_HALF[{:01b}], ", (reg >> SPU_STATUS_CAPTURE_HALF) & 1);
+    ss << std::format("TRANSFER_BUSY[{:01b}], ", (reg >> SPU_STATUS_TRANSFER_BUSY) & 1);
+    ss << std::format("TRANSFER_READ_REQUEST[{:01b}], ", (reg >> SPU_STATUS_TRANSFER_READ_REQUEST) & 1);
+    ss << std::format("TRANSFER_WRITE_REQUEST[{:01b}], ", (reg >> SPU_STATUS_TRANSFER_WRITE_REQUEST) & 1);
+    ss << std::format("TRANSFER_READ_WRITE_REQUEST[{:01b}], ", (reg >> SPU_STATUS_TRANSFER_READ_WRITE_REQUEST) & 1);
+    ss << std::format("IRQ9_FLAG[{:01b}], ", (reg >> SPU_STATUS_IRQ9_FLAG) & 1);
+    ss << std::format("RAM_TRANSFER_MODE[{:01X}]", (reg >> SPU_STATUS_RAM_TRANSFER_MODE0) & 0x3);
+    ss << std::format("EXTERNAL_AUDIO_REVERB[{:01b}], ", (reg >> SPU_STATUS_EXTERNAL_AUDIO_REVERB) & 1);
+    ss << std::format("CD_AUDIO_REVERB[{:01b}], ", (reg >> SPU_STATUS_CD_AUDIO_REVERB) & 1);
+    ss << std::format("EXTERNAL_AUDIO_ENABLE[{:01b}], ", (reg >> SPU_STATUS_EXTERNAL_AUDIO_ENABLE) & 1);
+    ss << std::format("CD_AUDIO_ENABLE[{:01b}]", (reg >> SPU_STATUS_CD_AUDIO_ENABLE) & 1);
+
+    return ss.str();
+}
+
 SPU::SPU(Bus *bus)
     : bus(bus),
       ram(std::make_unique<uint8_t[]>(SPU_RAM_SIZE)) {
@@ -101,6 +137,29 @@ void SPU::finish_dma_transfer() {
     issue_interrupt_if_enabled();
 }
 
+void SPU::handle_volume_write(uint32_t address, uint16_t value) {
+    assert(address >= 0x1F80'1D80 && address < 0x1F80'1D87);
+    assert((address & 1) == 0);
+
+    uint32_t offset = address & 0x0000'00FF;
+    if (offset == 0x80) {
+        LOGV_SPU(std::format("Write to Main Volume (Left): 0x{:04X}", value));
+        // TODO Handle
+    } else if (offset == 0x82) {
+        LOGV_SPU(std::format("Write to Main Volume (Right): 0x{:04X}", value));
+        // TODO Handle
+    } else if (offset == 0x84) {
+        LOGV_SPU(std::format("Write to Reverb Output Volume (Left): 0x{:04X}", value));
+        // TODO Handle
+    } else if (offset == 0x86) {
+        LOGV_SPU(std::format("Write to Reverb Output Volume (Right): 0x{:04X}", value));
+        // TODO Handle
+    } else {
+        // Should not be reachable
+        assert(false);
+    }
+}
+
 void SPU::handle_control_write(uint32_t address, uint16_t value) {
     assert(address >= 0x1F80'1DA0 && address < 0x1F80'1DBF);
     assert((address & 1) == 0);
@@ -121,6 +180,7 @@ void SPU::handle_control_write(uint32_t address, uint16_t value) {
             LOGW_SPU(std::format("Write to full RAM Data Transfer Queue!"));
         }
     } else if (offset == 0xAA) {
+        LOGV_SPU(std::format("Write to SPU control register: {:s}", get_control_register_explanation(value)));
         control_register = value;
 
         // Update Status Register
@@ -142,22 +202,25 @@ void SPU::handle_control_write(uint32_t address, uint16_t value) {
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
-                LOGV_SPU(std::format("Stop SPU RAM transfer"));
+                LOGV_SPU(std::format("Setting Transfer Mode: Stop"));
                 break;
             case 1: // manual write
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
+                LOGV_SPU(std::format("Setting Transfer Mode: Manual Transfer"));
                 perform_manual_transfer();
                 break;
             case 2: // DMA write (to SPU RAM)
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
                 Bit::setBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
+                LOGV_SPU(std::format("Setting Transfer Mode: DMA Write to SPU"));
                 break;
             case 3: // DMA read (from SPU RAM)
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_BUSY);
                 Bit::setBit(status_register, SPU_STATUS_TRANSFER_READ_REQUEST);
                 Bit::clearBit(status_register, SPU_STATUS_TRANSFER_WRITE_REQUEST);
+                LOGV_SPU(std::format("Setting Transfer Mode: DMA Read from SPU"));
                 break;
             case 4:
                 assert(false);
@@ -167,7 +230,7 @@ void SPU::handle_control_write(uint32_t address, uint16_t value) {
         LOGV_SPU(std::format("Setting RAM Data Transfer Control to 0x{:04X}", value));
         data_transfer_control_register = value;
     } else if (offset == 0xAE) {
-        LOGW_SPU(std::format("Attempted write to read-only Status Register @0x{:08X}", address));
+        LOGW_SPU(std::format("Attempted write to read-only SPU Status Register @0x{:08X}", address));
     } else {
         LOGW_SPU(std::format("Write to unknown control register @0x{:08X}", address));
     }
@@ -188,16 +251,14 @@ uint16_t SPU::handle_control_read(uint32_t address) {
     } else if (offset == 0xA8) {
         LOGW_SPU(std::format("Attempted read from RAM Data Transfer Queue"));
     } else if (offset == 0xAA) {
-        LOGV_SPU(std::format("Read from Control Register @0x{:08X}", address));
-        // TODO Explain
-        return control_register;
+        value = control_register;
+        LOGV_SPU(std::format("Read from SPU control register: {:s}", get_control_register_explanation(value)));
     } else if (offset == 0xAC) {
         value = data_transfer_control_register;
         LOGV_SPU(std::format("Read from RAM Data Transfer Control: 0x{:04X}", value));
     } else if (offset == 0xAE) {
-        LOGV_SPU(std::format("Read from Status Register @0x{:08X}", address));
-        // TODO Explain
-        return status_register;
+        value = status_register;
+        LOGV_SPU(std::format("Read from SPU status register: {:s}", get_status_register_explanation(value)));
     } else {
         LOGW_SPU(std::format("Read from unknown control register @0x{:08X}", address));
     }
@@ -219,7 +280,7 @@ void SPU::write(uint32_t address, uint16_t value) {
     if (offset < 0x1D7F) {
         LOGW_SPU(std::format("Unimplemented write to voice register @0x{:08X}", address));
     } else if (offset < 0x1D87) {
-        LOGW_SPU(std::format("Unimplemented write to volume register @0x{:08X}", address));
+        handle_volume_write(address, value);
     } else if (offset < 0x1D9F) {
         LOGW_SPU(std::format("Unimplemented write to voice flags @0x{:08X}", address));
     } else if (offset < 0x1DBF) {

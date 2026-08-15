@@ -67,6 +67,9 @@ private:
     // 0x1F80'1DAE: SPU Status Register (SPUSTAT)
     uint16_t status_register;
 
+    static std::string get_control_register_explanation(uint16_t reg);
+    static std::string get_status_register_explanation(uint16_t reg);
+
 public:
     SPU(Bus *bus);
     ~SPU();
@@ -79,6 +82,8 @@ public:
     void write_to_ram(uint16_t value);
     uint16_t read_from_ram();
     void finish_dma_transfer();
+
+    void handle_volume_write(uint32_t address, uint16_t value);
 
     void handle_control_write(uint32_t address, uint16_t value);
     uint16_t handle_control_read(uint32_t address);
