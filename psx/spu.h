@@ -83,9 +83,23 @@ public:
     uint16_t read_from_ram();
     void finish_dma_transfer();
 
+    // 0x1F80'1C00 to 0x1F80'1D7F
+    void handle_voice_write(uint32_t address, uint16_t value);
+    // 0x1F80'1D80 to 0x1F80'1D87
     void handle_volume_write(uint32_t address, uint16_t value);
-
+    // 0x1F80'1D88 to 0x1F80'1D9F
+    void handle_voice_flags_write(uint32_t address, uint16_t value);
+    // 0x1F80'1DA2 to 0x1F80'1DBF
     void handle_control_write(uint32_t address, uint16_t value);
+    // 0x1F80'1DC0 to 0x1F80'1DFF
+    void handle_reverb_control_write(uint32_t address, uint16_t value);
+    // 0x1F80'1E00 to 0x1F80'1E5F
+    void handle_internal_register_write(uint32_t address, uint16_t value);
+    // 0x1F80'1E60 to 0x1F80'1E7F
+    void handle_unknown_write(uint32_t address, uint16_t value);
+    // 0x1F80'1E80 to 0x1F80'1FFF
+    void handle_unused_write(uint32_t address, uint16_t value);
+
     uint16_t handle_control_read(uint32_t address);
 
     template <typename T>

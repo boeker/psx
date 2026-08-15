@@ -25,7 +25,7 @@ std::string SPU::get_control_register_explanation(uint16_t reg) {
     ss << std::format("NOISE_FREQUENCY_STEP[{:01d}], ", (reg >> SPU_CONTROL_NOISE_FREQUENCY_STEP0) & 0x3);
     ss << std::format("REVERB_MASTER_ENABLE[{:01b}], ", (reg >> SPU_CONTROL_REVERB_MASTER_ENABLE) & 1);
     ss << std::format("IRQ9_ENABLE[{:01b}], ", (reg >> SPU_CONTROL_IRQ9_ENABLE) & 1);
-    ss << std::format("RAM_TRANSFER_MODE[{:01X}]", (reg >> SPU_CONTROL_RAM_TRANSFER_MODE0) & 0x3);
+    ss << std::format("RAM_TRANSFER_MODE[{:01X}], ", (reg >> SPU_CONTROL_RAM_TRANSFER_MODE0) & 0x3);
     ss << std::format("EXTERNAL_AUDIO_REVERB[{:01b}], ", (reg >> SPU_CONTROL_EXTERNAL_AUDIO_REVERB) & 1);
     ss << std::format("CD_AUDIO_REVERB[{:01b}], ", (reg >> SPU_CONTROL_CD_AUDIO_REVERB) & 1);
     ss << std::format("EXTERNAL_AUDIO_ENABLE[{:01b}], ", (reg >> SPU_CONTROL_EXTERNAL_AUDIO_ENABLE) & 1);
@@ -43,7 +43,7 @@ std::string SPU::get_status_register_explanation(uint16_t reg) {
     ss << std::format("TRANSFER_WRITE_REQUEST[{:01b}], ", (reg >> SPU_STATUS_TRANSFER_WRITE_REQUEST) & 1);
     ss << std::format("TRANSFER_READ_WRITE_REQUEST[{:01b}], ", (reg >> SPU_STATUS_TRANSFER_READ_WRITE_REQUEST) & 1);
     ss << std::format("IRQ9_FLAG[{:01b}], ", (reg >> SPU_STATUS_IRQ9_FLAG) & 1);
-    ss << std::format("RAM_TRANSFER_MODE[{:01X}]", (reg >> SPU_STATUS_RAM_TRANSFER_MODE0) & 0x3);
+    ss << std::format("RAM_TRANSFER_MODE[{:01X}], ", (reg >> SPU_STATUS_RAM_TRANSFER_MODE0) & 0x3);
     ss << std::format("EXTERNAL_AUDIO_REVERB[{:01b}], ", (reg >> SPU_STATUS_EXTERNAL_AUDIO_REVERB) & 1);
     ss << std::format("CD_AUDIO_REVERB[{:01b}], ", (reg >> SPU_STATUS_CD_AUDIO_REVERB) & 1);
     ss << std::format("EXTERNAL_AUDIO_ENABLE[{:01b}], ", (reg >> SPU_STATUS_EXTERNAL_AUDIO_ENABLE) & 1);
@@ -137,6 +137,42 @@ void SPU::finish_dma_transfer() {
     issue_interrupt_if_enabled();
 }
 
+void SPU::handle_voice_write(uint32_t address, uint16_t value) {
+    assert(address >= 0x1F80'1C00 && address < 0x1F80'1D7F);
+    assert((address & 1) == 0);
+
+    uint32_t voice_number = (address & 0x0000'01F0) >> 4;
+    uint32_t offset = address & 0x0000'000F;
+    if (offset == 0x0) {
+        LOGV_SPU(std::format("Write to Voice {:d} Volume (Left): 0x{:04X}", voice_number, value));
+        // TODO Handle
+    } else if (offset == 0x2) {
+        LOGV_SPU(std::format("Write to Voice {:d} Volume (Right): 0x{:04X}", voice_number, value));
+        // TODO Handle
+    } else if (offset == 0x4) {
+        LOGV_SPU(std::format("Write to Voice {:d} ADPCM Sample Rate (VxPitch): 0x{:04X}", voice_number, value));
+        // TODO Handle
+    } else if (offset == 0x6) {
+        LOGV_SPU(std::format("Write to Voice {:d} ADPCM Start Address: 0x{:04X}", voice_number, value));
+        // TODO Handle
+    } else if (offset == 0x8) {
+        LOGV_SPU(std::format("Write to Voice {:d} ADSR (Lower): 0x{:04X}", voice_number, value));
+        // TODO Handle
+    } else if (offset == 0xA) {
+        LOGV_SPU(std::format("Write to Voice {:d} ADSR (Lower): 0x{:04X}", voice_number, value));
+        // TODO Handle
+    } else if (offset == 0xC) {
+        LOGV_SPU(std::format("Write to Voice {:d} ADSR Current Volume: 0x{:04X}", voice_number, value));
+        // TODO Handle
+    } else if (offset == 0xE) {
+        LOGV_SPU(std::format("Write to Voice {:d} ADPCM Repeat Address: 0x{:04X}", voice_number, value));
+        // TODO Handle
+    } else {
+        // Should not be reachable
+        assert(false);
+    }
+}
+
 void SPU::handle_volume_write(uint32_t address, uint16_t value) {
     assert(address >= 0x1F80'1D80 && address < 0x1F80'1D87);
     assert((address & 1) == 0);
@@ -160,15 +196,65 @@ void SPU::handle_volume_write(uint32_t address, uint16_t value) {
     }
 }
 
+void SPU::handle_voice_flags_write(uint32_t address, uint16_t value) {
+    assert(address >= 0x1F80'1D88 && address < 0x1F80'1D9F);
+    assert((address & 1) == 0);
+
+    uint32_t offset = address & 0x0000'00FF;
+    if (offset == 0x88) {
+        LOGV_SPU(std::format("Write to Key On (KON) (Voices 0...15): 0x{:04X}", value));
+        // TODO Handle: Start Attack, Decay, Sustain
+    } else if (offset == 0x8A) {
+        LOGV_SPU(std::format("Write to Key On (KON) (Voices 16...23): 0x{:04X}", value));
+        // TODO Handle: Switch to Release
+    } else if (offset == 0x8C) {
+        LOGV_SPU(std::format("Write to Key Off (KOFF) (Voices 0...15): 0x{:04X}", value));
+        // TODO Handle
+    } else if (offset == 0x8E) {
+        LOGV_SPU(std::format("Write to Key Off (KOFF) (Voices 16...23): 0x{:04X}", value));
+        // TODO Handle
+    } else if (offset == 0x90) {
+        LOGV_SPU(std::format("Write to Pitch Modulation Enable (PMON) (Voices 1...15): 0x{:04X}", value));
+        // TODO Handle
+    } else if (offset == 0x92) {
+        LOGV_SPU(std::format("Write to Pitch Modulation Enable (PMON) (Voices 16...23): 0x{:04X}", value));
+        // TODO Handle
+    } else if (offset == 0x94) {
+        LOGV_SPU(std::format("Write to Noise Enable (NON) (Voices 0...15): 0x{:04X}", value));
+        // TODO Handle
+    } else if (offset == 0x96) {
+        LOGV_SPU(std::format("Write to Noise Enable (NON) (Voices 16...23): 0x{:04X}", value));
+        // TODO Handle
+    } else if (offset == 0x98) {
+        LOGV_SPU(std::format("Write to Reverb On (EON) (Voices 0...15): 0x{:04X}", value));
+        // TODO Handle
+    } else if (offset == 0x9A) {
+        LOGV_SPU(std::format("Write to Reverb On (EON) (Voices 16...23): 0x{:04X}", value));
+        // TODO Handle
+    } else if (offset == 0x9C) {
+        LOGW_SPU(std::format("Write to read-only register: Key On/Off Status (Voices 0...15): 0x{:04X}", value));
+    } else if (offset == 0x9E) {
+        LOGW_SPU(std::format("Write to read-only register: Key On/Off Status (Voices 16...23): 0x{:04X}", value));
+    } else {
+        // Should not be reachable
+        assert(false);
+    }
+}
+
 void SPU::handle_control_write(uint32_t address, uint16_t value) {
     assert(address >= 0x1F80'1DA0 && address < 0x1F80'1DBF);
     assert((address & 1) == 0);
 
     uint32_t offset = address & 0x0000'00FF;
-    if (offset == 0x0A4) {
+    if (offset == 0xA0) {
+        LOGW_SPU(std::format("Write to unknown register 0x1F80'1DA0"));
+    } else if (offset == 0xA2) {
+        LOGV_SPU(std::format("Setting RAM Reverb Work Area Start Address to 0x{:04X}", value));
+        // TODO Handle
+    } else if (offset == 0xA4) {
         LOGV_SPU(std::format("Setting RAM IRQ Address to 0x{:04X}", value));
         irq_address_register = value;
-        // TODO: Implement interrupts via this register
+        // TODO Implement interrupts via this register
     } else if (offset == 0xA6) {
         LOGV_SPU(std::format("Setting RAM Data Transfer Address to 0x{:04X}", value));
         data_transfer_address_register = value;
@@ -180,7 +266,7 @@ void SPU::handle_control_write(uint32_t address, uint16_t value) {
             LOGW_SPU(std::format("Write to full RAM Data Transfer Queue!"));
         }
     } else if (offset == 0xAA) {
-        LOGV_SPU(std::format("Write to SPU control register: {:s}", get_control_register_explanation(value)));
+        LOGV_SPU(std::format("Write to SPU control register:\n{:s}", get_control_register_explanation(value)));
         control_register = value;
 
         // Update Status Register
@@ -231,9 +317,157 @@ void SPU::handle_control_write(uint32_t address, uint16_t value) {
         data_transfer_control_register = value;
     } else if (offset == 0xAE) {
         LOGW_SPU(std::format("Attempted write to read-only SPU Status Register @0x{:08X}", address));
+    } else if (offset == 0xB0) {
+        LOGV_SPU(std::format("Write to CD Audio Input Volume (Left): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xB2) {
+        LOGV_SPU(std::format("Write to CD Audio Input Volume (Right): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xB4) {
+        LOGV_SPU(std::format("Write to External Audio Input Volume (Left): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xB6) {
+        LOGV_SPU(std::format("Write to External Audio Input Volume (Right): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xB8) {
+        LOGW_SPU(std::format("Ignoring write to internal register: Current Volume (Left): 0x{:04X}", value));
+    } else if (offset == 0xBA) {
+        LOGW_SPU(std::format("Ignoring write to internal register: Current Volume (Right): 0x{:04X}", value));
+    } else if (offset == 0xBC) {
+        LOGW_SPU(std::format("Ignoring write to unknown register 0x1F80'1DBC: 0x{:04X}", value));
+    } else if (offset == 0xBE) {
+        LOGW_SPU(std::format("Ignoring write to unknown register 0x1F80'1DBE: 0x{:04X}", value));
     } else {
-        LOGW_SPU(std::format("Write to unknown control register @0x{:08X}", address));
+        assert(false);
     }
+}
+
+void SPU::handle_reverb_control_write(uint32_t address, uint16_t value) {
+    assert(address >= 0x1F80'1DC0 && address < 0x1F80'1DFF);
+    assert((address & 1) == 0);
+
+    uint32_t offset = address & 0x0000'00FF;
+    if (offset == 0xC0) {
+        LOGV_SPU(std::format("Write to Reverb APF Offset 1 (dAPF1): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xC2) {
+        LOGV_SPU(std::format("Write to Reverb APF Offset 2 (dAPF2): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xC4) {
+        LOGV_SPU(std::format("Write to Reverb Reflection Volume 1 (vIIR): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xC6) {
+        LOGV_SPU(std::format("Write to Reverb Comb Volume 1 (vCOMB1): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xC8) {
+        LOGV_SPU(std::format("Write to Reverb Comb Volume 2 (vCOMB2): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xCA) {
+        LOGV_SPU(std::format("Write to Reverb Comb Volume 3 (vCOMB3): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xCC) {
+        LOGV_SPU(std::format("Write to Reverb Comb Volume 4 (vCOMB4): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xCE) {
+        LOGV_SPU(std::format("Write to Reverb Reflection Volume 2 (vWALL): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xD0) {
+        LOGV_SPU(std::format("Write to Reverb APF Volume 1 (vAPF1): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xD2) {
+        LOGV_SPU(std::format("Write to Reverb APF Volume 2 (vAPF2): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xD4) {
+        LOGV_SPU(std::format("Write to Reverb Same Side Reflection Address 1 (Left) (mSAME): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xD6) {
+        LOGV_SPU(std::format("Write to Reverb Same Side Reflection Address 1 (Right) (mSAME): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xD8) {
+        LOGV_SPU(std::format("Write to Reverb Comb Address 1 (Left) (mCOMB1): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xDA) {
+        LOGV_SPU(std::format("Write to Reverb Comb Address 1 (Right) (mCOMB1): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xDC) {
+        LOGV_SPU(std::format("Write to Reverb Comb Address 2 (Left) (mCOMB2): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xDE) {
+        LOGV_SPU(std::format("Write to Reverb Comb Address 2 (Right) (mCOMB2): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xE0) {
+        LOGV_SPU(std::format("Write to Reverb Same Side Reflection Address 2 (Left) (dSAME): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xE2) {
+        LOGV_SPU(std::format("Write to Reverb Same Side Reflection Address 2 (Right) (dSAME): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xE4) {
+        LOGV_SPU(std::format("Write to Reverb Different Side Reflection Address 1 (Left) (mDIFF): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xE6) {
+        LOGV_SPU(std::format("Write to Reverb Different Side Reflection Address 1 (Right) (mDIFF): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xE8) {
+        LOGV_SPU(std::format("Write to Reverb Comb Address 3 (Left) (mCOMB4): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xEA) {
+        LOGV_SPU(std::format("Write to Reverb Comb Address 3 (Right) (mCOMB4): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xEC) {
+        LOGV_SPU(std::format("Write to Reverb Comb Address 3 (Left) (mCOMB4): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xEE) {
+        LOGV_SPU(std::format("Write to Reverb Comb Address 3 (Right) (mCOMB4): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xF0) {
+        LOGV_SPU(std::format("Write to Reverb Different Side Reflection Address 2 (Left) (dDIFF): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xF2) {
+        LOGV_SPU(std::format("Write to Reverb Different Side Reflection Address 2 (Right) (dDIFF): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xF4) {
+        LOGV_SPU(std::format("Write to Reverb APF Address 1 (Left) (mAPF1): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xF6) {
+        LOGV_SPU(std::format("Write to Reverb APF Address 1 (Right) (mAPF1): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xF8) {
+        LOGV_SPU(std::format("Write to Reverb APF Address 2 (Left) (mAPF2): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xFA) {
+        LOGV_SPU(std::format("Write to Reverb APF Address 2 (Right) (mAPF2): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xFC) {
+        LOGV_SPU(std::format("Write to Reverb Input Volume (Left) (vIN): 0x{:04X}", value));
+        // TODO
+    } else if (offset == 0xFE) {
+        LOGV_SPU(std::format("Write to Reverb Input Volume (Right) (vIN): 0x{:04X}", value));
+        // TODO
+    } else {
+        // Should not be reachable
+        assert(false);
+    }
+}
+
+void SPU::handle_internal_register_write(uint32_t address, uint16_t value) {
+    assert(address >= 0x1F80'1E00 && address < 0x1F80'1E5F);
+    assert((address & 1) == 0);
+
+    LOGW_SPU(std::format("Unimplemented write to internal voice registers @0x{:08X}", address));
+}
+
+void SPU::handle_unknown_write(uint32_t address, uint16_t value) {
+    assert(address >= 0x1F80'1E60 && address < 0x1F80'1E7F);
+    assert((address & 1) == 0);
+
+    LOGW_SPU(std::format("Unimplemented write to unknown register @0x{:08X}", address));
+}
+
+void SPU::handle_unused_write(uint32_t address, uint16_t value) {
+    assert(address >= 0x1F80'1E80 && address < 0x1F80'1FFF);
+    assert((address & 1) == 0);
+
+    LOGW_SPU(std::format("Unimplemented write to unused register @0x{:08X}", address));
 }
 
 uint16_t SPU::handle_control_read(uint32_t address) {
@@ -252,13 +486,13 @@ uint16_t SPU::handle_control_read(uint32_t address) {
         LOGW_SPU(std::format("Attempted read from RAM Data Transfer Queue"));
     } else if (offset == 0xAA) {
         value = control_register;
-        LOGV_SPU(std::format("Read from SPU control register: {:s}", get_control_register_explanation(value)));
+        LOGV_SPU(std::format("Read from SPU control register:\n{:s}", get_control_register_explanation(value)));
     } else if (offset == 0xAC) {
         value = data_transfer_control_register;
         LOGV_SPU(std::format("Read from RAM Data Transfer Control: 0x{:04X}", value));
     } else if (offset == 0xAE) {
         value = status_register;
-        LOGV_SPU(std::format("Read from SPU status register: {:s}", get_status_register_explanation(value)));
+        LOGV_SPU(std::format("Read from SPU status register:\n{:s}", get_status_register_explanation(value)));
     } else {
         LOGW_SPU(std::format("Read from unknown control register @0x{:08X}", address));
     }
@@ -276,21 +510,25 @@ void SPU::write(uint32_t address, uint16_t value) {
     assert(address >= 0x1F80'1C00 && address < 0x1F80'1FFF);
     assert((address & 1) == 0); // Only aligned writes supported for now
 
+    LOGT_SPU(std::format("Half-word write to SPU @0x{:08X}: 0x{:04X}", address, value));
+
     uint32_t offset = address & 0x0000'FFFF;
     if (offset < 0x1D7F) {
-        LOGW_SPU(std::format("Unimplemented write to voice register @0x{:08X}", address));
+        handle_voice_write(address, value);
     } else if (offset < 0x1D87) {
         handle_volume_write(address, value);
     } else if (offset < 0x1D9F) {
-        LOGW_SPU(std::format("Unimplemented write to voice flags @0x{:08X}", address));
+        handle_voice_flags_write(address, value);
     } else if (offset < 0x1DBF) {
         handle_control_write(address, value);
     } else if (offset < 0x1DFF) {
-        LOGW_SPU(std::format("Unimplemented write to reverb configuration area @0x{:08X}", address));
+        handle_reverb_control_write(address, value);
     } else if (offset < 0x1E5F) {
-        LOGW_SPU(std::format("Unimplemented write to internal voice registers @0x{:08X}", address));
+        handle_internal_register_write(address, value);
+    } else if (offset < 0x1E7F) {
+        handle_unknown_write(address, value);
     } else if (offset < 0x1FFF) {
-        LOGW_SPU(std::format("Unimplemented write to unknown area @0x{:08X}", address));
+        handle_unused_write(address, value);
     }
 }
 
@@ -309,6 +547,8 @@ template <>
 uint16_t SPU::read(uint32_t address) {
     assert(address >= 0x1F80'1C00 && address < 0x1F80'1FFF);
     assert((address & 1) == 0); // Only aligned reads supported for now
+
+    LOGT_SPU(std::format("Half-word read from SPU @0x{:08X}", address));
 
     uint16_t value = 0;
     uint32_t offset = address & 0x0000'FFFF;
