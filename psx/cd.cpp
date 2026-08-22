@@ -15,33 +15,35 @@ using namespace util;
 
 namespace PSX {
 
-CD::BinaryFile::BinaryFile(std::ifstream&& stream, uint32_t sectors)
-    : SectorFile(sectors), stream(std::move(stream)) {
+CD::BinaryFile::BinaryFile(std::shared_ptr<std::ifstream> stream, uint32_t offset_in_stream, uint32_t total_sectors)
+    : SectorFile(total_sectors), stream(std::move(stream)), offset_in_stream(offset_in_stream) {
+    assert(offset_in_stream <= total_sectors);
     reset();
 }
 
 void CD::BinaryFile::reset() {
-    stream.seekg(0, std::ios::beg);
-    assert(stream.good());
+    stream->seekg(offset_in_stream * SECTOR_SIZE, std::ios::beg);
+    assert(stream->good());
 }
 
 void CD::BinaryFile::seek_by(uint32_t sectors) {
     assert(sectors <= get_remaining_sectors());
-    stream.seekg(sectors * SECTOR_SIZE, std::ios::cur);
-    assert(stream.good());
+    stream->seekg(sectors * SECTOR_SIZE, std::ios::cur);
+    assert(stream->good());
 }
 
 void CD::BinaryFile::read_sector(uint8_t* buffer) {
-    assert(stream.good());
-    stream.read(reinterpret_cast<char*>(buffer), SECTOR_SIZE);
+    assert(stream->good());
+    stream->read(reinterpret_cast<char*>(buffer), SECTOR_SIZE);
 }
 
 uint32_t CD::BinaryFile::get_read_sectors() {
-    auto pos = stream.tellg();
+    auto pos = stream->tellg();
     assert(pos % SECTOR_SIZE == 0);
     uint32_t read = pos / SECTOR_SIZE;
-    assert(read <= get_total_sectors());
-    return read;
+    assert(read >= offset_in_stream);
+    assert(read - offset_in_stream <= get_total_sectors());
+    return read - offset_in_stream;
 }
 
 CD::Gap::Gap(uint32_t sectors)
@@ -89,9 +91,9 @@ void CD::open_cue_sheet(const std::string &filename) {
 
     uint32_t expected_track_number = 1;
     for (const cue::File& file : cue_sheet.files) {
-        // Open the file
-        std::shared_ptr<SectorFile> sector_file;
-        uint32_t sectors_in_file = 0;
+        // Open stream for file
+        std::shared_ptr<std::ifstream> stream = std::make_shared<std::ifstream>();
+        uint32_t sectors_in_stream = 0;
         if (file.type == cue::File::Type::BINARY) {
             std::filesystem::path path_to_file(path_to_cue_sheet.replace_filename(file.filename));
             LOG_CDIMG(std::format("Opening file \"{:s}\"", path_to_file.native()));
@@ -105,19 +107,16 @@ void CD::open_cue_sheet(const std::string &filename) {
             if (size % CD::SECTOR_SIZE != 0) {
                 throw exceptions::FileReadError("File does not divide evenly into sectors of size " + CD::SECTOR_SIZE);
             }
-            sectors_in_file = size / CD::SECTOR_SIZE;
-            if (sectors_in_file == 0) {
+            sectors_in_stream = size / CD::SECTOR_SIZE;
+            if (sectors_in_stream == 0) {
                 throw exceptions::FileReadError("File contains no sectors");
             }
 
-            std::ifstream stream;
-            stream.open(path_to_file.c_str(), std::ios::binary);
-            if (!stream.good()) {
+            stream->open(path_to_file.c_str(), std::ios::binary);
+            if (!stream->good()) {
                 throw exceptions::FileReadError("Failed to open file for reading");
             }
 
-            sector_file = std::make_shared<BinaryFile>(std::move(stream), sectors_in_file);
-            files.emplace_back(sector_file);
         } else {
             throw exceptions::FileReadError(std::format("Unsupported type for file \"{:s}\": {:s}", file.filename, cue::File::type_to_string(file.type)));
         }
@@ -145,7 +144,7 @@ void CD::open_cue_sheet(const std::string &filename) {
             // TODO Add support for PREGAP statements (instead of INDEX 00 statements, states length of pre-gap)
             if (track_it->indexes.front().number != 0) {
                 // INDEX 00 00:00:00 of two-second length
-                indexes.emplace_back(track_on_disc, 0, 0, CD_TWO_SECONDS, std::make_shared<Gap>(CD_TWO_SECONDS), 0);
+                indexes.emplace_back(track_on_disc, 0, 0, CD_TWO_SECONDS, std::make_unique<Gap>(CD_TWO_SECONDS));
                 {
                     const auto& back = indexes.back();
                     LOG_CDIMG(std::format("Index {:d}: {:s} in track {:d}, length {:s} (Gap)", back.number, Index(back.position_in_track), back.track.number, Index(back.length)));
@@ -154,9 +153,9 @@ void CD::open_cue_sheet(const std::string &filename) {
                 expected_index_number = 1; // No INDEX 00 statement
             }
 
-            // Where in the sector_file we are.
+            // Where in the stream we are.
             // No the position in the cue FILE (gaps are added there, but not here).
-            uint32_t current_position_in_file = 0;
+            uint32_t current_position_in_stream = 0;
 
             for (auto index_it = track_it->indexes.cbegin(); index_it != track_it->indexes.cend(); ++index_it) {
                 if (index_it->number != expected_index_number) {
@@ -191,25 +190,24 @@ void CD::open_cue_sheet(const std::string &filename) {
                         index_length = next_index_sectors - index_sectors;
                     }
                 } else { // Last index in file
-                    index_length = sectors_in_file - current_position_in_file;
+                    index_length = sectors_in_stream - current_position_in_stream;
                 }
 
                 indexes.emplace_back(track_on_disc,
                                      index_it->number,
                                      current_position_on_disc - track_on_disc.position_on_disc,
                                      index_length,
-                                     sector_file,
-                                     current_position_in_file);
+                                     std::make_unique<BinaryFile>(stream, current_position_in_stream, index_length));
                 {
                     const auto& back = indexes.back();
-                    LOG_CDIMG(std::format("Index {:d}: {:s} in track {:d}, length {:s} (File)", back.number, Index(back.position_in_track), back.track.number, Index(back.length)));
+                    LOG_CDIMG(std::format("Index {:d}: {:s} in track {:d}, length {:s} (File at {:s})", back.number, Index(back.position_in_track), back.track.number, Index(back.length), Index(current_position_in_stream)));
                 }
 
                 current_position_on_disc += index_length;
-                current_position_in_file += index_length;
+                current_position_in_stream += index_length;
 
-                if (current_position_in_file > sectors_in_file) {
-                    throw exceptions::FileReadError(std::format("Index {:s} in track {:d} in file \"{:s}\" goes beyond sectors contained in file: {:s}", index_it->index, track_it->number, file.filename, Index(current_position_in_file)));
+                if (current_position_in_stream > sectors_in_stream) {
+                    throw exceptions::FileReadError(std::format("Index {:s} in track {:d} in file \"{:s}\" goes beyond sectors contained in file: {:s}", index_it->index, track_it->number, file.filename, Index(current_position_in_stream)));
                 }
             }
         }
@@ -236,7 +234,7 @@ bool CD::read_sector_and_advance(uint8_t *buffer) {
             return true;
         } else {
             LOGV_CDIMG(std::format("No remaining sectors for current index, moving to next one"));
-            ++current_index;
+            advance_to_next_index();
         }
     }
 
@@ -294,14 +292,15 @@ void CD::seek_by(uint32_t sectors) {
 
     uint32_t remaining_sectors = sectors;
     while (current_index != indexes.end() && remaining_sectors > 0) {
+        LOGV_CDIMG(std::format("At index {:d} of track {:d}", current_index->number, current_index->track.number));
         if (current_index->file->get_remaining_sectors() > remaining_sectors) { // Target sector is in current index
             current_index->file->seek_by(remaining_sectors);
+            break;
 
         } else { // Target sector is in upcoming index
-            // Seek the current file to the end of the current index
-            // This is important if the current index uses the same file
-            current_index->file->seek_to_end();
-            ++current_index;
+            remaining_sectors -= current_index->file->get_remaining_sectors();
+            LOGV_CDIMG(std::format("Advancing to next index with {:d} sectors remaining", remaining_sectors));
+            advance_to_next_index();
         }
     }
 
@@ -311,12 +310,17 @@ void CD::seek_by(uint32_t sectors) {
 }
 
 void CD::reset_position() {
+    LOGV_CDIMG(std::format("Resetting position"));
     current_index = indexes.begin();
+    if (current_index != indexes.end()) {
+        current_index->file->reset();
+    }
+}
 
-    // Reset all files
-    // We depend on this when seeking (new files are at their beginning)
-    for (const auto& file : files) {
-        file->reset();
+void CD::advance_to_next_index() {
+    ++current_index;
+    if (current_index != indexes.end()) {
+        current_index->file->reset();
     }
 }
 

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <fstream>
+#include <list>
 #include <memory>
 #include <string>
 
@@ -42,10 +43,11 @@ private:
     class BinaryFile : public SectorFile {
     private:
         // The stream position is used to keep track of which sector we are currently at
-        std::ifstream stream;
+        std::shared_ptr<std::ifstream> stream;
+        const uint32_t offset_in_stream;
 
     public:
-        BinaryFile(std::ifstream&& stream, uint32_t sectors);
+        BinaryFile(std::shared_ptr<std::ifstream> stream, uint32_t offset_in_stream, uint32_t total_sectors);
         void reset() override;
         void seek_by(uint32_t sectors) override;
         void read_sector(uint8_t* buffer) override;
@@ -79,12 +81,11 @@ private:
         uint32_t position_in_track; // in sectors
         uint32_t length; // in sectors
 
-        std::shared_ptr<SectorFile> file;
-        uint32_t offset_in_file; //TODO: Not used currently
+        std::unique_ptr<SectorFile> file;
     };
 
-    std::vector<std::shared_ptr<SectorFile>> files;
-    std::vector<TrackOnDisc> tracks;
+    std::list<std::ifstream> streams;
+    std::list<TrackOnDisc> tracks;
 
     std::vector<IndexOnDisc> indexes;
     std::vector<IndexOnDisc>::iterator current_index;
@@ -112,6 +113,7 @@ private:
     void seek_by(uint32_t sectors);
 
     void reset_position();
+    void advance_to_next_index();
 };
 
 }
