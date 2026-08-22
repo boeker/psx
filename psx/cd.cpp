@@ -188,9 +188,12 @@ void CD::open_cue_sheet(const std::string &filename) {
                     index_length = sectors_in_file - current_position_in_file;
                 }
 
-                // TODO position_in_track
-                uint32_t position_in_track = 0;
-                indexes.emplace_back(track_on_disc, index_it->number, position_in_track, index_length, sector_file, current_position_in_file);
+                indexes.emplace_back(track_on_disc,
+                                     index_it->number,
+                                     current_position_on_disc - track_on_disc.position_on_disc,
+                                     index_length,
+                                     sector_file,
+                                     current_position_in_file);
 
                 current_position_on_disc += index_length;
                 current_position_in_file += index_length;
