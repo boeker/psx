@@ -94,6 +94,25 @@ private:
     std::deque<std::unique_ptr<uint8_t[]>> read_sector_buffers;
     std::deque<std::unique_ptr<uint8_t[]>> unused_sector_buffers;
 
+    // Header of last sector that was read
+    struct LastSectorHeader {
+        bool was_data;
+        uint8_t header[4];
+        uint8_t sub_header[4];
+        void reset() {
+            was_data = false;
+            header[0] = 0;
+            header[1] = 0;
+            header[2] = 0;
+            header[3] = 0;
+            sub_header[0] = 0;
+            sub_header[1] = 0;
+            sub_header[2] = 0;
+            sub_header[3] = 0;
+        }
+    };
+    LastSectorHeader last_sector_header;
+
     uint8_t amm;
     uint8_t ass;
     uint8_t asect;
