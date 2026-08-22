@@ -137,9 +137,10 @@ void CD::open_cue_sheet(const std::string &filename) {
             }
 
             tracks.emplace_back(track_it->mode, track_it->number, current_position_on_disc);
-            LOG_CDIMG(std::format("Track {:d} ({:s}): {:s}", track_it->number, util::cue::Track::mode_to_string(track_it->mode), Index(current_position_on_disc)));
+            LOG_CDIMG(std::format("Track {:d} ({:s}): {:s} on disc", track_it->number, util::cue::Track::mode_to_string(track_it->mode), Index(current_position_on_disc)));
             const TrackOnDisc& track_on_disc(tracks.back());
 
+            uint32_t expected_index_number = 0;
             // No INDEX 00 => pre-gap not contained in file, we have to manually add one of two-second length
             // TODO Add support for PREGAP statements (instead of INDEX 00 statements, states length of pre-gap)
             if (track_it->indexes.front().number != 0) {
@@ -147,16 +148,16 @@ void CD::open_cue_sheet(const std::string &filename) {
                 indexes.emplace_back(track_on_disc, 0, 0, CD_TWO_SECONDS, std::make_shared<Gap>(CD_TWO_SECONDS), 0);
                 {
                     const auto& back = indexes.back();
-                    LOG_CDIMG(std::format("INDEX {:d}: {:s} in track {:d}, length {:s} (Gap)", back.number, Index(back.position_in_track), back.track.number, Index(back.length)));
+                    LOG_CDIMG(std::format("Index {:d}: {:s} in track {:d}, length {:s} (Gap)", back.number, Index(back.position_in_track), back.track.number, Index(back.length)));
                 }
                 current_position_on_disc += CD_TWO_SECONDS; // Two-second offset caused by gap
+                expected_index_number = 1; // No INDEX 00 statement
             }
 
             // Where in the sector_file we are.
             // No the position in the cue FILE (gaps are added there, but not here).
             uint32_t current_position_in_file = 0;
 
-            uint32_t expected_index_number = 1;
             for (auto index_it = track_it->indexes.cbegin(); index_it != track_it->indexes.cend(); ++index_it) {
                 if (index_it->number != expected_index_number) {
                     throw exceptions::FileReadError(std::format("Non-consecutive index numbers: Encountered index number {:d} in track {:d} in file \"{:s}\", but expected index number was {:d}", index_it->number, track_it->number, file.filename, expected_index_number));
@@ -183,7 +184,7 @@ void CD::open_cue_sheet(const std::string &filename) {
                         uint32_t index_sectors = index_it->index.total_sectors();
                         uint32_t next_index_sectors = next_indexes.front().index.total_sectors();;
 
-                        // TODO Avoid code duplication
+                        // TODO Avoid code duplication (Move length determination to own function?)
                         if (next_index_sectors < index_sectors) {
                             throw exceptions::FileReadError(std::format("Index following {:s} in track {:d} in file \"{:s}\" is earlier on disc: {:s}", index_it->index, track_it->number, file.filename, next_index_it->index));
                         }
@@ -201,7 +202,7 @@ void CD::open_cue_sheet(const std::string &filename) {
                                      current_position_in_file);
                 {
                     const auto& back = indexes.back();
-                    LOG_CDIMG(std::format("INDEX {:d}: {:s} in track {:d}, length {:s} (File)", back.number, Index(back.position_in_track), back.track.number, Index(back.length)));
+                    LOG_CDIMG(std::format("Index {:d}: {:s} in track {:d}, length {:s} (File)", back.number, Index(back.position_in_track), back.track.number, Index(back.length)));
                 }
 
                 current_position_on_disc += index_length;
