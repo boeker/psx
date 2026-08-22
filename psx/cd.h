@@ -80,7 +80,7 @@ private:
         uint32_t length; // in sectors
 
         std::shared_ptr<SectorFile> file;
-        uint32_t offset_in_file;
+        uint32_t offset_in_file; //TODO: Not used currently
     };
 
     std::vector<std::shared_ptr<SectorFile>> files;

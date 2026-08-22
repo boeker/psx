@@ -94,7 +94,7 @@ void CD::open_cue_sheet(const std::string &filename) {
         uint32_t sectors_in_file = 0;
         if (file.type == cue::File::Type::BINARY) {
             std::filesystem::path path_to_file(path_to_cue_sheet.replace_filename(file.filename));
-            LOG_CDIMG(std::format("About to open file \"{:s}\"", path_to_file.native()));
+            LOG_CDIMG(std::format("Opening file \"{:s}\"", path_to_file.native()));
 
             std::uintmax_t size = 0;
             try {
@@ -137,6 +137,7 @@ void CD::open_cue_sheet(const std::string &filename) {
             }
 
             tracks.emplace_back(track_it->mode, track_it->number, current_position_on_disc);
+            LOG_CDIMG(std::format("Track {:d} ({:s}): {:s}", track_it->number, util::cue::Track::mode_to_string(track_it->mode), Index(current_position_on_disc)));
             const TrackOnDisc& track_on_disc(tracks.back());
 
             // No INDEX 00 => pre-gap not contained in file, we have to manually add one of two-second length
@@ -144,6 +145,10 @@ void CD::open_cue_sheet(const std::string &filename) {
             if (track_it->indexes.front().number != 0) {
                 // INDEX 00 00:00:00 of two-second length
                 indexes.emplace_back(track_on_disc, 0, 0, CD_TWO_SECONDS, std::make_shared<Gap>(CD_TWO_SECONDS), 0);
+                {
+                    const auto& back = indexes.back();
+                    LOG_CDIMG(std::format("INDEX {:d}: {:s} in track {:d}, length {:s} (Gap)", back.number, Index(back.position_in_track), back.track.number, Index(back.length)));
+                }
                 current_position_on_disc += CD_TWO_SECONDS; // Two-second offset caused by gap
             }
 
@@ -194,6 +199,10 @@ void CD::open_cue_sheet(const std::string &filename) {
                                      index_length,
                                      sector_file,
                                      current_position_in_file);
+                {
+                    const auto& back = indexes.back();
+                    LOG_CDIMG(std::format("INDEX {:d}: {:s} in track {:d}, length {:s} (File)", back.number, Index(back.position_in_track), back.track.number, Index(back.length)));
+                }
 
                 current_position_on_disc += index_length;
                 current_position_in_file += index_length;
