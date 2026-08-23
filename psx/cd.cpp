@@ -233,16 +233,20 @@ void CD::seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_secto
     seek_to(Index(minutes, seconds, sectors).total_sectors(), audio);
 }
 
-void CD::seek_to_track(uint32_t track_number) {
-    LOGV_CDIMG(std::format("Absolute seek to track {:d}", track_number));
+void CD::seek_to_audio_track(uint32_t track_number) {
+    LOGV_CDIMG(std::format("Absolute seek to audio track {:d}", track_number));
 
-    if (track_number <= tracks.size()) {
-        const TrackOnDisc& track = tracks[track_number - 1];
-        assert(track.number == track_number);
-        seek_to(track.position_on_disc, false);
-    } else {
-        LOGW_CDIMG(std::format("There is no track {:d}!", track_number));
+    uint32_t at_track = 0;
+    for (const TrackOnDisc& track : tracks) {
+        if (track.mode == TrackOnDisc::Mode::AUDIO) {
+            if (++at_track == track_number) {
+                seek_to(track.position_on_disc, false);
+                return;
+            }
+        }
     }
+
+    LOGW_CDIMG(std::format("There is no audio track {:d}!", track_number));
 }
 
 bool CD::read_sector_and_advance(uint8_t *buffer) {

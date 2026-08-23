@@ -777,8 +777,7 @@ uint8_t CDROM::play_response() {
     }
 
     if (track != 0) {
-        // Seek to audio track #track or track #track in general?
-        cd->seek_to_track(track);
+        cd->seek_to_audio_track(track);
         // TODO Support restart current track
     }
 
@@ -786,8 +785,7 @@ uint8_t CDROM::play_response() {
     drive_state = PLAYING;
     push_drive_state_to_response_queue();
 
-    scheduled_responses.emplace_back(&CDROM::play_second_response, 0x36CD2);
-    // TODO single speed also here
+    scheduled_responses.emplace_back(&CDROM::play_second_response, Bit::getBit(mode, CDROM_MODE_SPEED) ? 0x36CD2 : 0x6E1CD);
 
     return 3;
 }
@@ -814,8 +812,7 @@ uint8_t CDROM::play_second_response() {
     bus->spu.play_cd_da_sector(buffer);
 
     // Schedule reading of next sector (since we are automatically reading that)
-    scheduled_responses.emplace_back(&CDROM::play_second_response, 0x36CD2);
-    // TODO single speed: 0x6E1CD, double speed: 0x36CD2
+    scheduled_responses.emplace_back(&CDROM::play_second_response, Bit::getBit(mode, CDROM_MODE_SPEED) ? 0x36CD2 : 0x6E1CD);
 
     if (!Bit::getBit(mode, CDROM_MODE_REPORT)) {
         return 0;

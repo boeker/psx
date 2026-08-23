@@ -101,7 +101,7 @@ public:
     bool is_audio_cd() const;
 
     void seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors, bool audio = false);
-    void seek_to_track(uint32_t track_number);
+    void seek_to_audio_track(uint32_t track_number);
     bool read_sector_and_advance(uint8_t *buffer);
 
     bool at_end_of_disc() const;
