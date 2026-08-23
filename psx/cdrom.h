@@ -50,7 +50,14 @@ namespace PSX {
 #define CDROM_REQUEST_BFWR 6 // Unknown
 #define CDROM_REQUEST_SMEN 5 // Start interrupt (INT10) on next command
 
+#define CDROM_MODE_SPEED 7 // 0 = 1x, 1 = 2x
+#define CDROM_MODE_XA_ADPCM 6 // 0 = Off, 1 = Send XA-ADPCM sectors to SPU audio input
 #define CDROM_MODE_SECTOR_SIZE 5 // Sector Size (0 = 0x800, data only, 1 = 0x924, whole sector except sync bytes)
+#define CDROM_MODE_IGNORE 4 // Weird ignore bit
+#define CDROM_MODE_XA_FILTER 3 // 0 = Off, 1 = Process only XA-ADPCM sectors matching SetFilter
+#define CDROM_MODE_REPORT 2 // 0 = Off, 1 = Enable report responses for audio playback commands
+#define CDROM_MODE_AUTO_PAUSE 1 // 0 = Off, 1 = Auto pause audio playback at end of track
+#define CDROM_MODE_CDDA // 0 = Off, 1 = Allow to read CD-DA sectors (ignore missing EDC checksum; audio sectors do not have these)
 
 class Bus;
 class CD;
@@ -185,6 +192,10 @@ private:
     // 0x02
     void set_loc();
     uint8_t set_loc_response();
+    // 0x03
+    void play();
+    uint8_t play_response();
+    uint8_t play_second_response();
     // 0x06
     void read_n();
     uint8_t read_n_response();
@@ -240,6 +251,7 @@ private:
     uint8_t get_id_response();
     uint8_t get_id_second_response_motor_off();
     uint8_t get_id_second_response_mode_2();
+    uint8_t get_id_second_response_audio();
     // 0x1B
     void read_s();
     uint8_t read_s_response();

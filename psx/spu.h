@@ -75,6 +75,8 @@ public:
     ~SPU();
     void reset();
 
+    void play_cd_da_sector(uint8_t *buffer);
+
     bool dma_write_to_spu_requested() const;
     bool dma_read_from_spu_requested() const;
 

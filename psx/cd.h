@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <fstream>
-#include <list>
+#include <deque>
 #include <memory>
 #include <string>
 
@@ -84,8 +84,8 @@ private:
         std::unique_ptr<SectorFile> file;
     };
 
-    std::list<std::ifstream> streams;
-    std::list<TrackOnDisc> tracks;
+    std::deque<std::ifstream> streams;
+    std::deque<TrackOnDisc> tracks;
 
     std::vector<IndexOnDisc> indexes;
     std::vector<IndexOnDisc>::iterator current_index;
@@ -98,7 +98,10 @@ public:
     void reset();
 
     void open_cue_sheet(const std::string &filename);
-    void seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors);
+    bool is_audio_cd() const;
+
+    void seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors, bool audio = false);
+    void seek_to_track(uint32_t track_number);
     bool read_sector_and_advance(uint8_t *buffer);
 
     bool at_end_of_disc() const;
@@ -109,8 +112,7 @@ public:
     Index get_current_position_on_disc() const;
 
 private:
-    void seek_to(uint32_t sectors);
-    void seek_by(uint32_t sectors);
+    void seek_to(uint32_t sectors, bool audio);
 
     void reset_position();
     void advance_to_next_index();

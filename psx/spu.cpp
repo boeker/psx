@@ -57,7 +57,7 @@ SPU::SPU(Bus *bus)
       ram(std::make_unique<uint8_t[]>(SPU_RAM_SIZE)) {
     SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
     SDL_Init(SDL_INIT_AUDIO);
-    audio_spec.format = SDL_AUDIO_U8;
+    audio_spec.format = SDL_AUDIO_S16LE;
     audio_spec.channels = 2;
     audio_spec.freq = 44100;
     audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &audio_spec, nullptr, nullptr);
@@ -99,6 +99,12 @@ void SPU::reset() {
     control_register = 0;
     data_transfer_control_register = 0;
     status_register = 0;
+}
+
+void SPU::play_cd_da_sector(uint8_t *buffer) {
+    if (!SDL_PutAudioStreamData(audio_stream, buffer, CD::SECTOR_SIZE)) {
+        LOGW_SPU(std::format("Error writing data to audio stream"));
+    }
 }
 
 bool SPU::dma_write_to_spu_requested() const {

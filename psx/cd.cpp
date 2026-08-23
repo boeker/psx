@@ -214,13 +214,35 @@ void CD::open_cue_sheet(const std::string &filename) {
     }
 }
 
-void CD::seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors) {
+bool CD::is_audio_cd() const {
+    for (const TrackOnDisc& track: tracks) {
+        if (track.mode != TrackOnDisc::Mode::AUDIO) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void CD::seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors, bool audio) {
     LOGV_CDIMG(std::format("Absolute seek to 0x{:02X},0x{:02X},0x{:02X} (BCD)", bcd_minutes, bcd_seconds, bcd_sectors));
 
     uint8_t minutes = (bcd_minutes >> 4) * 10 + (bcd_minutes & 0x0F);
     uint8_t seconds = (bcd_seconds >> 4) * 10 + (bcd_seconds & 0x0F);
     uint8_t sectors = (bcd_sectors >> 4) * 10 + (bcd_sectors & 0x0F);
-    seek_to(Index(minutes, seconds, sectors).total_sectors());
+    seek_to(Index(minutes, seconds, sectors).total_sectors(), audio);
+}
+
+void CD::seek_to_track(uint32_t track_number) {
+    LOGV_CDIMG(std::format("Absolute seek to track {:d}", track_number));
+
+    if (track_number <= tracks.size()) {
+        const TrackOnDisc& track = tracks[track_number - 1];
+        assert(track.number == track_number);
+        seek_to(track.position_on_disc, false);
+    } else {
+        LOGW_CDIMG(std::format("There is no track {:d}!", track_number));
+    }
 }
 
 bool CD::read_sector_and_advance(uint8_t *buffer) {
@@ -280,20 +302,19 @@ CD::Index CD::get_current_position_on_disc() const {
     }
 }
 
-void CD::seek_to(uint32_t sectors) {
+void CD::seek_to(uint32_t sectors, bool audio) {
     LOGV_CDIMG(std::format("Seek to {}", Index(sectors)));
 
     reset_position();
-    seek_by(sectors);
-}
-
-void CD::seek_by(uint32_t sectors) {
-    LOGV_CDIMG(std::format("Seek by {}", Index(sectors)));
 
     uint32_t remaining_sectors = sectors;
-    while (current_index != indexes.end() && remaining_sectors > 0) {
+    while (current_index != indexes.end() && (remaining_sectors > 0 || (audio && current_index->track.mode != TrackOnDisc::Mode::AUDIO))) {
         LOGV_CDIMG(std::format("At index {:d} of track {:d}", current_index->number, current_index->track.number));
-        if (current_index->file->get_remaining_sectors() > remaining_sectors) { // Target sector is in current index
+
+        if (audio && current_index->track.mode != TrackOnDisc::Mode::AUDIO) {
+            LOGV_CDIMG(std::format("Skipping non-audio track"));
+            advance_to_next_index();
+        } else if (current_index->file->get_remaining_sectors() > remaining_sectors) { // Target sector is in current index
             current_index->file->seek_by(remaining_sectors);
             break;
 

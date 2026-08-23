@@ -151,8 +151,10 @@ void CDROM::deliver_response(ScheduledResponse &response) {
 
     // Execute response function
     uint8_t interrupt = (this->*response.function)();
-    waiting_for_acknowledge = true;
-    notifyAboutINT1to7(interrupt);
+    if (interrupt != 0) { // 0 is used to communicate that no interrupt should be issued
+        waiting_for_acknowledge = true;
+        notifyAboutINT1to7(interrupt);
+    }
 
     // Executing the response function might have scheduled a new response
     // Or there might be some responses left
@@ -498,7 +500,7 @@ const CDROM::Command CDROM::commands[] = {
     &CDROM::unknown,
     &CDROM::get_stat, // 0x01
     &CDROM::set_loc, // 0x02
-    &CDROM::unknown,
+    &CDROM::play, // 0x03
     &CDROM::unknown, &CDROM::unknown,
     &CDROM::read_n,
     &CDROM::unknown,
@@ -752,6 +754,111 @@ uint8_t CDROM::set_loc_response() {
     return 3;
 }
 
+void CDROM::play() {
+    LOGV_CDROM(prependState(std::format("========> Play(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::play_response);
+
+    // Make sure we do not have any already read sectors remaining
+    while (!read_sector_buffers.empty()) {
+        unused_sector_buffers.emplace_back(std::move(read_sector_buffers.back()));
+        read_sector_buffers.pop_back();
+    }
+}
+
+uint8_t CDROM::play_response() {
+    uint8_t track;
+    if (!parameter_queue.is_empty()) {
+        track = parameter_queue.pop();
+    }
+    LOGV_CDROM(prependState(std::format("========> Play({:d}): Initial Response <========", track)));
+
+    if (!cd) {
+        return no_disc_response();
+    }
+
+    if (track != 0) {
+        // Seek to audio track #track or track #track in general?
+        cd->seek_to_track(track);
+        // TODO Support restart current track
+    }
+
+    // Write response
+    drive_state = PLAYING;
+    push_drive_state_to_response_queue();
+
+    scheduled_responses.emplace_back(&CDROM::play_second_response, 0x36CD2);
+    // TODO single speed also here
+
+    return 3;
+}
+
+uint8_t CDROM::play_second_response() {
+    LOGV_CDROM(prependState(std::format("========> Play(): Second Response <========")));
+
+    // Read sector from CD
+    uint8_t buffer[CD::SECTOR_SIZE];
+    //std::unique_ptr<uint8_t[]> buffer;
+    //if (!unused_sector_buffers.empty()) {
+    //    buffer = std::move(unused_sector_buffers.front());
+    //    unused_sector_buffers.pop_front();
+
+    //} else {
+    //    LOGW_CDROM(prependState(std::format("No unused sector buffer for read, allocating new buffer!")));
+    //    buffer = std::make_unique<uint8_t[]>(CD::SECTOR_SIZE);
+    //}
+
+    LOGV_CDROM(prependState(std::format("CD is at {}", cd->get_current_position_on_disc())));
+    cd->read_sector_and_advance(buffer);
+    //read_sector_buffers.emplace_back(std::move(buffer));
+
+    bus->spu.play_cd_da_sector(buffer);
+
+    // Schedule reading of next sector (since we are automatically reading that)
+    scheduled_responses.emplace_back(&CDROM::play_second_response, 0x36CD2);
+    // TODO single speed: 0x6E1CD, double speed: 0x36CD2
+
+    if (!Bit::getBit(mode, CDROM_MODE_REPORT)) {
+        return 0;
+    }
+
+    // (Possibly) report
+    auto disc_pos = cd->get_current_position_on_disc();
+    uint32_t amm = (disc_pos.minutes / 10) * 0x10 + (disc_pos.minutes % 10);
+    uint32_t ass = (disc_pos.seconds / 10) * 0x10 + (disc_pos.seconds % 10);
+    uint32_t asect = (disc_pos.sectors / 10) * 0x10 + (disc_pos.sectors % 10);
+
+    if (asect == 0x00 || asect == 0x20 || asect == 0x40 || asect == 0x60) {
+        // Report absolute time
+        push_drive_state_to_response_queue(); // stat
+        response_queue.push(cd->at_end_of_disc() ? 0xAA : cd->get_current_track_number());
+        response_queue.push(cd->get_current_index_number());
+        response_queue.push(amm);
+        response_queue.push(ass);
+        response_queue.push(asect);
+        response_queue.push(0x1F); //TODO peaklo
+        response_queue.push(0x00); //TODO peakhi
+        return 1;
+
+    } else if (asect == 0x10 || asect == 0x30 || asect == 0x50 || asect == 0x70) {
+        // Report time within current track
+        auto track_pos = cd->get_current_position_in_track();
+
+        push_drive_state_to_response_queue(); // stat
+        response_queue.push(cd->at_end_of_disc() ? 0xAA : cd->get_current_track_number());
+        response_queue.push(cd->get_current_index_number());
+        response_queue.push((track_pos.minutes / 10) * 0x10 + (track_pos.minutes % 10));
+        response_queue.push((track_pos.seconds / 10) * 0x10 + (track_pos.seconds % 10));
+        response_queue.push((track_pos.sectors / 10) * 0x10 + (track_pos.sectors % 10));
+        response_queue.push(0x1F); //TODO peaklo
+        response_queue.push(0x00); //TODO peakhi
+        return 1;
+
+    } else {
+        return 0; // Do not report after all
+    }
+}
+
+
 void CDROM::read_n() {
     LOGV_CDROM(prependState(std::format("========> ReadN(): Command <========")));
     scheduled_responses.emplace_back(&CDROM::read_n_response);
@@ -947,7 +1054,11 @@ uint8_t CDROM::set_mode_response() {
     mode = parameter_queue.pop();
     LOGV_CDROM(prependState(std::format("========> Setmode(0x{:02X}): Response <========", mode)));
 
-    // TODO Handle all bits
+    if (Bit::getBit(mode, CDROM_MODE_IGNORE)) {
+        LOGW_CDROM(prependState(std::format("Ignore bit set but not implemented", mode)));
+    }
+
+    // TODO Handle speed, xa-adpcm, xa-filter, report, auto pause and cdda
 
     push_drive_state_to_response_queue();
     return 3;
@@ -994,14 +1105,21 @@ uint8_t CDROM::get_loc_p_response() {
     auto disc_pos = cd->get_current_position_on_disc();
     auto track_pos = cd->get_current_position_in_track();
 
-    response_queue.push(cd->at_end_of_disc() ? 0xAA : cd->get_current_track_number());
-    response_queue.push(cd->get_current_index_number());
-    response_queue.push((track_pos.minutes / 10) * 0x10 + (track_pos.minutes % 10));
-    response_queue.push((track_pos.seconds / 10) * 0x10 + (track_pos.seconds % 10));
-    response_queue.push((track_pos.sectors / 10) * 0x10 + (track_pos.sectors % 10));
-    response_queue.push((disc_pos.minutes / 10) * 0x10 + (disc_pos.minutes % 10));
-    response_queue.push((disc_pos.seconds / 10) * 0x10 + (disc_pos.seconds % 10));
-    response_queue.push((disc_pos.sectors / 10) * 0x10 + (disc_pos.sectors % 10));
+    uint8_t response[8];
+    response[0] = cd->at_end_of_disc() ? 0xAA : cd->get_current_track_number();
+    response[1] = cd->get_current_index_number();
+    response[2] = (track_pos.minutes / 10) * 0x10 + (track_pos.minutes % 10);
+    response[3] = (track_pos.seconds / 10) * 0x10 + (track_pos.seconds % 10);
+    response[4] = (track_pos.sectors / 10) * 0x10 + (track_pos.sectors % 10);
+    response[5] = (disc_pos.minutes / 10) * 0x10 + (disc_pos.minutes % 10);
+    response[6] = (disc_pos.seconds / 10) * 0x10 + (disc_pos.seconds % 10);
+    response[7] = (disc_pos.sectors / 10) * 0x10 + (disc_pos.sectors % 10);
+
+    for (uint32_t i = 0; i < 8; ++i) {
+        LOGV_CDROM(prependState(std::format("0x{:02X}", response[i])));
+        response_queue.push(response[i]);
+    }
+
     return 3;
 }
 
@@ -1093,7 +1211,7 @@ uint8_t CDROM::seek_p_response() {
 uint8_t CDROM::seek_p_second_response() {
     LOGV_CDROM(prependState(std::format("========> SeekP(): Second Response <========")));
 
-    cd->seek_to_bcd(amm, ass, asect);
+    cd->seek_to_bcd(amm, ass, asect, true);
 
     drive_state = MOTOR_ON;
     push_drive_state_to_response_queue();
@@ -1132,8 +1250,13 @@ uint8_t CDROM::get_id_response() {
 
     }
 
-    // Licensed Mode 2
-    scheduled_responses.emplace_back(&CDROM::get_id_second_response_mode_2);
+    if (cd->is_audio_cd()) {
+        scheduled_responses.emplace_back(&CDROM::get_id_second_response_audio);
+    } else {
+        // Licensed Mode 2
+        scheduled_responses.emplace_back(&CDROM::get_id_second_response_mode_2);
+    }
+
     response_queue.push(0x02);
     return 3;
 }
@@ -1164,6 +1287,20 @@ uint8_t CDROM::get_id_second_response_mode_2() {
     response_queue.push(0x45); // E
     response_queue.push(0x41); // A
     return 2;
+}
+
+uint8_t CDROM::get_id_second_response_audio() {
+    LOGV_CDROM(prependState(std::format("========> GetID(): Second Response (Audio Disc) <========")));
+
+    response_queue.push(0x0A); // stat
+    response_queue.push(0x90); // flags
+    response_queue.push(0x00); // type
+    response_queue.push(0x00); // atip
+    response_queue.push(0x00); // S
+    response_queue.push(0x00); // C
+    response_queue.push(0x00); // E
+    response_queue.push(0x00); // A
+    return 5;
 }
 
 void CDROM::read_s() {
