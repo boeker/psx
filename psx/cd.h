@@ -102,6 +102,7 @@ public:
 
     void seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors, bool audio = false);
     void seek_to_audio_track(uint32_t track_number);
+    void seek_to_track(uint32_t track_number);
     bool read_sector_and_advance(uint8_t *buffer);
 
     bool at_end_of_disc() const;
@@ -110,6 +111,10 @@ public:
     uint32_t get_current_index_number() const;
     Index get_current_position_in_track() const;
     Index get_current_position_on_disc() const;
+
+    uint32_t get_first_track_number() const;
+    uint32_t get_last_track_number() const;
+    Index get_index_one_of_track(uint32_t track_number) const;
 
 private:
     void seek_to(uint32_t sectors, bool audio);

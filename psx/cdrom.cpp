@@ -169,7 +169,7 @@ void CDROM::deliver_response(ScheduledResponse &response) {
 
 
 void CDROM::send_command() {
-    if (pending_command && (scheduled_responses.empty() || drive_state == READING)) { // Let Pause() get through
+    if (pending_command && (scheduled_responses.empty() || drive_state == READING || drive_state == PLAYING)) { // Let Pause() get through
         pending_command = false;
 
         LOGV_CDROM(prependState(std::format("Sending command 0x{:02X} to controller", command)));
@@ -470,7 +470,7 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
 
         // Clear response queue
         // TODO Do we have to clear this or is the user responsible for this?
-        //response_queue.clear();
+        response_queue.clear();
 
         // Check if there is a pending command
         // Note that pending_command determines/corresponds to CDROM_STATUS_BUSYSTS
@@ -776,10 +776,11 @@ uint8_t CDROM::play_response() {
         return no_disc_response();
     }
 
-    if (track != 0) {
-        cd->seek_to_audio_track(track);
-        // TODO Support restart current track
-    }
+    // TODO Parameter_queue seems to contain 3, which is this command
+    //if (track != 0) {
+    //    cd->seek_to_audio_track(track);
+    //    // TODO Support restart current track
+    //}
 
     // Write response
     drive_state = PLAYING;
@@ -844,7 +845,7 @@ uint8_t CDROM::play_second_response() {
         response_queue.push(cd->at_end_of_disc() ? 0xAA : cd->get_current_track_number());
         response_queue.push(cd->get_current_index_number());
         response_queue.push((track_pos.minutes / 10) * 0x10 + (track_pos.minutes % 10));
-        response_queue.push((track_pos.seconds / 10) * 0x10 + (track_pos.seconds % 10));
+        response_queue.push((track_pos.seconds / 10) * 0x10 + (track_pos.seconds % 10) + 0x80);
         response_queue.push((track_pos.sectors / 10) * 0x10 + (track_pos.sectors % 10));
         response_queue.push(0x1F); //TODO peaklo
         response_queue.push(0x00); //TODO peakhi
@@ -918,6 +919,7 @@ uint8_t CDROM::read_n_second_response() {
 
 void CDROM::stop() {
     LOGV_CDROM(prependState(std::format("========> Stop(): Command <========")));
+    scheduled_responses.clear();
     scheduled_responses.emplace_back(&CDROM::stop_response);
 }
 
@@ -1133,8 +1135,8 @@ uint8_t CDROM::get_tn_response() {
     }
 
     push_drive_state_to_response_queue();
-    response_queue.push(0x01); // first TODO do not use hardcoded value
-    response_queue.push(0x01); // last TODO do not use hardcoded value
+    response_queue.push(cd->get_first_track_number());
+    response_queue.push(cd->get_last_track_number());
     return 3;
 }
 
@@ -1151,9 +1153,10 @@ uint8_t CDROM::get_td_response() {
         return no_disc_response();
     }
 
+    auto track_pos = cd->get_index_one_of_track(track);
     push_drive_state_to_response_queue();
-    response_queue.push(0x00); // first TODO do not use hardcoded value
-    response_queue.push(0x00); // last TODO do not use hardcoded value
+    response_queue.push((track_pos.minutes / 10) * 0x10 + (track_pos.minutes % 10));
+    response_queue.push((track_pos.seconds / 10) * 0x10 + (track_pos.seconds % 10));
     return 3;
 }
 
@@ -1188,6 +1191,7 @@ uint8_t CDROM::seek_l_second_response() {
 
 void CDROM::seek_p() {
     LOGV_CDROM(prependState(std::format("========> SeekP(): Command <========")));
+    scheduled_responses.clear(); // Playing is stopped
     scheduled_responses.emplace_back(&CDROM::seek_p_response);
 }
 
@@ -1208,7 +1212,7 @@ uint8_t CDROM::seek_p_response() {
 uint8_t CDROM::seek_p_second_response() {
     LOGV_CDROM(prependState(std::format("========> SeekP(): Second Response <========")));
 
-    cd->seek_to_bcd(amm, ass, asect, true);
+    cd->seek_to_bcd(amm, ass, asect);
 
     drive_state = MOTOR_ON;
     push_drive_state_to_response_queue();

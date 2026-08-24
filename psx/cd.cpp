@@ -249,6 +249,20 @@ void CD::seek_to_audio_track(uint32_t track_number) {
     LOGW_CDIMG(std::format("There is no audio track {:d}!", track_number));
 }
 
+void CD::seek_to_track(uint32_t track_number) {
+    LOGV_CDIMG(std::format("Absolute seek to track {:d}", track_number));
+
+    uint32_t at_track = 0;
+    for (const TrackOnDisc& track : tracks) {
+        if (++at_track == track_number) {
+            seek_to(track.position_on_disc, false);
+            return;
+        }
+    }
+
+    LOGW_CDIMG(std::format("There is no track {:d}!", track_number));
+}
+
 bool CD::read_sector_and_advance(uint8_t *buffer) {
     LOGV_CDIMG(std::format("Reading sector into buffer"));
 
@@ -304,6 +318,34 @@ CD::Index CD::get_current_position_on_disc() const {
         const auto& index = indexes.back();
         return Index(index.track.position_on_disc + index.position_in_track + index.length);
     }
+}
+
+uint32_t CD::get_first_track_number() const {
+    if (!tracks.empty()) {
+        return tracks.front().number;
+    }
+
+    return 0;
+}
+
+uint32_t CD::get_last_track_number() const {
+    if (!tracks.empty()) {
+        return tracks.back().number;
+    }
+
+    return 0;
+}
+
+CD::Index CD::get_index_one_of_track(uint32_t track_number) const {
+    for (auto it = indexes.begin(); it != indexes.end(); ++it) {
+        if (it->track.number == track_number && it->number == 1) {
+            return Index(it->track.position_on_disc + it->position_in_track);
+        }
+    }
+
+    // Return end of last track instead
+    const auto& index = indexes.back();
+    return Index(index.track.position_on_disc + index.position_in_track + index.length);
 }
 
 void CD::seek_to(uint32_t sectors, bool audio) {
