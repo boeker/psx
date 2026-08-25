@@ -69,6 +69,7 @@ struct LogPack {
     LogPack();
 
     DECLARE_TWL(bus);
+    DECLARE_TWL(cdimg);
     DECLARE_TWL(cdrom);
     DECLARE_TWL(cp0);
     DECLARE_TWL(cpu);
@@ -111,6 +112,11 @@ extern LogPack logPack;
 #define LOGW_CPU            MACRO_LOG(cpuW)
 #define LOGV_CPU            MACRO_LOG(cpuV)
 #define LOGT_CPU            MACRO_LOG(cpuT)
+
+#define LOG_CDIMG           MACRO_LOG(cdimg)
+#define LOGW_CDIMG          MACRO_LOG(cdimgW)
+#define LOGV_CDIMG          MACRO_LOG(cdimgV)
+#define LOGT_CDIMG          MACRO_LOG(cdimgT)
 
 #define LOG_CDROM           MACRO_LOG(cdrom)
 #define LOGW_CDROM          MACRO_LOG(cdromW)

@@ -87,6 +87,7 @@ LogPack logPack;
 
 LogPack::LogPack()
     : INIT_TWL(bus, "BUS"),
+      INIT_TWL(cdimg, "CDIMG"),
       INIT_TWL(cdrom, "CDROM"),
       INIT_TWL(cp0, "CP0"),
       INIT_TWL(cpu, "CPU"),
@@ -127,13 +128,15 @@ LogPack::LogPack()
     //gte.setConsoleLogEnabled(true);
     ////interrupts.setConsoleLogEnabled(true);
     mdec.setConsoleLogEnabled(true);
-    mdecV.setConsoleLogEnabled(true);
-    mdecT.setConsoleLogEnabled(true);
+    //mdecV.setConsoleLogEnabled(true);
+    //mdecT.setConsoleLogEnabled(true);
     //memory.setConsoleLogEnabled(true);
     //misc.setConsoleLogEnabled(true);
     //pad.setConsoleLogEnabled(true);
     //renderer.setConsoleLogEnabled(true);
-    //spu.setConsoleLogEnabled(true);
+    spu.setConsoleLogEnabled(true);
+    spuV.setConsoleLogEnabled(true);
+    spuT.setConsoleLogEnabled(true);
     //timers.setConsoleLogEnabled(true);
     //tty.setConsoleLogEnabled(true);
     warning.setConsoleLogEnabled(true);
@@ -154,8 +157,12 @@ LogPack::LogPack()
     //gteV.setConsoleLogEnabled(true);
     //gteT.setConsoleLogEnabled(true);
 
-    //cdrom.setConsoleLogEnabled(true);
-    //cdromV.setConsoleLogEnabled(true);
+    cdimg.setConsoleLogEnabled(true);
+    cdimgV.setConsoleLogEnabled(true);
+    cdimgT.setConsoleLogEnabled(true);
+
+    cdrom.setConsoleLogEnabled(true);
+    cdromV.setConsoleLogEnabled(true);
     //cdromT.setConsoleLogEnabled(true);
 
     //exceptions.setConsoleLogEnabled(true);
