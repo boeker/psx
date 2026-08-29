@@ -125,6 +125,9 @@ private:
     uint8_t asect;
     bool set_loc_unprocessed;
 
+    uint8_t filter_file;
+    uint8_t filter_channel;
+
     uint8_t mode;
     uint32_t sector_offset;
     uint32_t sector_end;
@@ -198,9 +201,9 @@ private:
     uint8_t play_response();
     uint8_t play_second_response();
     // 0x06
-    void read_n();
-    uint8_t read_n_response();
-    uint8_t read_n_second_response();
+    void read_n_s();
+    uint8_t read_n_s_response();
+    uint8_t read_n_s_second_response();
     // 0x08
     void stop();
     uint8_t stop_response();
@@ -253,10 +256,7 @@ private:
     uint8_t get_id_second_response_motor_off();
     uint8_t get_id_second_response_mode_2();
     uint8_t get_id_second_response_audio();
-    // 0x1B
-    void read_s();
-    uint8_t read_s_response();
-    uint8_t read_s_second_response();
+    // 0x1B is ReadS() -> Same as ReadN()?
     // 0x1E
     void read_toc();
     uint8_t read_toc_response();

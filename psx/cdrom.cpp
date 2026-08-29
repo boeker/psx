@@ -118,6 +118,9 @@ void CDROM::reset() {
     asect = 0;
     set_loc_unprocessed = false;
 
+    filter_file = 0;
+    filter_channel = 0;
+
     mode = 0;
     sector_offset = 0;
     sector_end = 0;
@@ -503,7 +506,7 @@ const CDROM::Command CDROM::commands[] = {
     &CDROM::set_loc, // 0x02
     &CDROM::play, // 0x03
     &CDROM::unknown, &CDROM::unknown,
-    &CDROM::read_n,
+    &CDROM::read_n_s,
     &CDROM::unknown,
     &CDROM::stop, // 0x08
     &CDROM::pause, // 0x09
@@ -525,7 +528,7 @@ const CDROM::Command CDROM::commands[] = {
     &CDROM::unknown,
     &CDROM::test, // 0x19
     &CDROM::get_id, // 0x1A
-    &CDROM::read_s, // 0x1B
+    &CDROM::read_n_s, // 0x1B
     &CDROM::unknown, &CDROM::unknown,
     &CDROM::read_toc,
     &CDROM::unknown,
@@ -858,9 +861,9 @@ uint8_t CDROM::play_second_response() {
 }
 
 
-void CDROM::read_n() {
-    LOGV_CDROM(prependState(std::format("========> ReadN(): Command <========")));
-    scheduled_responses.emplace_back(&CDROM::read_n_response);
+void CDROM::read_n_s() {
+    LOGV_CDROM(prependState(std::format("========> ReadN/S(): Command <========")));
+    scheduled_responses.emplace_back(&CDROM::read_n_s_response);
 
     // Make sure we do not have any already read sectors remaining
     while (!read_sector_buffers.empty()) {
@@ -869,8 +872,8 @@ void CDROM::read_n() {
     }
 }
 
-uint8_t CDROM::read_n_response() {
-    LOGV_CDROM(prependState(std::format("========> ReadN(): Initial Response <========")));
+uint8_t CDROM::read_n_s_response() {
+    LOGV_CDROM(prependState(std::format("========> ReadN/S(): Initial Response <========")));
 
     if (!cd) {
         return no_disc_response();
@@ -886,13 +889,13 @@ uint8_t CDROM::read_n_response() {
     set_loc_unprocessed = false;
 
     // Schedule second response
-    scheduled_responses.emplace_back(&CDROM::read_n_second_response, 0x36CD2);
+    scheduled_responses.emplace_back(&CDROM::read_n_s_second_response, 0x36CD2);
 
     return 3;
 }
 
-uint8_t CDROM::read_n_second_response() {
-    LOGV_CDROM(prependState(std::format("========> ReadN(): Second Response <========")));
+uint8_t CDROM::read_n_s_second_response() {
+    LOGV_CDROM(prependState(std::format("========> ReadN/S(): Second Response <========")));
 
     // Read sector from CD
     std::unique_ptr<uint8_t[]> buffer;
@@ -906,7 +909,47 @@ uint8_t CDROM::read_n_second_response() {
     }
 
     LOGV_CDROM(prependState(std::format("CD is at {}", cd->get_current_position_on_disc())));
+    last_sector_header.was_data = cd->get_current_track_mode() != util::cue::Track::Mode::AUDIO;
     cd->read_sector_and_advance(buffer.get());
+    if (last_sector_header.was_data) {
+        last_sector_header.header[0] = buffer[0x00C];
+        last_sector_header.header[1] = buffer[0x00D];
+        last_sector_header.header[2] = buffer[0x00E];
+        last_sector_header.header[3] = buffer[0x00F];
+        last_sector_header.sub_header[0] = buffer[0x010];
+        last_sector_header.sub_header[1] = buffer[0x011];
+        last_sector_header.sub_header[2] = buffer[0x012];
+        last_sector_header.sub_header[3] = buffer[0x013];
+        LOGV_CDROM(prependState(std::format("Extracted (sub-)header: 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}",
+                        last_sector_header.header[0], last_sector_header.header[1], last_sector_header.header[2], last_sector_header.header[3],
+                        last_sector_header.sub_header[0], last_sector_header.sub_header[1], last_sector_header.sub_header[2], last_sector_header.sub_header[3])));
+
+        uint8_t file = last_sector_header.sub_header[0];
+        uint8_t channel = last_sector_header.sub_header[1];
+        uint8_t submode = last_sector_header.sub_header[2];
+        LOGV_CDROM(prependState(std::format("File: 0x{:02X}, Channel: 0x{:02X}, Submode: 0x{:02X}", file, channel, submode)));
+
+        bool is_mode_2 = last_sector_header.header[3] == 0x02;
+        bool is_audio_and_realtime = (submode & 0x44) == 0x44; // Bit 2 and 6 set
+        if (is_mode_2 && is_audio_and_realtime && Bit::getBit(mode, CDROM_MODE_XA_ADPCM)) {
+        LOGV_CDROM(prependState(std::format("XA-ADPCM enabled and encountered XA-ADPCM sector")));
+            if (!Bit::getBit(mode, CDROM_MODE_XA_FILTER) || (file == filter_file && channel == filter_channel)) {
+                // TODO Deliver XA-ADPCM sector
+                LOGW_CDROM(prependState(std::format("XA-ADPCM playback not implemented!")));
+
+            } else {
+                LOGV_CDROM(prependState(std::format("Skipping XA-ADPCM sector due to filter")));
+            }
+            // Do not send sector to CPU, just move buffer back
+            unused_sector_buffers.emplace_back(std::move(buffer));
+
+            // Schedule next read
+            scheduled_responses.emplace_back(&CDROM::read_n_s_second_response, 0x36CD2);
+
+            return 0;
+        }
+    }
+
     read_sector_buffers.emplace_back(std::move(buffer));
 
     push_drive_state_to_response_queue();
@@ -914,7 +957,7 @@ uint8_t CDROM::read_n_second_response() {
     // Schedule reading of next sector (since we are automatically reading that)
     // Software has to be fast enough to keep up!
     // That is, the next_sector_buffer has to be read or we will overwrite it.
-    scheduled_responses.emplace_back(&CDROM::read_n_second_response, 0x36CD2);
+    scheduled_responses.emplace_back(&CDROM::read_n_s_second_response, 0x36CD2);
 
     return 1;
 }
@@ -1035,12 +1078,9 @@ void CDROM::set_filter() {
 }
 
 uint8_t CDROM::set_filter_response() {
-    uint8_t file = parameter_queue.pop();
-    uint8_t channel = parameter_queue.pop();
-    LOGV_CDROM(prependState(std::format("========> SetFilter(0x{:02X}, 0x{:02X}): Response <========", file, channel)));
-
-    // TODO Implement
-    LOGW_CDROM(prependState(std::format("SetFilter() not implemented!")));
+    filter_file = parameter_queue.pop();
+    filter_channel = parameter_queue.pop();
+    LOGV_CDROM(prependState(std::format("========> SetFilter(0x{:02X}, 0x{:02X}): Response <========", filter_file, filter_channel)));
 
     push_drive_state_to_response_queue();
     return 3;
@@ -1059,7 +1099,7 @@ uint8_t CDROM::set_mode_response() {
         LOGW_CDROM(prependState(std::format("Ignore bit set but not implemented", mode)));
     }
 
-    // TODO Handle speed, xa-adpcm, xa-filter, report, auto pause and cdda
+    // TODO Handle speed, auto pause and cdda
 
     push_drive_state_to_response_queue();
     return 3;
@@ -1306,81 +1346,6 @@ uint8_t CDROM::get_id_second_response_audio() {
     response_queue.push(0x00); // E
     response_queue.push(0x00); // A
     return 5;
-}
-
-void CDROM::read_s() {
-    LOGV_CDROM(prependState(std::format("========> ReadS(): Command <========")));
-    scheduled_responses.emplace_back(&CDROM::read_s_response);
-
-    // Make sure we do not have any already read sectors remaining
-    while (!read_sector_buffers.empty()) {
-        unused_sector_buffers.emplace_back(std::move(read_sector_buffers.back()));
-        read_sector_buffers.pop_back();
-    }
-}
-
-uint8_t CDROM::read_s_response() {
-    LOGV_CDROM(prependState(std::format("========> ReadS(): Initial Response <========")));
-
-    if (!cd) {
-        return no_disc_response();
-    }
-
-    // Write response
-    drive_state = READING;
-    push_drive_state_to_response_queue();
-
-    // Read does also seek
-    // TODO Move this to second response, separate spam response
-    cd->seek_to_bcd(amm, ass, asect);
-    set_loc_unprocessed = false;
-
-    // Schedule second response
-    scheduled_responses.emplace_back(&CDROM::read_s_second_response, 0x36CD2);
-
-    return 3;
-}
-
-uint8_t CDROM::read_s_second_response() {
-    LOGV_CDROM(prependState(std::format("========> ReadS(): Second Response <========")));
-
-    // Read sector from CD
-    std::unique_ptr<uint8_t[]> buffer;
-    if (!unused_sector_buffers.empty()) {
-        buffer = std::move(unused_sector_buffers.front());
-        unused_sector_buffers.pop_front();
-
-    } else {
-        LOGW_CDROM(prependState(std::format("No unused sector buffer for read, allocating new buffer!")));
-        buffer = std::make_unique<uint8_t[]>(CD::SECTOR_SIZE);
-    }
-
-    LOGV_CDROM(prependState(std::format("CD is at {}", cd->get_current_position_on_disc())));
-    last_sector_header.was_data = cd->get_current_track_mode() != util::cue::Track::Mode::AUDIO;
-    cd->read_sector_and_advance(buffer.get());
-    if (last_sector_header.was_data) {
-        last_sector_header.header[0] = buffer[0x00C];
-        last_sector_header.header[1] = buffer[0x00D];
-        last_sector_header.header[2] = buffer[0x00E];
-        last_sector_header.header[3] = buffer[0x00F];
-        last_sector_header.sub_header[0] = buffer[0x010];
-        last_sector_header.sub_header[1] = buffer[0x011];
-        last_sector_header.sub_header[2] = buffer[0x012];
-        last_sector_header.sub_header[3] = buffer[0x013];
-        LOGV_CDROM(prependState(std::format("Extracted (sub-)header: 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}",
-                        last_sector_header.header[0], last_sector_header.header[1], last_sector_header.header[2], last_sector_header.header[3],
-                        last_sector_header.sub_header[0], last_sector_header.sub_header[1], last_sector_header.sub_header[2], last_sector_header.sub_header[3])));
-    }
-    read_sector_buffers.emplace_back(std::move(buffer));
-
-    push_drive_state_to_response_queue();
-
-    // Schedule reading of next sector (since we are automatically reading that)
-    // Software has to be fast enough to keep up!
-    // That is, the next_sector_buffer has to be read or we will overwrite it.
-    scheduled_responses.emplace_back(&CDROM::read_s_second_response, 0x36CD2);
-
-    return 1;
 }
 
 void CDROM::read_toc() {
