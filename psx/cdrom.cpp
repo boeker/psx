@@ -116,6 +116,7 @@ void CDROM::reset() {
     amm = 0;
     ass = 0;
     asect = 0;
+    set_loc_unprocessed = false;
 
     mode = 0;
     sector_offset = 0;
@@ -743,6 +744,7 @@ uint8_t CDROM::set_loc_response() {
     amm = parameter_queue.pop();
     ass = parameter_queue.pop();
     asect = parameter_queue.pop();
+    set_loc_unprocessed = true;
 
     LOGV_CDROM(prependState(std::format("========> Setloc(0x{:02X}, 0x{:02X}, 0x{:02X}): Response <========", amm, ass, asect)));
 
@@ -766,21 +768,20 @@ void CDROM::play() {
 }
 
 uint8_t CDROM::play_response() {
-    uint8_t track;
-    if (!parameter_queue.is_empty()) {
-        track = parameter_queue.pop();
-    }
+    uint8_t track = !parameter_queue.is_empty() ? parameter_queue.pop() : 0;
     LOGV_CDROM(prependState(std::format("========> Play({:d}): Initial Response <========", track)));
 
     if (!cd) {
         return no_disc_response();
     }
 
-    // TODO Parameter_queue seems to contain 3, which is this command
-    //if (track != 0) {
-    //    cd->seek_to_audio_track(track);
-    //    // TODO Support restart current track
-    //}
+    if (track != 0) { // Track given -> start at that
+        cd->seek_to_audio_track(track);
+        // TODO Support restart current track
+    } else if (set_loc_unprocessed) { // No track given but SetLoc used - > use that
+        cd->seek_to_bcd(amm, ass, asect);
+        set_loc_unprocessed = false;
+    } // Otherwise -> use current position
 
     // Write response
     drive_state = PLAYING;
@@ -882,6 +883,7 @@ uint8_t CDROM::read_n_response() {
     // Read does also seek
     // TODO Move this to second response, separate spam response
     cd->seek_to_bcd(amm, ass, asect);
+    set_loc_unprocessed = false;
 
     // Schedule second response
     scheduled_responses.emplace_back(&CDROM::read_n_second_response, 0x36CD2);
@@ -1183,6 +1185,7 @@ uint8_t CDROM::seek_l_second_response() {
     LOGV_CDROM(prependState(std::format("========> SeekL(): Second Response <========")));
 
     cd->seek_to_bcd(amm, ass, asect);
+    set_loc_unprocessed = false;
 
     drive_state = MOTOR_ON;
     push_drive_state_to_response_queue();
@@ -1213,6 +1216,7 @@ uint8_t CDROM::seek_p_second_response() {
     LOGV_CDROM(prependState(std::format("========> SeekP(): Second Response <========")));
 
     cd->seek_to_bcd(amm, ass, asect);
+    set_loc_unprocessed = false;
 
     drive_state = MOTOR_ON;
     push_drive_state_to_response_queue();
@@ -1329,6 +1333,7 @@ uint8_t CDROM::read_s_response() {
     // Read does also seek
     // TODO Move this to second response, separate spam response
     cd->seek_to_bcd(amm, ass, asect);
+    set_loc_unprocessed = false;
 
     // Schedule second response
     scheduled_responses.emplace_back(&CDROM::read_s_second_response, 0x36CD2);

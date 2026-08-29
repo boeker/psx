@@ -123,6 +123,7 @@ private:
     uint8_t amm;
     uint8_t ass;
     uint8_t asect;
+    bool set_loc_unprocessed;
 
     uint8_t mode;
     uint32_t sector_offset;
