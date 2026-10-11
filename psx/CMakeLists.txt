@@ -30,10 +30,14 @@ target_sources(psx PRIVATE
     renderer/opengl/glad.cpp
     renderer/opengl/openglrenderer.cpp
     renderer/opengl/shader.cpp
-    renderer/software/gl.cpp
-    renderer/software/glad.cpp
-    renderer/software/softwarerenderer.cpp
-    renderer/software/shader.cpp
+    renderer/software_classic/gl.cpp
+    renderer/software_classic/glad.cpp
+    renderer/software_classic/classicrenderer.cpp
+    renderer/software_classic/shader.cpp
+    renderer/software_modern/gl.cpp
+    renderer/software_modern/glad.cpp
+    renderer/software_modern/modernrenderer.cpp
+    renderer/software_modern/shader.cpp
     spu.cpp
     timers.cpp
     util/disassembler.cpp

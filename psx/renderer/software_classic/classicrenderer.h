@@ -12,12 +12,12 @@ namespace PSX {
 
 class Screen;
 
-class SoftwareRenderer : public Renderer {
+class ClassicRenderer : public Renderer {
 public:
-    SoftwareRenderer(Screen *screen, Screen *vramViewer);
-    virtual ~SoftwareRenderer();
+    ClassicRenderer(Screen *screen, Screen *vramViewer);
+    virtual ~ClassicRenderer();
 
-    void initialize();
+    void initialize() override;
 
     void installVRAMViewer(Screen *vramViewer);
 
@@ -44,7 +44,7 @@ private:
     void draw_triangle(Point a, Point b, Point c, Context context);
 
     template<typename Point, typename Context>
-    void draw_triangle_half(Point a, Point c, Point f, Point t, Context context);
+    void draw_triangle_half(Point a, Point b, Point c, Point f, Point t, Context context, int32_t twice_total_area);
 
     struct Color {
         uint32_t r;
@@ -60,11 +60,11 @@ private:
 
     struct ColorContext {
         using ColorType = Color;
-        static Color interpolate(const Color &a, int32_t a_fact, const Color &b, int32_t b_fact, int32_t divisor) {
+        static Color interpolate(double alpha, const Color &a, double beta, const Color &b, double gamma, const Color &c) {
             return {
-                (a.r * a_fact + b.r * b_fact) / divisor,
-                (a.g * a_fact + b.g * b_fact) / divisor,
-                (a.b * a_fact + b.b * b_fact) / divisor,
+                static_cast<uint32_t>(alpha * a.r + beta * b.r + gamma * c.r),
+                static_cast<uint32_t>(alpha * a.g + beta * b.g + gamma * c.g),
+                static_cast<uint32_t>(alpha * a.b + beta * b.b + gamma * c.b),
             };
         }
         bool valid() {
@@ -90,10 +90,15 @@ private:
 
     struct TextureContext {
         using ColorType = TextureCoordinate;
-        static TextureCoordinate interpolate(const TextureCoordinate &a, int32_t a_fact, const TextureCoordinate &b, int32_t b_fact, int32_t divisor) {
+        static TextureCoordinate interpolate(double alpha, const TextureCoordinate &a, double beta, const TextureCoordinate &b, double gamma, const TextureCoordinate &c) {
+
+            int32_t min_x = std::min(a.x, std::min(b.x, c.x));
+            int32_t max_x = std::max(a.x, std::max(b.x, c.x));
+            int32_t min_y = std::min(a.y, std::min(b.y, c.y));
+            int32_t max_y = std::max(a.y, std::max(b.y, c.y));
             return {
-                (a.x * a_fact + b.x * b_fact) / divisor,
-                (a.y * a_fact + b.y * b_fact) / divisor
+                std::min(max_x, std::max(min_x, static_cast<int32_t>(alpha * a.x + beta * b.x + gamma * c.x))),
+                std::min(max_y, std::max(min_y, static_cast<int32_t>(alpha * a.y + beta * b.y + gamma * c.y)))
             };
         }
 
@@ -123,12 +128,14 @@ private:
     };
 
     void draw_pixel(int32_t x, int32_t y, const TextureContext &context, const TextureCoordinate &c) {
-        uint16_t halfword = readFromVRAM(context.xBase + (c.x / 4), context.yBase + c.y);
-        uint8_t textureIndex = (halfword >> (4 * (c.x % 4))) & 0xF;
-        uint16_t color = readFromVRAM(context.xPalette + textureIndex, context.yPalette);
+        if (c.x >= 0 && c.y >= 0) {
+            uint16_t halfword = readFromVRAM(context.xBase + (c.x / 4), context.yBase + c.y);
+            uint8_t textureIndex = (halfword >> (4 * (c.x % 4))) & 0xF;
+            uint16_t color = readFromVRAM(context.xPalette + textureIndex, context.yPalette);
 
-        if (color) { // nothing, not even semiTransparency set -> transparent
-            writeToVRAM(x, y, color & 0x7FFF); // set mask bit to 0 for now
+            if (color) { // nothing, not even semiTransparency set -> transparent
+                writeToVRAM(x, y, color & 0x7FFF); // set mask bit to 0 for now
+            }
         }
     }
 

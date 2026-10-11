@@ -17,12 +17,13 @@
 #include "psx/core.h"
 #include "psx/cd.h"
 #include "psx/gamepad.h"
-#include "psx/renderer/software/softwarerenderer.h"
+#include "psx/renderer/software_classic/classicrenderer.h"
+#include "psx/renderer/software_modern/modernrenderer.h"
 #include "psx/util/log.h"
 
 bool running = false;
 PSX::Core *core = nullptr;
-PSX::SoftwareRenderer *renderer = nullptr;
+PSX::Renderer *renderer = nullptr;
 EmuThread *emuThread = nullptr;
 
 PlainTextEditLog::PlainTextEditLog(QPlainTextEdit *plainTextEdit)
@@ -101,7 +102,8 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     debuggerWindow = new DebuggerWindow(core);
 
     // Renderer
-    renderer = new PSX::SoftwareRenderer(openGLWindow, vramViewerWindow->getOpenGLWindow());
+    //renderer = new PSX::ModernRenderer(openGLWindow, vramViewerWindow->getOpenGLWindow());
+    renderer = new PSX::ClassicRenderer(openGLWindow, vramViewerWindow->getOpenGLWindow());
     core->setRenderer(renderer);
 
     // Emulation thread

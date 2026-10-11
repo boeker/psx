@@ -147,7 +147,7 @@ LogPack::LogPack()
     //gpu.setConsoleLogEnabled(true);
     //gpuV.setConsoleLogEnabled(true);
     //gpuT.setConsoleLogEnabled(true);
-    //renderer.setConsoleLogEnabled(true);
+    renderer.setConsoleLogEnabled(true);
     //rendererV.setConsoleLogEnabled(true);
     //rendererT.setConsoleLogEnabled(true);
 

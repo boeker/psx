@@ -1,4 +1,4 @@
-#include "softwarerenderer.h"
+#include "classicrenderer.h"
 
 #include <glad/glad.h>
 #include <cmath>
@@ -14,14 +14,14 @@ using namespace util;
 
 namespace PSX {
 
-SoftwareRenderer::SoftwareRenderer(Screen *screen, Screen *vramViewer)
+ClassicRenderer::ClassicRenderer(Screen *screen, Screen *vramViewer)
     : screen(screen), vramViewer(vramViewer) {
 
     vram = new uint8_t[VRAM_SIZE];
     reset();
 }
 
-void SoftwareRenderer::initialize() {
+void ClassicRenderer::initialize() {
     glCheckError();
 
     // store VRAM in a texture
@@ -68,15 +68,15 @@ void SoftwareRenderer::initialize() {
     glCheckError();
 }
 
-SoftwareRenderer::~SoftwareRenderer() {
+ClassicRenderer::~ClassicRenderer() {
     delete[] vram;
 }
 
-void SoftwareRenderer::installVRAMViewer(Screen *vramViewer) {
+void ClassicRenderer::installVRAMViewer(Screen *vramViewer) {
     this->vramViewer = vramViewer;
 }
 
-void SoftwareRenderer::reset() {
+void ClassicRenderer::reset() {
     std::memset(vram, 0, VRAM_SIZE);
 
     drawing_area_top_left_x = 0;
@@ -94,10 +94,10 @@ void SoftwareRenderer::reset() {
     display_area_24_bit = false;
 }
 
-void SoftwareRenderer::clear() {
+void ClassicRenderer::clear() {
 }
 
-void SoftwareRenderer::computeViewport() {
+void ClassicRenderer::computeViewport() {
     // compute where to place vram framebuffer on screen
     int windowHeight = screen->getHeight();
     int windowWidth = screen->getWidth();
@@ -115,7 +115,7 @@ void SoftwareRenderer::computeViewport() {
     viewportY = (windowHeight - height) / 2;
 }
 
-void SoftwareRenderer::computeVRAMViewport() {
+void ClassicRenderer::computeVRAMViewport() {
     int windowHeight = vramViewer->getHeight();
     int windowWidth = vramViewer->getWidth();
 
@@ -132,7 +132,7 @@ void SoftwareRenderer::computeVRAMViewport() {
     vramViewportY = (windowHeight - height) / 2;
 }
 
-void SoftwareRenderer::swapBuffers() {
+void ClassicRenderer::swapBuffers() {
     // upload vram to texture
     glBindTexture(GL_TEXTURE_2D, screenTexture);
     if (display_area_24_bit) {
@@ -193,7 +193,7 @@ void SoftwareRenderer::swapBuffers() {
     }
 }
 
-void SoftwareRenderer::writeToVRAM(uint32_t x, uint32_t y, uint16_t value) {
+void ClassicRenderer::writeToVRAM(uint32_t x, uint32_t y, uint16_t value) {
     //LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
     //                          value, line, pos));
 
@@ -204,7 +204,7 @@ void SoftwareRenderer::writeToVRAM(uint32_t x, uint32_t y, uint16_t value) {
     }
 }
 
-uint16_t SoftwareRenderer::readFromVRAM(uint32_t x, uint32_t y) {
+uint16_t ClassicRenderer::readFromVRAM(uint32_t x, uint32_t y) {
     uint16_t value = ((uint16_t*)vram)[y * 1024 + x];
 
     //LOGT_REND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
@@ -213,7 +213,7 @@ uint16_t SoftwareRenderer::readFromVRAM(uint32_t x, uint32_t y) {
     return value;
 }
 
-void SoftwareRenderer::fillRectangleInVRAM(const PSX::Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+void ClassicRenderer::fillRectangleInVRAM(const PSX::Color &c, uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     for (uint32_t i = x; i < x + width; ++i) {
         for (uint32_t j = y; j < y + height; ++j) {
             writeToVRAM(i, j, c.to16Bit());
@@ -221,20 +221,20 @@ void SoftwareRenderer::fillRectangleInVRAM(const PSX::Color &c, uint32_t x, uint
     }
 }
 
-void SoftwareRenderer::set_drawing_area(uint32_t top_left_x, uint32_t top_left_y, uint32_t bot_right_x, uint32_t bot_right_y) {
+void ClassicRenderer::set_drawing_area(uint32_t top_left_x, uint32_t top_left_y, uint32_t bot_right_x, uint32_t bot_right_y) {
     drawing_area_top_left_x = std::min(top_left_x, 1024U);
     drawing_area_top_left_y = std::min(top_left_y, 512U);
     drawing_area_bot_right_x = std::min(bot_right_x, 1024U);
     drawing_area_bot_right_y = std::min(bot_right_y, 512U);
 }
 
-void SoftwareRenderer::set_drawing_offset(int32_t x, int32_t y) {
+void ClassicRenderer::set_drawing_offset(int32_t x, int32_t y) {
     drawing_offset_x = x;
     drawing_offset_y = y;
 }
 
 
-void SoftwareRenderer::set_display_area(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+void ClassicRenderer::set_display_area(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     display_area_top_left_x = x;
     display_area_top_left_y = y;
     display_area_width = width;
@@ -242,11 +242,11 @@ void SoftwareRenderer::set_display_area(uint32_t x, uint32_t y, uint32_t width, 
 
 }
 
-void SoftwareRenderer::set_display_area_color_depth(bool enable_24_bit) {
+void ClassicRenderer::set_display_area_color_depth(bool enable_24_bit) {
     display_area_24_bit = enable_24_bit;
 }
 
-void SoftwareRenderer::drawTriangle(const Triangle &triangle) {
+void ClassicRenderer::drawTriangle(const Triangle &triangle) {
     LOGT_REND(std::format("drawTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
     ColoredPoint a = {
         triangle.v1.x + drawing_offset_x, triangle.v1.y + drawing_offset_y,
@@ -265,7 +265,7 @@ void SoftwareRenderer::drawTriangle(const Triangle &triangle) {
     draw_triangle<ColoredPoint, ColorContext>(a, b, c, context);
 }
 
-void SoftwareRenderer::drawTexturedTriangle(const TexturedTriangle &triangle) {
+void ClassicRenderer::drawTexturedTriangle(const TexturedTriangle &triangle) {
     LOGT_REND(std::format("drawTexturedTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
     TexturedPoint a = {
         triangle.v1.x + drawing_offset_x, triangle.v1.y + drawing_offset_y,
@@ -284,8 +284,12 @@ void SoftwareRenderer::drawTexturedTriangle(const TexturedTriangle &triangle) {
     draw_triangle<TexturedPoint, TextureContext>(a, b, c, context);
 }
 
+int32_t twice_triangle_area(int32_t ax, int32_t ay, int32_t bx, int32_t by, int32_t cx, int32_t cy) {
+    return (by - ay) * (bx + ax) + (cy - by) * (cx + bx) + (ay - cy) * (ax + cx);
+}
+
 template<typename Point, typename Context>
-void SoftwareRenderer::draw_triangle(Point a, Point b, Point c, Context context) {
+void ClassicRenderer::draw_triangle(Point a, Point b, Point c, Context context) {
     if (!context.valid()) {
         LOG_REND(std::format("DrawingContext not valid: format not implemented?"));
         return;
@@ -303,21 +307,26 @@ void SoftwareRenderer::draw_triangle(Point a, Point b, Point c, Context context)
         std::swap(b, c);
     }
 
+    int32_t twice_total_area = twice_triangle_area(a.x, a.y, b.x, b.y, c.x, c.y);
+    if (std::abs(twice_total_area) <= 1) {
+        return;
+    }
+
     // Bottom half of the triangle
     if (a.y != b.y) {
-        draw_triangle_half<Point, Context>(a, c, a, b, context);
+        draw_triangle_half<Point, Context>(a, b, c, a, b, context, twice_total_area);
     }
 
     // Top half of the triangle
     if (b.y != c.y) {
-        draw_triangle_half<Point, Context>(a, c, b, c, context);
+        draw_triangle_half<Point, Context>(a, b, c, b, c, context, twice_total_area);
     }
 }
 
-template void SoftwareRenderer::draw_triangle(TexturedPoint a, TexturedPoint b, TexturedPoint c, TextureContext context);
+template void ClassicRenderer::draw_triangle(TexturedPoint a, TexturedPoint b, TexturedPoint c, TextureContext context);
 
 template<typename Point, typename Context>
-void SoftwareRenderer::draw_triangle_half(Point a, Point c, Point f, Point t, Context context) {
+void ClassicRenderer::draw_triangle_half(Point a, Point b, Point c, Point f, Point t, Context context, int32_t twice_total_area) {
     int32_t total_height = c.y - a.y;
     int32_t segment_height = t.y - f.y;
 
@@ -329,28 +338,29 @@ void SoftwareRenderer::draw_triangle_half(Point a, Point c, Point f, Point t, Co
         int32_t x_ac = a.x + ((c.x - a.x) * (y - a.y)) / total_height;
         int32_t x_ft = f.x + ((t.x - f.x) * (y - f.y)) / segment_height;
 
-        // Determine color/texture coordinate for point (x_ac, y) and (x_ft, y)
-        // (x_ac, y) by interpolating a and c along y
-        // (x_ft, y) by interpolating f and t along y
-        typename Context::ColorType c_ac = Context::interpolate(c.c, y - a.y, a.c, c.y - y, total_height);
-        typename Context::ColorType c_ft = Context::interpolate(t.c, y - f.y, f.c, t.y - y, segment_height);
-
         // Draw line from left to right
-        Point left = { x_ac, y, c_ac };
-        Point right = { x_ft, y, c_ft };
-        if (x_ft < x_ac) {
+        int32_t left = x_ac;
+        int32_t right = x_ft;
+        if (left > right) {
             std::swap(left, right);
         }
 
-        int32_t line_length = right.x - left.x;
-        for (int x = std::max(left.x, (int)drawing_area_top_left_x); x < std::min(right.x, (int)drawing_area_bot_right_x); x++) {
-            typename Context::ColorType c = Context::interpolate(right.c, x - left.x, left.c, right.x - x, line_length);
-            draw_pixel(x, y, context, c);
+        for (int x = std::max(left, (int)drawing_area_top_left_x); x < std::min(right, (int)drawing_area_bot_right_x); x++) {
+            double alpha = static_cast<double>(twice_triangle_area(x, y, b.x, b.y, c.x, c.y)) / twice_total_area;
+            double beta = static_cast<double>(twice_triangle_area(x, y, c.x, c.y, a.x, a.y)) / twice_total_area;
+            double gamma = static_cast<double>(twice_triangle_area(x, y, a.x, a.y, b.x, b.y)) / twice_total_area;
+
+            //if (alpha < 0 || beta < 0 || gamma < 0) {
+            //    continue;
+            //}
+
+            typename Context::ColorType pixel_color = Context::interpolate(alpha, a.c, beta, b.c, gamma, c.c);
+            draw_pixel(x, y, context, pixel_color);
         }
     }
 }
 
-template void SoftwareRenderer::draw_triangle_half(TexturedPoint a, TexturedPoint c, TexturedPoint f, TexturedPoint t, TextureContext context);
+template void ClassicRenderer::draw_triangle_half(TexturedPoint a, TexturedPoint b, TexturedPoint c, TexturedPoint f, TexturedPoint t, TextureContext context, int32_t twice_total_area);
 
 }
 

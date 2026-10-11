@@ -27,13 +27,13 @@ class VRAMViewerWindow;
 
 namespace PSX {
 class Core;
-class SoftwareRenderer;
+class Renderer;
 }
 
 // Global emulation variables
 extern bool running;
 extern PSX::Core *core;
-extern PSX::SoftwareRenderer *renderer;
+extern PSX::Renderer *renderer;
 extern EmuThread *emuThread;
 
 class PlainTextEditLog : public QObject, public util::Log {
