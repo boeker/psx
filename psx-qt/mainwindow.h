@@ -36,7 +36,7 @@ extern PSX::Core *core;
 extern PSX::Renderer *renderer;
 extern EmuThread *emuThread;
 
-class PlainTextEditLog : public QObject, public util::Log {
+class PlainTextEditLog : public QObject, public util::Log, public util::LogSink {
     Q_OBJECT
 
 public:

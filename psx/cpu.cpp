@@ -105,7 +105,7 @@ void CPU::interceptTTYOutput() {
         if (c != '\n') {
             ttyOutput << (char)c;
         } else {
-            LOG_TTY(ttyOutput.str());
+            LOGL_TTY(LogLevel::INFO, "{}", ttyOutput.str());
             ttyOutput.str(std::string());
         }
     }

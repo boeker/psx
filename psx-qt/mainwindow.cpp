@@ -115,7 +115,7 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
     std::shared_ptr<PlainTextEditLog> plainTextEditLog = std::make_shared<PlainTextEditLog>(ui->plainTextEditLog);
     connect(plainTextEditLog.get(), &PlainTextEditLog::logString, ui->plainTextEditLog, &QPlainTextEdit::appendPlainText);
     connect(plainTextEditLog.get(), &PlainTextEditLog::moveScrollBar, ui->plainTextEditLog->verticalScrollBar(), &QScrollBar::setValue);
-    util::logPack.installAdditionalLog(plainTextEditLog);
+    util::logPack.install_log_sink(plainTextEditLog);
 
     // Connections
     makeConnections();
