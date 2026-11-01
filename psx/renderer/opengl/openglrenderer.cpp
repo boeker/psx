@@ -324,7 +324,7 @@ void OpenGLRenderer::loadTexture(uint8_t *textureData) {
 }
 
 uint8_t* OpenGLRenderer::decodeTexture(uint16_t texpage, uint16_t palette) {
-    LOGT_GPU(std::format("Decoding texture"));
+    LOGL_RND(LogLevel::TRACE, "Decoding texture");
     decodedTexture.clear();
 
     uint32_t xBase = (texpage & 0xF) * 64; // in halfwords
@@ -336,7 +336,7 @@ uint8_t* OpenGLRenderer::decodeTexture(uint16_t texpage, uint16_t palette) {
     uint32_t xPalette = (palette & 0x3F) * 16; // in halfwords
     uint32_t yPalette = (palette >> 6) & 0x1FF; // in lines
 
-    LOG_REND(std::format("Decoding texture: XBase[{:d}], YBase[{:d}], Semi Transparency[{:d}], Texture Page Colors[{:d}], Texture Disable[{:d}], XPalette[{:d}], YPalette[{:d}]", xBase, yBase, semiTransparency, texturePageColors, textureDisable, xPalette, yPalette));
+    LOGL_RND(LogLevel::INFO, "Decoding texture: XBase[{:d}], YBase[{:d}], Semi Transparency[{:d}], Texture Page Colors[{:d}], Texture Disable[{:d}], XPalette[{:d}], YPalette[{:d}]", xBase, yBase, semiTransparency, texturePageColors, textureDisable, xPalette, yPalette);
 
     if (texturePageColors == 0) { // 4-bit colors
         uint8_t colors[64];
@@ -389,10 +389,10 @@ uint8_t* OpenGLRenderer::decodeTexture(uint16_t texpage, uint16_t palette) {
         }
 
     } else {
-        LOG_GPU(std::format("Texture format not implemented"));
+        LOGL_RND(LogLevel::INFO, "Texture format not implemented");
     }
 
-    LOGT_GPU(std::format("Decoded texture size: {:d} bytes", decodedTexture.size()));
+    LOGL_RND(LogLevel::TRACE, "Decoded texture size: {:d} bytes", decodedTexture.size());
 
     if (decodedTexture.size() > 0) {
         return &decodedTexture[0];
@@ -434,24 +434,21 @@ void OpenGLRenderer::drawTexturedTriangle(const TexturedTriangle &t) {
 }
 
 void OpenGLRenderer::writeToVRAM(uint32_t line, uint32_t pos, uint16_t value) {
-    LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
-                              value, line, pos));
+    LOGL_RND(LogLevel::TRACE, "VRAM write 0x{:04X} -> line {:d}, position {:d}", value, line, pos);
 
     uint16_t *vramLine = (uint16_t*)&(vramCache[512 * line]);
     vramLine[pos] = value;
 }
 
 void OpenGLRenderer::writeToVRAM(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t *data) {
-    LOGV_REND(std::format("VRAM write to {:d}, {:d} of size {:d}x{:d}",
-                              x, y, width, height));
+    LOGL_RND(LogLevel::DEBUG, "VRAM write to {:d}, {:d} of size {:d}x{:d}", x, y, width, height);
 
     glBindTexture(GL_TEXTURE_2D, vramTexture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
 }
 
 void OpenGLRenderer::prepareReadFromVRAM(uint32_t line, uint32_t pos, uint32_t width, uint32_t height) {
-    LOGV_REND(std::format("prepareReadFromVRAM: from {:d}, {:d} of size {:d}x{:d}",
-                              line, pos, width, height));
+    LOGL_RND(LogLevel::DEBUG, "prepareReadFromVRAM: from {:d}, {:d} of size {:d}x{:d}", line, pos, width, height);
 
 }
 
@@ -459,8 +456,7 @@ uint16_t OpenGLRenderer::readFromVRAM(uint32_t line, uint32_t pos) {
     uint16_t *vramLine = (uint16_t*)&(vramCache[512 * line]);
     uint16_t value = vramLine[pos];
 
-    LOGT_REND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
-                              line, pos, value));
+    LOGL_RND(LogLevel::TRACE, "VRAM read line {:d}, position {:d} -> 0x{:04X}", line, pos, value);
 
     return value;
 }

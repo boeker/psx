@@ -194,11 +194,11 @@ void ClassicRenderer::swapBuffers() {
 }
 
 void ClassicRenderer::writeToVRAM(uint32_t x, uint32_t y, uint16_t value) {
-    //LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
+    //LOGT_RND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
     //                          value, line, pos));
 
     if (2 * y * 1024 + x >= VRAM_SIZE) {
-        LOG_WRN(std::format("writeToVRAM({:d}, {:d}, 0x{:04X}): out of bound", x, y, value));
+        LOGL_RND(LogLevel::WARNING, "writeToVRAM({:d}, {:d}, 0x{:04X}): out of bound", x, y, value);
     } else {
         ((uint16_t*)vram)[y * 1024 + x] = value;
     }
@@ -207,7 +207,7 @@ void ClassicRenderer::writeToVRAM(uint32_t x, uint32_t y, uint16_t value) {
 uint16_t ClassicRenderer::readFromVRAM(uint32_t x, uint32_t y) {
     uint16_t value = ((uint16_t*)vram)[y * 1024 + x];
 
-    //LOGT_REND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
+    //LOGT_RND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
     //                          line, pos, value));
 
     return value;
@@ -247,7 +247,7 @@ void ClassicRenderer::set_display_area_color_depth(bool enable_24_bit) {
 }
 
 void ClassicRenderer::drawTriangle(const Triangle &triangle) {
-    LOGT_REND(std::format("drawTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
+    LOGL_RND(LogLevel::TRACE, "drawTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3);
     ColoredPoint a = {
         triangle.v1.x + drawing_offset_x, triangle.v1.y + drawing_offset_y,
         { triangle.c1.r, triangle.c1.g, triangle.c1.b }
@@ -266,7 +266,7 @@ void ClassicRenderer::drawTriangle(const Triangle &triangle) {
 }
 
 void ClassicRenderer::drawTexturedTriangle(const TexturedTriangle &triangle) {
-    LOGT_REND(std::format("drawTexturedTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
+    LOGL_RND(LogLevel::TRACE, "drawTexturedTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3);
     TexturedPoint a = {
         triangle.v1.x + drawing_offset_x, triangle.v1.y + drawing_offset_y,
         { triangle.tc1.x, triangle.tc1.y }
@@ -291,7 +291,7 @@ int32_t twice_triangle_area(int32_t ax, int32_t ay, int32_t bx, int32_t by, int3
 template<typename Point, typename Context>
 void ClassicRenderer::draw_triangle(Point a, Point b, Point c, Context context) {
     if (!context.valid()) {
-        LOG_REND(std::format("DrawingContext not valid: format not implemented?"));
+        LOGL_RND(LogLevel::INFO, "DrawingContext not valid: format not implemented?");
         return;
     }
 

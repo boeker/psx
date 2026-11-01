@@ -251,7 +251,7 @@ void GPU::updateTimers(uint32_t cpuCycles) {
                     // Just continue with scanline handling during vertical retrace
 
                     // Swap buffers
-                    LOGT_GPU(std::format("VBlank"));
+                    LOGL_GPU(LogLevel::TRACE, "VBlank");
                     renderer->swapBuffers();
 
                     // Issue VBlank interrupt
@@ -275,12 +275,12 @@ void GPU::updateTimers(uint32_t cpuCycles) {
 }
 
 void GPU::receiveGP0Data(uint32_t word) {
-    LOGT_GPU(std::format("Received word 0x{:08X}", word));
+    LOGL_GPU(LogLevel::TRACE, "Received word 0x{:08X}", word);
 
     switch (state) {
         case State::TRANSFER_TO_VRAM:
-            LOGV_GPU(std::format("To VRAM: Remaining words: {:d}", transferToVRAMRemainingWords));
-            LOGV_GPU(std::format("Transfering word: 0x{:08X}", word));
+            LOGL_GPU(LogLevel::DEBUG, "To VRAM: Remaining words: {:d}", transferToVRAMRemainingWords);
+            LOGL_GPU(LogLevel::DEBUG, "Transfering word: 0x{:08X}", word);
 
 
             renderer->writeToVRAM(destinationCurrentX, destinationCurrentY, (uint16_t)(word & 0x0000FFFF));
@@ -292,7 +292,7 @@ void GPU::receiveGP0Data(uint32_t word) {
 
             if (transferToVRAMRemainingWords == 0) {
                 state = State::IDLE;
-                LOGT_GPU(std::format("State::IDLE"));
+                LOGL_GPU(LogLevel::TRACE, "State::IDLE");
             }
             break;
 
@@ -307,7 +307,7 @@ void GPU::receiveGP0Data(uint32_t word) {
                 }
 
             } else {
-                LOG_GPU(std::format("Queue is full"));
+                LOGL_GPU(LogLevel::INFO, "Queue is full");
             }
             break;
     }
@@ -315,19 +315,19 @@ void GPU::receiveGP0Data(uint32_t word) {
 }
 
 uint32_t GPU::sendGP0Data() {
-    LOGT_GPU(std::format("Sending word"));
+    LOGL_GPU(LogLevel::TRACE, "Sending word");
 
     uint32_t value1, value2;
 
     switch (state) {
         case State::TRANSFER_TO_CPU:
-            LOGT_GPU(std::format("To CPU: Remaining words: {:d}", transferToCPURemainingWords));
+            LOGL_GPU(LogLevel::TRACE, "To CPU: Remaining words: {:d}", transferToCPURemainingWords);
             transferToCPURemainingWords--;
 
             if (transferToCPURemainingWords == 0) {
                 state = State::IDLE;
                 setGPUStatusRegisterBit(GPUSTAT_VRAM_SEND_READY, 0);
-                LOGT_GPU(std::format("State::IDLE"));
+                LOGL_GPU(LogLevel::TRACE, "State::IDLE");
             }
 
             value2 = renderer->readFromVRAM(sourceCurrentX, sourceCurrentY);
@@ -382,8 +382,8 @@ void GPU::decodeAndExecuteGP1() {
         throw exceptions::UnknownGPUCommandError(std::format("GP1: 0x{:08X}, command 0x{:02X}", gp1, command));
     }
 
-    LOGT_GPU(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation()));
-    LOGT_GPU(std::format("GPUSTAT: {:s}", getGPUStatusRegisterExplanation2()));
+    LOGL_GPU(LogLevel::TRACE, "GPUSTAT: {:s}", getGPUStatusRegisterExplanation());
+    LOGL_GPU(LogLevel::TRACE, "GPUSTAT: {:s}", getGPUStatusRegisterExplanation2());
 }
 
 void GPU::advanceCurrentDestinationPosition() {
@@ -405,8 +405,7 @@ void GPU::advanceCurrentSourcePosition() {
 template <> void GPU::write(uint32_t address, uint32_t value) {
     assert ((address == 0x1F801810) || (address == 0x1F801814));
 
-    LOGT_GPU(std::format("GPU write 0x{:08X} -> @0x{:08X}",
-                         value, address));
+    LOGL_GPU(LogLevel::TRACE, "GPU write 0x{:08X} -> @0x{:08X}", value, address);
 
     if (address == 0x1F801810) { // GP0
         receiveGP0Data(value);
@@ -433,14 +432,14 @@ uint32_t GPU::read(uint32_t address) {
     if (address == 0x1F801810) { // GPUREAD
         uint32_t word = sendGP0Data();
 
-        LOGT_GPU(std::format("GPUREAD -> 0x{:08X}", word));
+        LOGL_GPU(LogLevel::TRACE, "GPUREAD -> 0x{:08X}", word);
 
         return word;
 
     } else { // GPUSTAT
         assert (address == 0x1F801814);
 
-        LOGT_GPU(std::format("GPUSTAT -> 0x{:08X}", gpuStatusRegister));
+        LOGL_GPU(LogLevel::TRACE, "GPUSTAT -> 0x{:08X}", gpuStatusRegister);
 
         return gpuStatusRegister;
 
@@ -581,8 +580,7 @@ uint32_t GPU::get_cycles_per_pixel() {
 }
 
 void GPU::update_drawing_area() {
-    LOGV_GPU(std::format("Updating drawing area to ({:d}, {:d})-({:d}x{:d})",
-                         drawing_area_top_left_x, drawing_area_top_left_y, drawing_area_bot_right_x, drawing_area_bot_right_y));
+    LOGL_GPU(LogLevel::DEBUG, "Updating drawing area to ({:d}, {:d})-({:d}x{:d})", drawing_area_top_left_x, drawing_area_top_left_y, drawing_area_bot_right_x, drawing_area_bot_right_y);
     renderer->set_drawing_area(drawing_area_top_left_x, drawing_area_top_left_y,
                                drawing_area_bot_right_x, drawing_area_bot_right_y);
 }
@@ -597,15 +595,14 @@ void GPU::update_display_area() {
         height *= 2;
     }
 
-    LOGV_GPU(std::format("Updating display area to ({:d}, {:d}) of size {:d}x{:d}",
-                         startOfDisplayAreaX, startOfDisplayAreaY, width, height));
+    LOGL_GPU(LogLevel::DEBUG, "Updating display area to ({:d}, {:d}) of size {:d}x{:d}", startOfDisplayAreaX, startOfDisplayAreaY, width, height);
     renderer->set_display_area(startOfDisplayAreaX, startOfDisplayAreaY, width, height);
 }
 
 void GPU::update_display_area_color_depth() {
     bool enable_24_bit = Bit::getBit(gpuStatusRegister, GPUSTAT_DISPLAY_AREA_COLOR_DEPTH);
 
-    LOGV_GPU(std::format("Updating display area color depth: 24 bit color = {:s}", enable_24_bit));
+    LOGL_GPU(LogLevel::DEBUG, "Updating display area color depth: 24 bit color = {:s}", enable_24_bit);
     renderer->set_display_area_color_depth(enable_24_bit);
 }
 
@@ -833,12 +830,12 @@ void GPU::GP0Unknown() {
 }
 
 void GPU::GP0NOP() {
-    LOG_GPU(std::format("GP0 - NOP"));
+    LOGL_GPU(LogLevel::INFO, "GP0 - NOP");
 }
 
 void GPU::GP0ClearCache() {
     // 0x01
-    LOG_GPU(std::format("GP0 - ClearCache"));
+    LOGL_GPU(LogLevel::INFO, "GP0 - ClearCache");
     // TODO Implement?
 }
 
@@ -854,14 +851,13 @@ void GPU::GP0FillRectangleInVRAM() {
     uint32_t width = widthAndHeight & 0xFFFF;
     uint32_t height = (widthAndHeight >> 16) & 0xFFFF;
 
-    LOGT_GPU(std::format("GP0 - FillRectangleInVRAM({}, {}, {}, {}, {})",
-                         c, topLeftX, topLeftY, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - FillRectangleInVRAM({}, {}, {}, {}, {})", c, topLeftX, topLeftY, width, height);
 
     renderer->fillRectangleInVRAM(c, topLeftX, topLeftY, width, height);
 }
 
 void GPU::GP0Mystery() {
-    LOG_GPU(std::format("GP0 - Mystery"));
+    LOGL_GPU(LogLevel::INFO, "GP0 - Mystery");
 }
 
 void GPU::GP0MonochromeThreePointPolygonOpaque() {
@@ -872,8 +868,7 @@ void GPU::GP0MonochromeThreePointPolygonOpaque() {
     Vertex v2(gp0Parameters[1]);
     Vertex v3(gp0Parameters[2]);
 
-    LOGT_GPU(std::format("GP0 - MonochromeThreePointPolygonOpaque({}, {}, {}, {})",
-                         c, v1, v2, v3));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromeThreePointPolygonOpaque({}, {}, {}, {})", c, v1, v2, v3);
 
     Triangle t(v1, c, v2, c, v3, c);
 
@@ -888,8 +883,7 @@ void GPU::GP0MonochromeThreePointPolygonSemiTransparent() {
     Vertex v2(gp0Parameters[1]);
     Vertex v3(gp0Parameters[2]);
 
-    LOGT_GPU(std::format("GP0 - MonochromeThreePointPolygonSemiTransparent({}, {}, {}, {})",
-                         c, v1, v2, v3));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromeThreePointPolygonSemiTransparent({}, {}, {}, {})", c, v1, v2, v3);
 
     Triangle t(v1, c, v2, c, v3, c);
 
@@ -911,8 +905,7 @@ void GPU::GP0TexturedThreePointPolygonOpaqueTextureBlending() {
     TextureCoordinate tc2(gp0Parameters[3] & 0xFFFF);
     TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
 
-    LOGT_GPU(std::format("GP0 - TexturedThreePointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {})",
-                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedThreePointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {})", palette, texpage, c, v1, tc1, v2, tc2, v3, tc3);
 
     TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
 
@@ -934,8 +927,7 @@ void GPU::GP0TexturedThreePointPolygonOpaqueRawTexture() {
     TextureCoordinate tc2(gp0Parameters[3] & 0xFFFF);
     TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
 
-    LOGT_GPU(std::format("GP0 - TexturedThreePointPolygonOpaqueRawTexture(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {})",
-                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedThreePointPolygonOpaqueRawTexture(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {})", palette, texpage, c, v1, tc1, v2, tc2, v3, tc3);
 
     TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
 
@@ -957,8 +949,7 @@ void GPU::GP0TexturedThreePointPolygonSemiTransparentTextureBlending() {
     TextureCoordinate tc2(gp0Parameters[3] & 0xFFFF);
     TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
 
-    LOGT_GPU(std::format("GP0 - TexturedThreePointPolygonSemiTransparentTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {})",
-                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedThreePointPolygonSemiTransparentTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {})", palette, texpage, c, v1, tc1, v2, tc2, v3, tc3);
 
     TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
 
@@ -980,8 +971,7 @@ void GPU::GP0TexturedThreePointPolygonSemiTransparentRawTexture() {
     TextureCoordinate tc2(gp0Parameters[3] & 0xFFFF);
     TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
 
-    LOGT_GPU(std::format("GP0 - TexturedThreePointPolygonSemiTransparentRawTexture(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {})",
-                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedThreePointPolygonSemiTransparentRawTexture(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {})", palette, texpage, c, v1, tc1, v2, tc2, v3, tc3);
 
     TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
 
@@ -997,8 +987,7 @@ void GPU::GP0MonochromeFourPointPolygonOpaque() {
     Vertex v3(gp0Parameters[2]);
     Vertex v4(gp0Parameters[3]);
 
-    LOGT_GPU(std::format("GP0 - MonochromeFourPointPolygonOpaque({}, {}, {}, {}, {})",
-                         c, v1, v2, v3, v4));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromeFourPointPolygonOpaque({}, {}, {}, {}, {})", c, v1, v2, v3, v4);
 
     Triangle t(v1, c, v2, c, v3, c);
     Triangle t2(v2, c, v3, c, v4, c);
@@ -1017,8 +1006,7 @@ void GPU::GP0MonochromeFourPointPolygonSemiTransparent() {
     Vertex v3(gp0Parameters[2]);
     Vertex v4(gp0Parameters[3]);
 
-    LOGT_GPU(std::format("GP0 - MonochromeFourPointPolygonSemiTransparent({}, {}, {}, {}, {})",
-                         c, v1, v2, v3, v4));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromeFourPointPolygonSemiTransparent({}, {}, {}, {}, {})", c, v1, v2, v3, v4);
 
     Triangle t(v1, c, v2, c, v3, c);
     Triangle t2(v2, c, v3, c, v4, c);
@@ -1044,8 +1032,7 @@ void GPU::GP0TexturedFourPointPolygonOpaqueTextureBlending() {
     TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
     TextureCoordinate tc4(gp0Parameters[7] & 0xFFFF);
 
-    LOGT_GPU(std::format("GP0 - TexturedFourPointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
-                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3, v4, tc4));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedFourPointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})", palette, texpage, c, v1, tc1, v2, tc2, v3, tc3, v4, tc4);
 
     TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
     TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
@@ -1072,8 +1059,7 @@ void GPU::GP0TexturedFourPointPolygonOpaqueRawTexture() {
     TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
     TextureCoordinate tc4(gp0Parameters[7] & 0xFFFF);
 
-    LOGT_GPU(std::format("GP0 - TexturedFourPointPolygonOpaqueRawTexture(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
-                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3, v4, tc4));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedFourPointPolygonOpaqueRawTexture(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})", palette, texpage, c, v1, tc1, v2, tc2, v3, tc3, v4, tc4);
 
     TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
     TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
@@ -1101,8 +1087,7 @@ void GPU::GP0TexturedFourPointPolygonSemiTransparentTextureBlending() {
     TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
     TextureCoordinate tc4(gp0Parameters[7] & 0xFFFF);
 
-    LOGT_GPU(std::format("GP0 - TexturedFourPointPolygonSemiTransparentTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
-                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3, v4, tc4));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedFourPointPolygonSemiTransparentTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})", palette, texpage, c, v1, tc1, v2, tc2, v3, tc3, v4, tc4);
 
     TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
     TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
@@ -1130,8 +1115,7 @@ void GPU::GP0TexturedFourPointPolygonSemiTransparentRawTexture() {
     TextureCoordinate tc3(gp0Parameters[5] & 0xFFFF);
     TextureCoordinate tc4(gp0Parameters[7] & 0xFFFF);
 
-    LOGT_GPU(std::format("GP0 - TexturedFourPointPolygonSemiTransparentRawTexture(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
-                         palette, texpage, c, v1, tc1, v2, tc2, v3, tc3, v4, tc4));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedFourPointPolygonSemiTransparentRawTexture(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})", palette, texpage, c, v1, tc1, v2, tc2, v3, tc3, v4, tc4);
 
     TexturedTriangle t(c, v1, tc1, v2, tc2, v3, tc3, texpage, palette);
     TexturedTriangle t2(c, v2, tc2, v3, tc3, v4, tc4, texpage, palette);
@@ -1150,8 +1134,7 @@ void GPU::GP0ShadedThreePointPolygonOpaque() {
     Vertex v2(gp0Parameters[2]);
     Vertex v3(gp0Parameters[4]);
 
-    LOGT_GPU(std::format("GP0 - ShadedThreePointPolygonOpaque({}, {}, {}, {}, {}, {})",
-                         c1, v1, c2, v2, c3, v3));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - ShadedThreePointPolygonOpaque({}, {}, {}, {}, {}, {})", c1, v1, c2, v2, c3, v3);
 
     Triangle t(v1, c1, v2, c2, v3, c3);
     renderer->drawTriangle(t);
@@ -1167,8 +1150,7 @@ void GPU::GP0ShadedThreePointPolygonSemiTransparent() {
     Vertex v2(gp0Parameters[2]);
     Vertex v3(gp0Parameters[4]);
 
-    LOGT_GPU(std::format("GP0 - ShadedThreePointPolygonSemiTransparent({}, {}, {}, {}, {}, {})",
-                         c1, v1, c2, v2, c3, v3));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - ShadedThreePointPolygonSemiTransparent({}, {}, {}, {}, {}, {})", c1, v1, c2, v2, c3, v3);
 
     Triangle t(v1, c1, v2, c2, v3, c3);
     renderer->drawTriangle(t);
@@ -1191,8 +1173,7 @@ void GPU::GP0ShadedTexturedThreePointPolygonOpaqueTextureBlending() {
     TextureCoordinate tc2(gp0Parameters[4] & 0xFFFF);
     TextureCoordinate tc3(gp0Parameters[7] & 0xFFFF);
 
-    LOGT_GPU(std::format("GP0 - ShadedTexturedThreePointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
-                         palette, texpage, c1, v1, tc1, c2, v2, tc2, c3, v3, tc3));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - ShadedTexturedThreePointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})", palette, texpage, c1, v1, tc1, c2, v2, tc2, c3, v3, tc3);
 
     // TODO Use colors
 
@@ -1218,8 +1199,7 @@ void GPU::GP0ShadedTexturedThreePointPolygonSemiTransparentTextureBlending() {
     TextureCoordinate tc2(gp0Parameters[4] & 0xFFFF);
     TextureCoordinate tc3(gp0Parameters[7] & 0xFFFF);
 
-    LOGT_GPU(std::format("GP0 - ShadedTexturedThreePointPolygonSemiTransparentTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
-                         palette, texpage, c1, v1, tc1, c2, v2, tc2, c3, v3, tc3));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - ShadedTexturedThreePointPolygonSemiTransparentTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {})", palette, texpage, c1, v1, tc1, c2, v2, tc2, c3, v3, tc3);
 
     // TODO Use colors
 
@@ -1240,8 +1220,7 @@ void GPU::GP0ShadedFourPointPolygonOpaque() {
     Vertex v3(gp0Parameters[4]);
     Vertex v4(gp0Parameters[6]);
 
-    LOGT_GPU(std::format("GP0 - ShadedFourPointPolygonOpaque({}, {}, {}, {}, {}, {}, {}, {})",
-                         c1, v1, c2, v2, c3, v3, c4, v4));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - ShadedFourPointPolygonOpaque({}, {}, {}, {}, {}, {}, {}, {})", c1, v1, c2, v2, c3, v3, c4, v4);
 
     Triangle t(v1, c1, v2, c2, v3, c3);
     Triangle t2(v2, c2, v3, c3, v4, c4);
@@ -1262,8 +1241,7 @@ void GPU::GP0ShadedFourPointPolygonSemiTransparent() {
     Vertex v3(gp0Parameters[4]);
     Vertex v4(gp0Parameters[6]);
 
-    LOGT_GPU(std::format("GP0 - ShadedFourPointPolygonSemiTransparent({}, {}, {}, {}, {}, {}, {}, {})",
-                         c1, v1, c2, v2, c3, v3, c4, v4));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - ShadedFourPointPolygonSemiTransparent({}, {}, {}, {}, {}, {}, {}, {})", c1, v1, c2, v2, c3, v3, c4, v4);
 
     Triangle t(v1, c1, v2, c2, v3, c3);
     Triangle t2(v2, c2, v3, c3, v4, c4);
@@ -1292,8 +1270,7 @@ void GPU::GP0ShadedTexturedFourPointPolygonOpaqueTextureBlending() {
     TextureCoordinate tc3(gp0Parameters[7] & 0xFFFF);
     TextureCoordinate tc4(gp0Parameters[10] & 0xFFFF);
 
-    LOGT_GPU(std::format("GP0 - ShadedTexturedFourPointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
-                         palette, texpage, c1, v1, tc1, c2, v2, tc2, c3, v3, tc3, c4, v4, tc4));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - ShadedTexturedFourPointPolygonOpaqueTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})", palette, texpage, c1, v1, tc1, c2, v2, tc2, c3, v3, tc3, c4, v4, tc4);
 
     // TODO Use colors
 
@@ -1324,8 +1301,7 @@ void GPU::GP0ShadedTexturedFourPointPolygonSemiTransparentTextureBlending() {
     TextureCoordinate tc3(gp0Parameters[7] & 0xFFFF);
     TextureCoordinate tc4(gp0Parameters[10] & 0xFFFF);
 
-    LOGT_GPU(std::format("GP0 - ShadedTexturedFourPointPolygonSemiTransparentTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
-                         palette, texpage, c1, v1, tc1, c2, v2, tc2, c3, v3, tc3, c4, v4, tc4));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - ShadedTexturedFourPointPolygonSemiTransparentTextureBlending(0x{:04X}, 0x{:04X}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})", palette, texpage, c1, v1, tc1, c2, v2, tc2, c3, v3, tc3, c4, v4, tc4);
 
     // TODO Use colors
 
@@ -1343,8 +1319,7 @@ void GPU::GP0MonochromeLineOpaque() {
     Vertex v1(gp0Parameters[0]);
     Vertex v2(gp0Parameters[1]);
 
-    LOGT_GPU(std::format("GP0 - MonochromeLineOpaque({}, {}, {})",
-                         c, v1, v2));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromeLineOpaque({}, {}, {})", c, v1, v2);
 
     Triangle t(v1, c, v2, c, v2, c);
 
@@ -1358,8 +1333,7 @@ void GPU::GP0MonochromeLineSemiTransparent() {
     Vertex v1(gp0Parameters[0]);
     Vertex v2(gp0Parameters[1]);
 
-    LOGT_GPU(std::format("GP0 - MonochromeLineSemiTransparent({}, {}, {})",
-                         c, v1, v2));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromeLineSemiTransparent({}, {}, {})", c, v1, v2);
 
     Triangle t(v1, c, v2, c, v2, c);
 
@@ -1378,8 +1352,7 @@ void GPU::GP0MonochromePolyLineOpaque() {
         vs.emplace_back(param);
     }
 
-    LOGT_GPU(std::format("GP0 - MonochromePolyLineOpaque({}, {:d} vertices)",
-                         c, vs.size()));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromePolyLineOpaque({}, {:d} vertices)", c, vs.size());
 
     for (uint32_t i = 0; i + 1 < vs.size(); ++i) {
         Triangle t(vs[i], c, vs[i+1], c, vs[i+1], c);
@@ -1399,8 +1372,7 @@ void GPU::GP0MonochromePolyLineSemiTransparent() {
         vs.emplace_back(param);
     }
 
-    LOGT_GPU(std::format("GP0 - MonochromePolyLineSemiTransparent({}, {:d} vertices)",
-                         c, vs.size()));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromePolyLineSemiTransparent({}, {:d} vertices)", c, vs.size());
 
     for (uint32_t i = 0; i + 1 < vs.size(); ++i) {
         Triangle t(vs[i], c, vs[i+1], c, vs[i+1], c);
@@ -1416,8 +1388,7 @@ void GPU::GP0ShadedLineOpaque() {
     Vertex v1(gp0Parameters[0]);
     Vertex v2(gp0Parameters[2]);
 
-    LOGT_GPU(std::format("GP0 - ShadedLineOpaque({}, {}, {}, {})",
-                         c1, v1, c2, v2));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - ShadedLineOpaque({}, {}, {}, {})", c1, v1, c2, v2);
 
     Triangle t(v1, c1, v2, c2, v2, c2);
 
@@ -1432,8 +1403,7 @@ void GPU::GP0ShadedLineSemiTransparent() {
     Vertex v1(gp0Parameters[0]);
     Vertex v2(gp0Parameters[2]);
 
-    LOGT_GPU(std::format("GP0 - ShadedLineSemiTransparent({}, {}, {}, {})",
-                         c1, v1, c2, v2));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - ShadedLineSemiTransparent({}, {}, {}, {})", c1, v1, c2, v2);
 
     Triangle t(v1, c1, v2, c2, v2, c2);
 
@@ -1459,8 +1429,7 @@ void GPU::GP0ShadedPolyLineOpaque() {
         vs.emplace_back(gp0Parameters[i]);
     }
 
-    LOGT_GPU(std::format("GP0 - ShadedPolyLineOpaque({:d} colors, {:d} vertices)",
-                         cs.size(), vs.size()));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - ShadedPolyLineOpaque({:d} colors, {:d} vertices)", cs.size(), vs.size());
 
     assert(cs.size() == vs.size());
 
@@ -1489,8 +1458,7 @@ void GPU::GP0ShadedPolyLineSemiTransparent() {
         vs.emplace_back(gp0Parameters[i]);
     }
 
-    LOGT_GPU(std::format("GP0 - ShadedPolySemiTransparent({:d} colors, {:d} vertices)",
-                         cs.size(), vs.size()));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - ShadedPolySemiTransparent({:d} colors, {:d} vertices)", cs.size(), vs.size());
 
     assert(cs.size() == vs.size());
 
@@ -1508,8 +1476,7 @@ void GPU::GP0MonochromeRectangleVariableSizeOpaque() {
     uint16_t width = gp0Parameters[1] >> 16;
     uint16_t height = gp0Parameters[1] & 0xFFFF;
 
-    LOGT_GPU(std::format("GP0 - GP0MonochromeRectangleVariableSizeOpaque({}, {}, 0x{:04X}, 0x{:04X})",
-                         c, v1, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - GP0MonochromeRectangleVariableSizeOpaque({}, {}, 0x{:04X}, 0x{:04X})", c, v1, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1530,8 +1497,7 @@ void GPU::GP0MonochromeRectangleVariableSizeSemiTransparent() {
     uint16_t width = gp0Parameters[1] >> 16;
     uint16_t height = gp0Parameters[1] & 0xFFFF;
 
-    LOGT_GPU(std::format("GP0 - GP0MonochromeRectangleVariableSizeSemiTransparent({}, {}, 0x{:04X}, 0x{:04X})",
-                         c, v1, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - GP0MonochromeRectangleVariableSizeSemiTransparent({}, {}, 0x{:04X}, 0x{:04X})", c, v1, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1555,8 +1521,7 @@ void GPU::GP0TexturedRectangleVariableSizeOpaqueTextureBlending() {
     uint16_t width = gp0Parameters[2] & 0xFFFF;
     uint16_t height = gp0Parameters[2] >> 16;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangleVariableSizeOpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangleVariableSizeOpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1585,8 +1550,7 @@ void GPU::GP0TexturedRectangleVariableSizeOpaqueRawTexture() {
     uint16_t width = gp0Parameters[2] & 0xFFFF;
     uint16_t height = gp0Parameters[2] >> 16;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangleVariableSizeOpaqueRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangleVariableSizeOpaqueRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1615,8 +1579,7 @@ void GPU::GP0TexturedRectangleVariableSizeSemiTransparentTextureBlending() {
     uint16_t width = gp0Parameters[2] & 0xFFFF;
     uint16_t height = gp0Parameters[2] >> 16;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangleVariableSizeSemiTransparentTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangleVariableSizeSemiTransparentTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1645,8 +1608,7 @@ void GPU::GP0TexturedRectangleVariableSizeSemiTransparentRawTexture() {
     uint16_t width = gp0Parameters[2] & 0xFFFF;
     uint16_t height = gp0Parameters[2] >> 16;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangleVariableSizeSemiTransparentRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangleVariableSizeSemiTransparentRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1674,8 +1636,7 @@ void GPU::GP0MonochromeRectangleDotOpaque() {
     Vertex v3(v1.x, v1.y + 1);
     Vertex v4(v1.x + 1, v1.y + 1);
 
-    LOGT_GPU(std::format("GP0 - MonochromeRectangleDotOpaque({}, {})",
-                          c, v1));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromeRectangleDotOpaque({}, {})", c, v1);
 
     Triangle t(v1, c, v2, c, v3, c);
     Triangle t2(v2, c, v3, c, v4, c);
@@ -1693,8 +1654,7 @@ void GPU::GP0MonochromeRectangleDotSemiTransparent() {
     Vertex v3(v1.x, v1.y + 1);
     Vertex v4(v1.x + 1, v1.y + 1);
 
-    LOGT_GPU(std::format("GP0 - MonochromeRectangleDotSemiTransparent({}, {})",
-                          c, v1));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromeRectangleDotSemiTransparent({}, {})", c, v1);
 
     Triangle t(v1, c, v2, c, v3, c);
     Triangle t2(v2, c, v3, c, v4, c);
@@ -1714,8 +1674,7 @@ void GPU::GP0TexturedRectangle1x1OpaqueTextureBlending() {
     uint16_t width = 1;
     uint16_t height = 1;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle1x1OpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangle1x1OpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1744,8 +1703,7 @@ void GPU::GP0TexturedRectangle1x1OpaqueRawTexture() {
     uint16_t width = 1;
     uint16_t height = 1;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle1x1OpaqueRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangle1x1OpaqueRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1775,8 +1733,7 @@ void GPU::GP0TexturedRectangle1x1SemiTransparentTextureBlending() {
     uint16_t width = 1;
     uint16_t height = 1;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle1x1SemiTransparentTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangle1x1SemiTransparentTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1805,8 +1762,7 @@ void GPU::GP0TexturedRectangle1x1SemiTransparentRawTexture() {
     uint16_t width = 1;
     uint16_t height = 1;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle1x1SemiTransparentRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangle1x1SemiTransparentRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1833,8 +1789,7 @@ void GPU::GP0MonochromeRectangle8x8Opaque() {
     Vertex v3(v1.x, v1.y + 8);
     Vertex v4(v1.x + 8, v1.y + 8);
 
-    LOGT_GPU(std::format("GP0 - MonochromeRectangle8x8Opaque({}, {})",
-                          c, v1));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromeRectangle8x8Opaque({}, {})", c, v1);
 
     Triangle t(v1, c, v2, c, v3, c);
     Triangle t2(v2, c, v3, c, v4, c);
@@ -1852,8 +1807,7 @@ void GPU::GP0MonochromeRectangle8x8SemiTransparent() {
     Vertex v3(v1.x, v1.y + 8);
     Vertex v4(v1.x + 8, v1.y + 8);
 
-    LOGT_GPU(std::format("GP0 - MonochromeRectangle8x8SemiTransparent({}, {})",
-                          c, v1));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromeRectangle8x8SemiTransparent({}, {})", c, v1);
 
     Triangle t(v1, c, v2, c, v3, c);
     Triangle t2(v2, c, v3, c, v4, c);
@@ -1873,8 +1827,7 @@ void GPU::GP0TexturedRectangle8x8OpaqueTextureBlending() {
     uint16_t width = 8;
     uint16_t height = 8;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle8x8OpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangle8x8OpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1903,8 +1856,7 @@ void GPU::GP0TexturedRectangle8x8OpaqueRawTexture() {
     uint16_t width = 8;
     uint16_t height = 8;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle8x8OpaqueRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangle8x8OpaqueRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1934,8 +1886,7 @@ void GPU::GP0TexturedRectangle8x8SemiTransparentTextureBlending() {
     uint16_t width = 8;
     uint16_t height = 8;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle8x8SemiTransparentTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangle8x8SemiTransparentTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1964,8 +1915,7 @@ void GPU::GP0TexturedRectangle8x8SemiTransparentRawTexture() {
     uint16_t width = 8;
     uint16_t height = 8;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle8x8SemiTransparentRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangle8x8SemiTransparentRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -1993,8 +1943,7 @@ void GPU::GP0MonochromeRectangle16x16Opaque() {
     Vertex v3(v1.x, v1.y + 16);
     Vertex v4(v1.x + 16, v1.y + 16);
 
-    LOGT_GPU(std::format("GP0 - MonochromeRectangle16x16Opaque({}, {})",
-                          c, v1));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromeRectangle16x16Opaque({}, {})", c, v1);
 
     Triangle t(v1, c, v2, c, v3, c);
     Triangle t2(v2, c, v3, c, v4, c);
@@ -2012,8 +1961,7 @@ void GPU::GP0MonochromeRectangle16x16SemiTransparent() {
     Vertex v3(v1.x, v1.y + 16);
     Vertex v4(v1.x + 16, v1.y + 16);
 
-    LOGT_GPU(std::format("GP0 - MonochromeRectangle16x16SemiTransparent({}, {})",
-                          c, v1));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - MonochromeRectangle16x16SemiTransparent({}, {})", c, v1);
 
     Triangle t(v1, c, v2, c, v3, c);
     Triangle t2(v2, c, v3, c, v4, c);
@@ -2033,8 +1981,7 @@ void GPU::GP0TexturedRectangle16x16OpaqueTextureBlending() {
     uint16_t width = 16;
     uint16_t height = 16;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle16x16OpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangle16x16OpaqueTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -2063,8 +2010,7 @@ void GPU::GP0TexturedRectangle16x16OpaqueRawTexture() {
     uint16_t width = 16;
     uint16_t height = 16;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle16x16OpaqueRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangle16x16OpaqueRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -2094,8 +2040,7 @@ void GPU::GP0TexturedRectangle16x16SemiTransparentTextureBlending() {
     uint16_t width = 16;
     uint16_t height = 16;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle16x16SemiTransparentTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangle16x16SemiTransparentTextureBlending({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -2124,8 +2069,7 @@ void GPU::GP0TexturedRectangle16x16SemiTransparentRawTexture() {
     uint16_t width = 16;
     uint16_t height = 16;
 
-    LOGT_GPU(std::format("GP0 - TexturedRectangle16x16SemiTransparentRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})",
-                         c, v1, tc1, palette, width, height));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - TexturedRectangle16x16SemiTransparentRawTexture({}, {}, {}, 0x{:04X}, 0x{:04X}, 0x{:04X})", c, v1, tc1, palette, width, height);
 
     Vertex v2(v1.x + width, v1.y);
     Vertex v3(v1.x, v1.y + height);
@@ -2160,8 +2104,7 @@ void GPU::GP0CopyRectangle() {
     uint32_t sizeX = widthAndHeight & 0x0000FFFF;
     uint32_t sizeY = widthAndHeight >> 16;
 
-    LOGT_GPU(std::format("GP0 - CopyRectangle({:d}, {:d}, {:d}, {:d}, {:d}x{:d})",
-                          sourceX, sourceY, destinationX, destinationY, destinationSizeX, destinationSizeY));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - CopyRectangle({:d}, {:d}, {:d}, {:d}, {:d}x{:d})", sourceX, sourceY, destinationX, destinationY, destinationSizeX, destinationSizeY);
 
     // TODO respect mask
     for (uint32_t x = 0; x < sizeX; ++x) {
@@ -2184,14 +2127,13 @@ void GPU::GP0CopyRectangleToVRAM() {
     destinationSizeX = widthAndHeight & 0x0000FFFF;
     destinationSizeY  = widthAndHeight >> 16;
 
-    LOGT_GPU(std::format("GP0 - CopyRectangleToVRAM({:d}, {:d}, {:d}x{:d})",
-                          destinationX, destinationY, destinationSizeX, destinationSizeY));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - CopyRectangleToVRAM({:d}, {:d}, {:d}x{:d})", destinationX, destinationY, destinationSizeX, destinationSizeY);
 
     // read data from GPUREAD
     transferToVRAMRemainingWords = (destinationSizeX * destinationSizeY) / 2;
     if (transferToVRAMRemainingWords > 0) {
         state = State::TRANSFER_TO_VRAM;
-        LOGT_GPU(std::format("State::TRANSFER_TO_VRAM"));
+        LOGL_GPU(LogLevel::TRACE, "State::TRANSFER_TO_VRAM");
         destinationCurrentX = destinationX;
         destinationCurrentY = destinationY;
     }
@@ -2209,15 +2151,14 @@ void GPU::GP0CopyRectangleVRAMToCPU() {
     sourceSizeX = widthAndHeight & 0x0000FFFF;
     sourceSizeY = widthAndHeight >> 16;
 
-    LOGT_GPU(std::format("GP0 - CopyRectangleVRAMToCPU({:d}, {:d}, {:d}x{:d})",
-                          sourceX, sourceY, sourceSizeX, sourceSizeY));
+    LOGL_GPU(LogLevel::TRACE, "GP0 - CopyRectangleVRAMToCPU({:d}, {:d}, {:d}x{:d})", sourceX, sourceY, sourceSizeX, sourceSizeY);
 
     // write data to GPUREAD
     transferToCPURemainingWords = (sourceSizeX * sourceSizeY) / 2;
     if (transferToCPURemainingWords > 0) {
         state = State::TRANSFER_TO_CPU;
         setGPUStatusRegisterBit(GPUSTAT_VRAM_SEND_READY, 1);
-        LOGT_GPU(std::format("State::TRANSFER_TO_CPU"));
+        LOGL_GPU(LogLevel::TRACE, "State::TRANSFER_TO_CPU");
         sourceCurrentX = sourceX;
         sourceCurrentY = sourceY;
     }
@@ -2237,7 +2178,7 @@ void GPU::GP0DrawModeSetting() {
     // 13    Textured Rectangle Y-Flip   (BIOS does set it equal to GPUSTAT.13...?)
     // 14-23 Not used (should be 0)
 
-    LOG_GPU(std::format("GP0 - DrawModeSetting"));
+    LOGL_GPU(LogLevel::INFO, "GP0 - DrawModeSetting");
 
 
     gpuStatusRegister = (gpuStatusRegister & 0xFFFFFC00) | (gp0 & 0x000003FF);
@@ -2253,11 +2194,7 @@ void GPU::GP0TextureWindowSetting() {
     this->textureWindowOffsetX = (gp0 >> 10) & 0x1F;
     this->textureWindowOffsetY = (gp0 >> 15) & 0x1F;
 
-    LOG_GPU(std::format("GP0 - TextureWindowSetting({:d}, {:d}, {:d}, {:d})",
-                         this->textureWindowMaskX,
-                         this->textureWindowMaskY,
-                         this->textureWindowOffsetX,
-                         this->textureWindowOffsetY));
+    LOGL_GPU(LogLevel::INFO, "GP0 - TextureWindowSetting({:d}, {:d}, {:d}, {:d})", this->textureWindowMaskX, this->textureWindowMaskY, this->textureWindowOffsetX, this->textureWindowOffsetY);
 }
 
 void GPU::GP0SetDrawingAreaTopLeft() {
@@ -2265,7 +2202,7 @@ void GPU::GP0SetDrawingAreaTopLeft() {
     uint32_t xCoord = gp0 & 0x3FF;
     uint32_t yCoord = (gp0 >> 10) & 0x1FF;
 
-    LOG_GPU(std::format("GP0 - SetDrawingAreaTopLeft({:d}, {:d})", xCoord, yCoord));
+    LOGL_GPU(LogLevel::INFO, "GP0 - SetDrawingAreaTopLeft({:d}, {:d})", xCoord, yCoord);
 
     drawing_area_top_left_x = xCoord;
     drawing_area_top_left_y = yCoord;
@@ -2278,7 +2215,7 @@ void GPU::GP0SetDrawingAreaBottomRight() {
     uint32_t xCoord = gp0 & 0x3FF;
     uint32_t yCoord = (gp0 >> 10) & 0x1FF;
 
-    LOG_GPU(std::format("GP0 - SetDrawingAreaBottomRight({:d}, {:d})", xCoord, yCoord));
+    LOGL_GPU(LogLevel::INFO, "GP0 - SetDrawingAreaBottomRight({:d}, {:d})", xCoord, yCoord);
 
     drawing_area_bot_right_x = xCoord;
     drawing_area_bot_right_y = yCoord;
@@ -2294,7 +2231,7 @@ void GPU::GP0SetDrawingOffset() {
     int32_t signedXOffset = ((xOffset >> 10) ? 0xFFFFF800 : 0x00000000) | xOffset;
     int32_t signedYOffset = ((yOffset >> 10) ? 0xFFFFF800 : 0x00000000) | yOffset;
 
-    LOG_GPU(std::format("GP0 - SetDrawingOffset({:d}, {:d})", signedXOffset, signedYOffset));
+    LOGL_GPU(LogLevel::INFO, "GP0 - SetDrawingOffset({:d}, {:d})", signedXOffset, signedYOffset);
     drawing_offset_x = signedXOffset;
     drawing_offset_y = signedYOffset;
     renderer->set_drawing_offset(drawing_offset_x, drawing_offset_y);
@@ -2305,9 +2242,7 @@ void GPU::GP0MaskBitSetting() {
     uint8_t setMaskWhileDrawing = gp0 & 1;
     uint8_t checkMaskBeforeDraw = (gp0 >> 1) & 1;
 
-    LOG_GPU(std::format("GP0 - MaskBitSetting({:01b}, {:01b})",
-                         setMaskWhileDrawing,
-                         checkMaskBeforeDraw));
+    LOGL_GPU(LogLevel::INFO, "GP0 - MaskBitSetting({:01b}, {:01b})", setMaskWhileDrawing, checkMaskBeforeDraw);
 
     setGPUStatusRegisterBit(GPUSTAT_SET_MASK, setMaskWhileDrawing);
     setGPUStatusRegisterBit(GPUSTAT_DRAW_PIXELS, checkMaskBeforeDraw);
@@ -2315,7 +2250,7 @@ void GPU::GP0MaskBitSetting() {
 
 void GPU::GP1ResetGPU() {
     // 0x00
-    LOG_GPU(std::format("GP1 - ResetGPU"));
+    LOGL_GPU(LogLevel::INFO, "GP1 - ResetGPU");
 
     queue.clear();
     gpuStatusRegister = gpuStatusRegister & ~(1 << GPUSTAT_IRQ);
@@ -2338,12 +2273,12 @@ void GPU::GP1ResetGPU() {
 
     // TODO GP0(E1...E6)
 
-    LOG_GPU(std::format("GPUSTAT: 0x{:08X}", gpuStatusRegister));
+    LOGL_GPU(LogLevel::INFO, "GPUSTAT: 0x{:08X}", gpuStatusRegister);
 }
 
 void GPU::GP1ResetCommandBuffer() {
     // 0x01
-    LOGV_GPU(std::format("GP1 - ResetCommandBuffer"));
+    LOGL_GPU(LogLevel::DEBUG, "GP1 - ResetCommandBuffer");
     // First clear command queue
     queue.clear();
     // And then abort current command
@@ -2352,7 +2287,7 @@ void GPU::GP1ResetCommandBuffer() {
 
 void GPU::GP1AcknowledgeGPUInterrupt() {
     // 0x02
-    LOGV_GPU(std::format("GP1 - AcknowledgeGPUInterrupt"));
+    LOGL_GPU(LogLevel::DEBUG, "GP1 - AcknowledgeGPUInterrupt");
 
     gpuStatusRegister = gpuStatusRegister & ~(1 << GPUSTAT_IRQ);
 }
@@ -2361,7 +2296,7 @@ void GPU::GP1DisplayEnable() {
     // 0x03
     uint32_t parameter = gp1 & 0x00FFFFFF;
 
-    LOGV_GPU(std::format("GP1 - DisplayEnable (0x{:06X})", parameter));
+    LOGL_GPU(LogLevel::DEBUG, "GP1 - DisplayEnable (0x{:06X})", parameter);
 
     setGPUStatusRegisterBit(GPUSTAT_DISPLAY_ENABLE, parameter & 1);
 }
@@ -2370,7 +2305,7 @@ void GPU::GP1DMADirection() {
     // 0x04
     uint32_t parameter = gp1 & 0x00FFFFFF;
 
-    LOGV_GPU(std::format("GP1 - DMADirection(0x{:06X})", parameter));
+    LOGL_GPU(LogLevel::DEBUG, "GP1 - DMADirection(0x{:06X})", parameter);
 
     uint32_t direction = parameter & 3;
     gpuStatusRegister = (gpuStatusRegister & ~(3 << GPUSTAT_DMA_DIRECTION0))
@@ -2405,8 +2340,7 @@ void GPU::GP1StartOfDisplayArea() {
     startOfDisplayAreaX = parameter & 0x000003FF;
     startOfDisplayAreaY = (parameter >> 10) & 0x000001FF;
 
-    LOGV_GPU(std::format("GP1 - StartOfDisplayArena({:d}, {:d})",
-                         startOfDisplayAreaX, startOfDisplayAreaY));
+    LOGL_GPU(LogLevel::DEBUG, "GP1 - StartOfDisplayArena({:d}, {:d})", startOfDisplayAreaX, startOfDisplayAreaY);
 
     update_display_area();
 }
@@ -2418,8 +2352,7 @@ void GPU::GP1HorizontalDisplayRange() {
     horizontalDisplayRangeX1 = parameter & 0x00000FFF;
     horizontalDisplayRangeX2 = (parameter >> 12) & 0x00000FFF;
 
-    LOGV_GPU(std::format("GP1 - HorizontalDisplayRange(0x{:03X}, 0x{:03X})",
-                         horizontalDisplayRangeX1, horizontalDisplayRangeX2));
+    LOGL_GPU(LogLevel::DEBUG, "GP1 - HorizontalDisplayRange(0x{:03X}, 0x{:03X})", horizontalDisplayRangeX1, horizontalDisplayRangeX2);
 
     update_display_area();
 }
@@ -2431,8 +2364,7 @@ void GPU::GP1VerticalDisplayRange() {
     verticalDisplayRangeY1 = parameter & 0x000003FF;
     verticalDisplayRangeY2 = (parameter >> 10) & 0x000003FF;
 
-    LOGV_GPU(std::format("GP1 - VerticalDisplayRange(0x{:03X}, 0x{:03X})",
-                        verticalDisplayRangeY1, verticalDisplayRangeY2));
+    LOGL_GPU(LogLevel::DEBUG, "GP1 - VerticalDisplayRange(0x{:03X}, 0x{:03X})", verticalDisplayRangeY1, verticalDisplayRangeY2);
 
     update_display_area();
 }
@@ -2444,7 +2376,7 @@ void GPU::GP1DisplayMode() {
     // parameter bit 7 is GPUSTAT bit 14
     uint32_t parameter = gp1 & 0x00FFFFFF;
 
-    LOGV_GPU(std::format("GP1 - DisplayMode(0x{:06X})", parameter));
+    LOGL_GPU(LogLevel::DEBUG, "GP1 - DisplayMode(0x{:06X})", parameter);
 
     bool interlacing_enabled_before = interlacing_enabled();
 
@@ -2476,7 +2408,7 @@ void GPU::GP1NewTextureDisable() {
     // 0x09
     uint32_t parameter = gp1 & 0x00FFFFFF;
 
-    LOGV_GPU(std::format("GP1 - NewTextureDisable(0x{:06X})", parameter));
+    LOGL_GPU(LogLevel::DEBUG, "GP1 - NewTextureDisable(0x{:06X})", parameter);
 
     setGPUStatusRegisterBit(GPUSTAT_TEXTURE_DISABLE, parameter & 1);
 }

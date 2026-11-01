@@ -205,16 +205,6 @@ extern LogPack logPack;
 #define LOGL_TMR(level, ...) util::logPack.tmr_log.log<level>(__VA_ARGS__)
 #define LOGL_TTY(level, ...) util::logPack.tty_log.log<level>(__VA_ARGS__)
 
-#define LOG_GIO             MACRO_LOG(gio)
-#define LOGW_GIO            MACRO_LOG(gioW)
-#define LOGV_GIO            MACRO_LOG(gioV)
-#define LOGT_GIO            MACRO_LOG(gioT)
-
-#define LOG_GPU             MACRO_LOG(gpu)
-#define LOGW_GPU            MACRO_LOG(gpuW)
-#define LOGV_GPU            MACRO_LOG(gpuV)
-#define LOGT_GPU            MACRO_LOG(gpuT)
-
 #define LOG_GTE             MACRO_LOG(gte)
 #define LOGW_GTE            MACRO_LOG(gteW)
 #define LOGV_GTE            MACRO_LOG(gteV)
@@ -244,11 +234,6 @@ extern LogPack logPack;
 #define LOGW_PAD            MACRO_LOG(padW)
 #define LOGV_PAD            MACRO_LOG(padV)
 #define LOGT_PAD            MACRO_LOG(padT)
-
-#define LOG_REND            MACRO_LOG(renderer)
-#define LOGW_REND           MACRO_LOG(rendererW)
-#define LOGV_REND           MACRO_LOG(rendererV)
-#define LOGT_REND           MACRO_LOG(rendererT)
 
 #define LOG_SPU             MACRO_LOG(spu)
 #define LOGW_SPU            MACRO_LOG(spuW)

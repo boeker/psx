@@ -116,13 +116,13 @@ template <>
 void GamepadMemcardIO::write(uint32_t address, uint32_t value) {
     assert ((address >= 0x1F801040) && (address <= 0x1F80104F));
 
-    LOGT_GIO(std::format("Write 0x{:08X} -> @0x{:08X}", value, address));
+    LOGL_GIO(LogLevel::TRACE, "Write 0x{:08X} -> @0x{:08X}", value, address);
 
     if (address == 0x1F801040) {
-        LOGV_GIO(std::format("Unimplemented write to JOY_TX_DATA of 0x{:08X}", value));
+        LOGL_GIO(LogLevel::DEBUG, "Unimplemented write to JOY_TX_DATA of 0x{:08X}", value);
 
     } else if (address == 0x1F801044) {
-        LOG_GIO(std::format("Attempted write to JOY_STAT of 0x{:08X}", value));
+        LOGL_GIO(LogLevel::INFO, "Attempted write to JOY_STAT of 0x{:08X}", value);
         // JOYT_STAT is read-only, ignore write
         return;
 
@@ -134,18 +134,18 @@ void GamepadMemcardIO::write(uint32_t address, uint32_t value) {
 template <> void GamepadMemcardIO::write(uint32_t address, uint16_t value) {
     assert ((address >= 0x1F801040) && (address <= 0x1F80104F));
 
-    LOGT_GIO(std::format("Write 0x{:04X} -> @0x{:08X}", value, address));
+    LOGL_GIO(LogLevel::TRACE, "Write 0x{:04X} -> @0x{:08X}", value, address);
 
     if (address == 0x1F801048) {
-        LOGV_GIO(std::format("Half-word write to JOY_MODE of 0x{:04X}", value));
+        LOGL_GIO(LogLevel::DEBUG, "Half-word write to JOY_MODE of 0x{:04X}", value);
         joyMode = value & 0x013F; // bits 15-9, 7, and 6 are always zero
-        LOGT_GIO(std::format("JOY_MODE: {:s}", getJoyModeExplanation()));
+        LOGL_GIO(LogLevel::TRACE, "JOY_MODE: {:s}", getJoyModeExplanation());
 
     } else if (address == 0x1F80104A) {
         writeToJoyCtrl(value);
 
     } else if (address == 0x1F80104E) {
-        LOGT_GIO(std::format("Half-word write to JOY_BAUD of 0x{:04X}", value));
+        LOGL_GIO(LogLevel::TRACE, "Half-word write to JOY_BAUD of 0x{:04X}", value);
         joyBaud = value;
 
     } else {
@@ -156,10 +156,10 @@ template <> void GamepadMemcardIO::write(uint32_t address, uint16_t value) {
 template <> void GamepadMemcardIO::write(uint32_t address, uint8_t value) {
     assert ((address >= 0x1F801040) && (address <= 0x1F80104F));
 
-    LOGT_GIO(std::format("Write 0x{:02X} -> @0x{:08X}", value, address));
+    LOGL_GIO(LogLevel::TRACE, "Write 0x{:02X} -> @0x{:08X}", value, address);
 
     if (address == 0x1F801040) {
-        LOGT_GIO(std::format("Write to JOY_TX_DATA of 0x{:02X}", value));
+        LOGL_GIO(LogLevel::TRACE, "Write to JOY_TX_DATA of 0x{:02X}", value);
 
         pendingTransferByte = value;
         pendingTransfer = true;
@@ -175,15 +175,15 @@ template <>
 uint32_t GamepadMemcardIO::read(uint32_t address) {
     assert ((address >= 0x1F801040) && (address <= 0x1F80104F));
 
-    LOGT_GIO(std::format("word read @0x{:08X}", address));
+    LOGL_GIO(LogLevel::TRACE, "word read @0x{:08X}", address);
 
     if (address == 0x1F801040) {
-        LOGV_GIO(std::format("Unimplemented read from JOY_RX_DATA"));
+        LOGL_GIO(LogLevel::DEBUG, "Unimplemented read from JOY_RX_DATA");
         return 0;
 
     } else if (address == 0x1F801044) {
-        LOGV_GIO(std::format("Read from JOY_STAT"));
-        LOGT_GIO(std::format("JOY_STAT: {:s}", getJoyStatExplanation()));
+        LOGL_GIO(LogLevel::DEBUG, "Read from JOY_STAT");
+        LOGL_GIO(LogLevel::TRACE, "JOY_STAT: {:s}", getJoyStatExplanation());
         return joyStat;
 
     } else {
@@ -194,10 +194,10 @@ uint32_t GamepadMemcardIO::read(uint32_t address) {
 template <> uint16_t GamepadMemcardIO::read(uint32_t address) {
     assert ((address >= 0x1F801040) && (address <= 0x1F80104F));
 
-    LOGT_GIO(std::format("half-word read @0x{:08X}", address));
+    LOGL_GIO(LogLevel::TRACE, "half-word read @0x{:08X}", address);
 
     if (address == 0x1F801044) {
-        LOGT_GIO(std::format("Half-word read from JOY_STAT"));
+        LOGL_GIO(LogLevel::TRACE, "Half-word read from JOY_STAT");
         // Update values in JOY_STAT
         // JOY_STAT_IRQ
         // JOY_STAT_ACK_INPUT_LEVEL
@@ -209,21 +209,21 @@ template <> uint16_t GamepadMemcardIO::read(uint32_t address) {
         // JOY_STAT_TX_READY_STARTED
         Bit::setBit(joyStat, JOY_STAT_TX_READY_STARTED); // Just force this to 1?
 
-        LOGT_GIO(std::format("JOY_STAT: {:s}", getJoyStatExplanation()));
+        LOGL_GIO(LogLevel::TRACE, "JOY_STAT: {:s}", getJoyStatExplanation());
         return joyStat & 0x0000FFFF;
 
     } else if (address == 0x1F801048) {
-        LOGT_GIO(std::format("Half-word read from JOY_MODE"));
-        LOGT_GIO(std::format("JOY_MODE: {:s}", getJoyModeExplanation()));
+        LOGL_GIO(LogLevel::TRACE, "Half-word read from JOY_MODE");
+        LOGL_GIO(LogLevel::TRACE, "JOY_MODE: {:s}", getJoyModeExplanation());
         return joyMode;
 
     } else if (address == 0x1F80104A) {
-        LOGT_GIO(std::format("Half-word read from JOY_CTRL"));
-        LOGT_GIO(std::format("JOY_CTRL: {:s}", getJoyCtrlExplanation()));
+        LOGL_GIO(LogLevel::TRACE, "Half-word read from JOY_CTRL");
+        LOGL_GIO(LogLevel::TRACE, "JOY_CTRL: {:s}", getJoyCtrlExplanation());
         return joyCtrl;
 
     } else if (address == 0x1F80104E) {
-        LOGV_GIO(std::format("Half-word read from JOY_BAUD"));
+        LOGL_GIO(LogLevel::DEBUG, "Half-word read from JOY_BAUD");
         return joyBaud;
 
     } else {
@@ -234,16 +234,16 @@ template <> uint16_t GamepadMemcardIO::read(uint32_t address) {
 template <> uint8_t GamepadMemcardIO::read(uint32_t address) {
     assert ((address >= 0x1F801040) && (address <= 0x1F80104F));
 
-    LOGT_GIO(std::format("byte read @0x{:08X}", address));
+    LOGL_GIO(LogLevel::TRACE, "byte read @0x{:08X}", address);
 
     if (address == 0x1F801040) {
         if (!receiveQueue.isEmpty()) {
             uint8_t answer = receiveQueue.pop();
-            LOGT_GIO(std::format("Byte read from JOY_RX_DATA, return 0x{:02X} from queue", answer));
+            LOGL_GIO(LogLevel::TRACE, "Byte read from JOY_RX_DATA, return 0x{:02X} from queue", answer);
             return answer;
 
         } else {
-            LOGT_GIO(std::format("Byte read from JOY_RX_DATA, return 0x00 since queue is empty"));
+            LOGL_GIO(LogLevel::TRACE, "Byte read from JOY_RX_DATA, return 0x00 since queue is empty");
             return 0x00;
         }
 
@@ -253,16 +253,16 @@ template <> uint8_t GamepadMemcardIO::read(uint32_t address) {
 }
 
 void GamepadMemcardIO::writeToJoyCtrl(uint16_t value) {
-    LOGT_GIO(std::format("Write of 0x{:04X} to JOY_CTRL", value));
+    LOGL_GIO(LogLevel::TRACE, "Write of 0x{:04X} to JOY_CTRL", value);
 
     // Clear bits 15, 14, 7 as these are always zero
     joyCtrl = value & 0x3F7F;
-    LOGT_GIO(std::format("JOY_CTRL: {:s}", getJoyCtrlExplanation()));
+    LOGL_GIO(LogLevel::TRACE, "JOY_CTRL: {:s}", getJoyCtrlExplanation());
 
     if (Bit::getBit(joyCtrl, JOY_CTRL_RESET)) { // Reset most (which?) JOY_* register to zero
-        LOGT_GIO("JOY_CTRL: RESET bit set");
+        LOGL_GIO(LogLevel::TRACE, "JOY_CTRL: RESET bit set");
         Bit::clearBit(joyCtrl, JOY_CTRL_RESET);
-        LOGT_GIO(std::format("JOY_CTRL: {:s}", getJoyCtrlExplanation()));
+        LOGL_GIO(LogLevel::TRACE, "JOY_CTRL: {:s}", getJoyCtrlExplanation());
 
         joyStat = 0;
         joyMode = 0;
@@ -270,9 +270,9 @@ void GamepadMemcardIO::writeToJoyCtrl(uint16_t value) {
     }
 
     if (Bit::getBit(joyCtrl, JOY_CTRL_ACK)) { // Reset interrupt request and priority error
-        LOGT_GIO("JOY_CTRL: ACK bit set");
+        LOGL_GIO(LogLevel::TRACE, "JOY_CTRL: ACK bit set");
         Bit::clearBit(joyCtrl, JOY_CTRL_ACK);
-        LOGT_GIO(std::format("JOY_CTRL: {:s}", getJoyCtrlExplanation()));
+        LOGL_GIO(LogLevel::TRACE, "JOY_CTRL: {:s}", getJoyCtrlExplanation());
 
         Bit::clearBit(joyStat, JOY_STAT_IRQ);
         Bit::clearBit(joyStat, JOY_STAT_RX_PARITY_ERROR);
@@ -280,34 +280,34 @@ void GamepadMemcardIO::writeToJoyCtrl(uint16_t value) {
 
     if (Bit::getBit(joyCtrl, JOY_CTRL_JOYN_OUTPUT)) {
         selectedSlot = Bit::getBit(joyCtrl, JOY_CTRL_SLOT_NUMBER) ? 2 : 1;
-        LOGT_GIO(std::format("JOY_CTRL: JOYN_OUTPUT bit set, selecting slot {:d}", selectedSlot));
+        LOGL_GIO(LogLevel::TRACE, "JOY_CTRL: JOYN_OUTPUT bit set, selecting slot {:d}", selectedSlot);
     }
 
     checkAndTransferPendingByte();
 }
 
 void GamepadMemcardIO::checkAndTransferPendingByte() {
-    LOGT_GIO("Checking if a pending byte should be transferred");
-    LOGT_GIO(std::format("pendingTransfer: {:s}, pendingTransferByte: 0x{:02X}", pendingTransfer, pendingTransferByte));
+    LOGL_GIO(LogLevel::TRACE, "Checking if a pending byte should be transferred");
+    LOGL_GIO(LogLevel::TRACE, "pendingTransfer: {:s}, pendingTransferByte: 0x{:02X}", pendingTransfer, pendingTransferByte);
 
     if (pendingTransfer
         && Bit::getBit(joyCtrl, JOY_CTRL_TXEN) // TODO Also check latched value of TXEN
         && Bit::getBit(joyStat, JOY_STAT_TX_READY_FINISHED)) {
         pendingTransfer = false;
 
-        LOGT_GIO(std::format("0x{:02X} -> slot {:d}", pendingTransferByte, selectedSlot));
+        LOGL_GIO(LogLevel::TRACE, "0x{:02X} -> slot {:d}", pendingTransferByte, selectedSlot);
 
         uint8_t answer = 0;
         if (selectedSlot == 1) {
             answer = gamepad.send(pendingTransferByte);
         }
 
-        //LOGT_GIO(std::format("Answer is 0x{:02X}", answer));
+        //LOGL_GIO(LogLevel::TRACE, "Answer is 0x{:02X}", answer);
 
         if (Bit::getBit(joyCtrl, JOY_CTRL_RXEN) || Bit::getBit(joyCtrl, JOY_CTRL_JOYN_OUTPUT)) {
             Bit::clearBit(joyCtrl, JOY_CTRL_RXEN); // Force enable bit gets cleared
             if (!receiveQueue.isFull()) {
-                LOGT_GIO(std::format("0x{:02X} -> receive queue", answer));
+                LOGL_GIO(LogLevel::TRACE, "0x{:02X} -> receive queue", answer);
                 receiveQueue.push(answer);
 
                 if ((selectedSlot == 1
@@ -316,7 +316,7 @@ void GamepadMemcardIO::checkAndTransferPendingByte() {
                     || Bit::getBit(joyCtrl, JOY_CTRL_TX_INT_ENABLE)
                     || Bit::getBit(joyCtrl, JOY_CTRL_RX_INT_ENABLE)) {
 
-                    LOGT_GIO("Setting ACK signal to 1 and lining up an interrupt");
+                    LOGL_GIO(LogLevel::TRACE, "Setting ACK signal to 1 and lining up an interrupt");
                     Bit::setBit(joyStat, JOY_STAT_IRQ);
                     Bit::setBit(joyStat, JOY_STAT_ACK_INPUT_LEVEL);
                     if (cyclesUntilInterrupt == 0) {
@@ -333,7 +333,7 @@ void GamepadMemcardIO::catchUpToCPU(uint32_t cyclesTaken) {
         cyclesUntilInterrupt -= std::min(cyclesUntilInterrupt, cyclesTaken);
 
         if (cyclesUntilInterrupt == 0) {
-            LOGT_GIO("Setting ACK signal to 0 and issuing interrupt");
+            LOGL_GIO(LogLevel::TRACE, "Setting ACK signal to 0 and issuing interrupt");
             Bit::clearBit(joyStat, JOY_STAT_ACK_INPUT_LEVEL); // Set ACK signal to 0
             bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CTRL_MEM);
         }

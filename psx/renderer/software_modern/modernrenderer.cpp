@@ -194,11 +194,11 @@ void ModernRenderer::swapBuffers() {
 }
 
 void ModernRenderer::writeToVRAM(uint32_t x, uint32_t y, uint16_t value) {
-    //LOGT_REND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
+    //LOGT_RND(std::format("VRAM write 0x{:04X} -> line {:d}, position {:d}",
     //                          value, line, pos));
 
     if (2 * y * 1024 + x >= VRAM_SIZE) {
-        LOG_WRN(std::format("writeToVRAM({:d}, {:d}, 0x{:04X}): out of bound", x, y, value));
+        LOGL_RND(LogLevel::WARNING, "writeToVRAM({:d}, {:d}, 0x{:04X}): out of bound", x, y, value);
     } else {
         ((uint16_t*)vram)[y * 1024 + x] = value;
     }
@@ -207,7 +207,7 @@ void ModernRenderer::writeToVRAM(uint32_t x, uint32_t y, uint16_t value) {
 uint16_t ModernRenderer::readFromVRAM(uint32_t x, uint32_t y) {
     uint16_t value = ((uint16_t*)vram)[y * 1024 + x];
 
-    //LOGT_REND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
+    //LOGT_RND(std::format("VRAM read line {:d}, position {:d} -> 0x{:04X}",
     //                          line, pos, value));
 
     return value;
@@ -247,7 +247,7 @@ void ModernRenderer::set_display_area_color_depth(bool enable_24_bit) {
 }
 
 void ModernRenderer::drawTriangle(const Triangle &triangle) {
-    LOGT_REND(std::format("drawTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
+    LOGL_RND(LogLevel::TRACE, "drawTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3);
     ColoredPoint a = {
         triangle.v1.x + drawing_offset_x, triangle.v1.y + drawing_offset_y,
         { triangle.c1.r, triangle.c1.g, triangle.c1.b }
@@ -266,7 +266,7 @@ void ModernRenderer::drawTriangle(const Triangle &triangle) {
 }
 
 void ModernRenderer::drawTexturedTriangle(const TexturedTriangle &triangle) {
-    LOGT_REND(std::format("drawTexturedTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3));
+    LOGL_RND(LogLevel::TRACE, "drawTexturedTriangle({},{},{})", triangle.v1, triangle.v2, triangle.v3);
     TexturedPoint a = {
         triangle.v1.x + drawing_offset_x, triangle.v1.y + drawing_offset_y,
         { triangle.tc1.x, triangle.tc1.y }
@@ -287,7 +287,7 @@ void ModernRenderer::drawTexturedTriangle(const TexturedTriangle &triangle) {
 template<typename Point, typename Context>
 void ModernRenderer::draw_triangle(Point a, Point b, Point c, Context context) {
     if (!context.valid()) {
-        LOG_REND(std::format("DrawingContext not valid: format not implemented?"));
+        LOGL_RND(LogLevel::INFO, "DrawingContext not valid: format not implemented?");
         return;
     }
 
