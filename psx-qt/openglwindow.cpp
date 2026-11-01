@@ -7,6 +7,8 @@
 
 #include "psx/util/log.h"
 
+using namespace util;
+
 QOpenGLContext *OpenGLWindow::globalContext = nullptr;
 
 OpenGLWindow::OpenGLWindow(QWindow *parent)
@@ -70,7 +72,7 @@ void OpenGLWindow::createContext() {
         return;
     }
 
-    LOG_MISC("Creating OpenGL context");
+    LOGL_MSC(LogLevel::INFO, "Creating OpenGL context");
     globalContext = new QOpenGLContext(this);
     QSurfaceFormat format(requestedFormat());
     format.setSwapInterval(0); // Disable vertical sync
@@ -78,13 +80,13 @@ void OpenGLWindow::createContext() {
     globalContext->create();
     globalContext->makeCurrent(this);
 
-    LOG_MISC("Initializing GLAD");
+    LOGL_MSC(LogLevel::INFO, "Initializing GLAD");
     auto getProcAddress = [](const char *name) -> QFunctionPointer {
         return globalContext->getProcAddress(name);
     };
 
     if (!gladLoadGLLoader((GLADloadproc)+getProcAddress)) {
-        LOG_MISC("Failed to initialize GLAD");
+        LOGL_MSC(LogLevel::INFO, "Failed to initialize GLAD");
     }
 }
 

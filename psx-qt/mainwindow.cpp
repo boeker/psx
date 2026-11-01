@@ -27,8 +27,7 @@ PSX::Renderer *renderer = nullptr;
 EmuThread *emuThread = nullptr;
 
 PlainTextEditLog::PlainTextEditLog(QPlainTextEdit *plainTextEdit)
-    : Log(true),
-      plainTextEdit(plainTextEdit) {
+    : plainTextEdit(plainTextEdit) {
 }
 
 bool PlainTextEditLog::print(const std::string &message) {
@@ -122,7 +121,7 @@ MainWindow::MainWindow(const QString &biosPath, QWidget *parent)
 
     grabKeyboard(); // Grab keyboard to make input from arrow keys work
 
-    LOG_MISC("Application startup");
+    LOGL_MSC(LogLevel::INFO, "Application startup");
 }
 
 MainWindow::~MainWindow() {
@@ -216,13 +215,13 @@ void MainWindow::startPauseEmulation() {
         continueEmulation();
 
     } else {
-        LOG_MISC("Pausing emulation");
+        LOGL_MSC(LogLevel::INFO, "Pausing emulation");
         pauseEmulation();
     }
 }
 
 void MainWindow::continueEmulation() {
-    LOG_MISC("Starting emulation");
+    LOGL_MSC(LogLevel::INFO, "Starting emulation");
     ui->actionToolbarStart->setText("Pause");
     ui->actionToolbarStop->setEnabled(true);
 
@@ -260,12 +259,12 @@ void MainWindow::stopEmulation() {
 
         openGLWindowWidget->hide();
         ui->treeView->setHidden(false);
-        LOG_MISC("Stopped emulation");
+        LOGL_MSC(LogLevel::INFO, "Stopped emulation");
     }
 }
 
 void MainWindow::emulateOneStep() {
-    LOG_MISC("Emulating a single step");
+    LOGL_MSC(LogLevel::INFO, "Emulating a single step");
 
     emuThread->setJustOneStep(true);
     emuThread->start();

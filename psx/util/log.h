@@ -71,89 +71,8 @@ public:
     }
 };
 
-class Log {
-protected:
-    static std::chrono::time_point<std::chrono::steady_clock> programStart;
-
-public:
-    Log(bool enabled);
-    bool isEnabled() const;
-    void setEnabled(bool enabled);
-
-    virtual bool print(const std::string &message) = 0;
-
-protected:
-    bool enabled;
-};
-
-class OStreamLog : public Log {
-public:
-    OStreamLog(std::ostream &os, bool enabled);
-    bool print(const std::string &message) override;
-
-private:
-    std::ostream &os;
-};
-
-class ConsoleLog : public OStreamLog {
-public:
-    ConsoleLog(bool enabled);
-};
-
-class FileLog : public OStreamLog {
-public:
-    FileLog(bool enabled);
-    static std::ofstream logFile;
-};
-
-class ThreeWayLog {
-public:
-    ThreeWayLog(const std::string &descriptor, bool enabled);
-    bool isEnabled() const;
-    void setFileLogEnabled(bool enabled);
-    void setConsoleLogEnabled(bool enabled);
-
-    bool print(const std::string &message);
-
-    void installAdditionalLog(const std::shared_ptr<Log> &log);
-
-private:
-    FileLog fileLog;
-    ConsoleLog consoleLog;
-    std::shared_ptr<Log> additionalLog;
-
-    const std::string descriptor;
-};
-
-#define DECLARE_TWL(name) ThreeWayLog name, name##W, name##V, name##T
-
 struct LogPack {
     LogPack();
-
-    DECLARE_TWL(bus);
-    DECLARE_TWL(cdimg);
-    DECLARE_TWL(cdrom);
-    DECLARE_TWL(cp0);
-    DECLARE_TWL(cpu);
-    DECLARE_TWL(dma);
-    DECLARE_TWL(exceptions);
-    DECLARE_TWL(executable);
-    DECLARE_TWL(gio);
-    DECLARE_TWL(gpu);
-    DECLARE_TWL(gte);
-    DECLARE_TWL(interrupts);
-    DECLARE_TWL(mdec);
-    DECLARE_TWL(memory);
-    DECLARE_TWL(misc);
-    DECLARE_TWL(pad);
-    DECLARE_TWL(renderer);
-    DECLARE_TWL(spu);
-    DECLARE_TWL(timers);
-    DECLARE_TWL(tty);
-    DECLARE_TWL(warning);
-
-    void enableAllFileLogging();
-    void installAdditionalLog(const std::shared_ptr<Log> &log);
 
     void install_log_sink(const std::shared_ptr<LogSink>& log);
 
@@ -181,8 +100,6 @@ struct LogPack {
 };
 
 extern LogPack logPack;
-
-#define MACRO_LOG(log) util::logPack.log.isEnabled() && util::logPack.log.print
 
 #define LOGL_BUS(level, ...) util::logPack.bus_log.log<level>(__VA_ARGS__)
 #define LOGL_DSC(level, ...) util::logPack.dsc_log.log<level>(__VA_ARGS__)
