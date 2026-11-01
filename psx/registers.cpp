@@ -64,16 +64,16 @@ void Registers::reset() {
 }
 
 uint32_t Registers::getPC() {
-    LOGT_CPU(std::format(" {{pc -> 0x{:08X}}}", this->pc));
+    LOGL_CPU(LogLevel::TRACE, " {{pc -> 0x{:08X}}}", this->pc);
 
     return this->pc;
 }
 
 void Registers::setPC(uint32_t pc) {
     if (pc != this->pc + 4) {
-        LOGT_CPU(std::format(" {{0x{:08X} -> pc}}", pc));
+        LOGL_CPU(LogLevel::TRACE, " {{0x{:08X} -> pc}}", pc);
     } else {
-        LOGT_CPU(std::format(" {{pc}}"));
+        LOGL_CPU(LogLevel::TRACE, " {{pc}}");
     }
 
     this->pc = pc;
@@ -83,7 +83,7 @@ uint32_t Registers::getRegister(uint8_t rt) {
     assert (rt < 32);
     uint32_t word = registers[rt];
 
-    LOGT_CPU(std::format("{{{:s} -> 0x{:08X}}}", getRegisterName(rt), word));
+    LOGL_CPU(LogLevel::TRACE, "{{{:s} -> 0x{:08X}}}", getRegisterName(rt), word);
 
     return word;
 }
@@ -95,14 +95,14 @@ uint32_t Registers::getRegisterSneakPeek(uint8_t rt) {
         word = currentDelayedLoad.value;
     }
 
-    LOGT_CPU(std::format("{{{:s} -> 0x{:08X}}}", getRegisterName(rt), word));
+    LOGL_CPU(LogLevel::TRACE, "{{{:s} -> 0x{:08X}}}", getRegisterName(rt), word);
 
     return word;
 }
 
 void Registers::setRegister(uint8_t rt, uint32_t value) {
     assert (rt < 32);
-    LOGT_CPU(std::format(" {{0x{:08X} -> {:s}}}", value, getRegisterName(rt)));
+    LOGL_CPU(LogLevel::TRACE, " {{0x{:08X} -> {:s}}}", value, getRegisterName(rt));
 
     if (rt > 0) {
         registers[rt] = value;
@@ -115,7 +115,7 @@ void Registers::setRegister(uint8_t rt, uint32_t value) {
 
 void Registers::setRegisterDelayed(uint8_t rt, uint32_t value) {
     assert (rt < 32);
-    LOGT_CPU(std::format(" {{0x{:08X} -> {:s}}} (delayed)", value, getRegisterName(rt)));
+    LOGL_CPU(LogLevel::TRACE, " {{0x{:08X} -> {:s}}} (delayed)", value, getRegisterName(rt));
 
     if (rt > 0) {
         if (currentDelayedLoad.targetRegister == rt) {
@@ -137,25 +137,25 @@ void Registers::applyDelayedLoad() {
 }
 
 uint32_t Registers::getHi() {
-    LOGT_CPU(std::format(" {{hi -> 0x{:08X}}}", this->hi));
+    LOGL_CPU(LogLevel::TRACE, " {{hi -> 0x{:08X}}}", this->hi);
 
     return this->hi;
 }
 
 void Registers::setHi(uint32_t value) {
-    LOGT_CPU(std::format(" {{0x{:08X} -> hi}}", value));
+    LOGL_CPU(LogLevel::TRACE, " {{0x{:08X} -> hi}}", value);
 
     this->hi = value;
 }
 
 uint32_t Registers::getLo() {
-    LOGT_CPU(std::format(" {{lo -> 0x{:08X}}}", this->lo));
+    LOGL_CPU(LogLevel::TRACE, " {{lo -> 0x{:08X}}}", this->lo);
 
     return this->lo;
 }
 
 void Registers::setLo(uint32_t value) {
-    LOGT_CPU(std::format(" {{0x{:08X} -> lo}}", value));
+    LOGL_CPU(LogLevel::TRACE, " {{0x{:08X} -> lo}}", value);
 
     this->lo = value;
 }

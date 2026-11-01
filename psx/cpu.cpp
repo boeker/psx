@@ -66,7 +66,7 @@ void CPU::step() {
     }
 
     // execute instruction
-    LOGT_CPU(std::format("@0x{:08X}: ", instructionPC));
+    LOGL_CPU(LogLevel::TRACE, "@0x{:08X}: ", instructionPC);
     opcode = instruction >> 26;
     assert (opcode <= 0b111111);
     (this->*opcodes[opcode])();
@@ -112,7 +112,7 @@ void CPU::interceptTTYOutput() {
 }
 
 void CPU::generateException(uint8_t exccode, bool epcShouldBeNextInstruction) {
-    LOG_EXC(std::format("Exception @0x{:08X} with code {:d}", instructionPC, exccode));
+    LOGL_EXC(LogLevel::TRACE, "Exception @0x{:08X} with code {:d}", instructionPC, exccode);
 
     // make EPC point to restart location
     // the EPC has to point to the instruction which caused the error
@@ -164,7 +164,7 @@ void CPU::generateException(uint8_t exccode, bool epcShouldBeNextInstruction) {
 }
 
 void CPU::checkAndExecuteInterrupts() {
-    LOGV_EXC(std::format("Checking if interrupt exception should be issued"));
+    LOGL_EXC(LogLevel::DEBUG, "Checking if interrupt exception should be issued");
 
     if (cp0.getBit(CP0_REGISTER_SR, SR_BIT_IEC)) {
         uint32_t ip = (cp0.getCP0Register(CP0_REGISTER_CAUSE) >> CAUSE_BIT_IP0) & 0xFF;
@@ -174,10 +174,10 @@ void CPU::checkAndExecuteInterrupts() {
             generateException(EXCCODE_INT, true);
 
         } else {
-            LOGV_EXC(std::format("IEc set but no interrupt enabled and issued"));
+            LOGL_EXC(LogLevel::DEBUG, "IEc set but no interrupt enabled and issued");
         }
     } else {
-        LOGV_EXC(std::format("IEc not set"));
+        LOGL_EXC(LogLevel::DEBUG, "IEc not set");
     }
 }
 
@@ -368,9 +368,7 @@ void CPU::LUI() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("LUI {:s},0x{:04X}",
-                         regs.getRegisterName(rt),
-                         immediate));
+    LOGL_CPU(LogLevel::TRACE, "LUI {:s},0x{:04X}", regs.getRegisterName(rt), immediate);
 
     uint32_t data = immediate << 16;
 
@@ -383,10 +381,10 @@ void CPU::ORI() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    LOGT_CPU(std::format("ORI {:s},{:s},0x{:04x}",
-                        regs.getRegisterName(rt),
-                        regs.getRegisterName(rs),
-                        immediate));
+    LOGL_CPU(LogLevel::TRACE, "ORI {:s},{:s},0x{:04x}",
+                              regs.getRegisterName(rt),
+                              regs.getRegisterName(rs),
+                              immediate);
 
     regs.setRegister(rt, regs.getRegister(rs) | immediate);
 }
@@ -401,10 +399,10 @@ void CPU::SW() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("SW {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "SW {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
                      + regs.getRegister(base);
@@ -430,10 +428,10 @@ void CPU::ADDIU() {
     uint32_t immediate = 0xFFFF & instruction;
     uint32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
 
-    LOGT_CPU(std::format("ADDIU {:s},{:s},0x{:04X}",
+    LOGL_CPU(LogLevel::TRACE, "ADDIU {:s},{:s},0x{:04X}",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
-                        immediate));
+                        immediate);
 
     regs.setRegister(rt, regs.getRegister(rs) + signExtension);
 }
@@ -443,7 +441,7 @@ void CPU::J() {
     // T: temp <- target
     // T+1: pc <- pc_{31...28} || temp || 0^2
     uint32_t target = 0x3FFFFFF & instruction;
-    LOGT_CPU(std::format("J 0x{:08X}", target));
+    LOGL_CPU(LogLevel::TRACE, "J 0x{:08X}", target);
 
     uint32_t actualTarget = (delaySlotPC & 0xF0000000) | (target << 2);
 
@@ -463,12 +461,12 @@ void CPU::BNE() {
 
     uint32_t target = ((offset >> 15) ? 0xFFFC0000 : 0x00000000) | (offset << 2);
     uint32_t actualTarget = delaySlotPC + target;
-    LOGT_CPU(std::format("BNE {:s},{:s},0x{:04X} (+0x{:08X}, -> @0x{:08X})",
+    LOGL_CPU(LogLevel::TRACE, "BNE {:s},{:s},0x{:04X} (+0x{:08X}, -> @0x{:08X})",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
                         offset,
                         target,
-                        actualTarget));
+                        actualTarget);
 
     if (regs.getRegister(rs) != regs.getRegister(rt)) {
         regs.setPC(actualTarget);
@@ -482,10 +480,10 @@ void CPU::ADDI() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
-    LOGT_CPU(std::format("ADDI {:s},{:s},0x{:04X}",
+    LOGL_CPU(LogLevel::TRACE, "ADDI {:s},{:s},0x{:04X}",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
-                        immediate));
+                        immediate);
 
     int32_t rsValue = regs.getRegister(rs);
     int32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
@@ -509,10 +507,10 @@ void CPU::LW() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("LW {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "LW {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset) + regs.getRegister(base);
 
     if (vAddr & 0x3) {
@@ -538,10 +536,10 @@ void CPU::SH() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("SH {:s},0x{:08X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "SH {:s},0x{:08X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
     if (vAddr & 0x1) {
@@ -561,7 +559,7 @@ void CPU::JAL() {
     // T+1: PC <- PC_{31...28} || temp || 0^2
     uint32_t target = 0x03FFFFFF & instruction;
 
-    LOGT_CPU(std::format("JAL 0x{:06X}", target));
+    LOGL_CPU(LogLevel::TRACE, "JAL 0x{:06X}", target);
 
     uint32_t actualTarget = (delaySlotPC &  0xF0000000) | (target << 2);
     uint32_t newPC = instructionPC + 8;
@@ -577,10 +575,10 @@ void CPU::ANDI() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("ANDI {:s},{:s},0x{:04X}",
+    LOGL_CPU(LogLevel::TRACE, "ANDI {:s},{:s},0x{:04X}",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
-                        immediate));
+                        immediate);
 
     regs.setRegister(rt, immediate & regs.getRegister(rs));
 }
@@ -597,10 +595,10 @@ void CPU::SB() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("SB {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "SB {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
     uint8_t data = (uint8_t)(0x000000FF & regs.getRegister(rt));
@@ -619,10 +617,10 @@ void CPU::LB() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("LB {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "LB {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
     uint8_t mem = bus->readByte(vAddr);
@@ -642,10 +640,10 @@ void CPU::BEQ() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("BEQ {:s},{:s},{:04X}",
+    LOGL_CPU(LogLevel::TRACE, "BEQ {:s},{:s},{:04X}",
                         regs.getRegisterName(rs),
                         regs.getRegisterName(rt),
-                        offset));
+                        offset);
 
     uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
     uint32_t target = signExtension << 2;
@@ -653,8 +651,8 @@ void CPU::BEQ() {
 
     uint32_t rsValue = regs.getRegister(rs);
     uint32_t rtValue = regs.getRegister(rt);
-    LOGT_CPU(std::format(" (0x{:08X} == 0x{:08X}? -0x{:08X}-> pc)",
-                        rsValue, rtValue, actualTarget));
+    LOGL_CPU(LogLevel::TRACE, " (0x{:08X} == 0x{:08X}? -0x{:08X}-> pc)",
+                        rsValue, rtValue, actualTarget);
 
     if (rsValue == rtValue) {
         regs.setPC(actualTarget);
@@ -672,17 +670,17 @@ void CPU::BGTZ() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("BGTZ {:s},{:04X}",
+    LOGL_CPU(LogLevel::TRACE, "BGTZ {:s},{:04X}",
                         regs.getRegisterName(rs),
-                        offset));
+                        offset);
 
     uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
     uint32_t target = signExtension << 2;
     uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = regs.getRegister(rs);
-    LOGT_CPU(std::format(" (0x{:08X} > 0? -0x{:08X}-> pc)",
-                        rsValue, actualTarget));
+    LOGL_CPU(LogLevel::TRACE, " (0x{:08X} > 0? -0x{:08X}-> pc)",
+                        rsValue, actualTarget);
 
     if (!(rsValue >> 31) && (rsValue != 0)) {
         regs.setPC(actualTarget);
@@ -700,17 +698,17 @@ void CPU::BLEZ() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("BLEZ {:s},{:04X}",
+    LOGL_CPU(LogLevel::TRACE, "BLEZ {:s},{:04X}",
                         regs.getRegisterName(rs),
-                        offset));
+                        offset);
 
     uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
     uint32_t target = signExtension << 2;
     uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = regs.getRegister(rs);
-    LOGT_CPU(std::format(" (0x{:08X} <= 0? -0x{:08X}-> pc)",
-                        rsValue, actualTarget));
+    LOGL_CPU(LogLevel::TRACE, " (0x{:08X} <= 0? -0x{:08X}-> pc)",
+                        rsValue, actualTarget);
 
     if ((rsValue >> 31) || (rsValue == 0)) {
         regs.setPC(actualTarget);
@@ -730,10 +728,10 @@ void CPU::LBU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("LBU {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "LBU {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
     uint8_t mem = bus->readByte(vAddr);
@@ -753,10 +751,10 @@ void CPU::SLTI() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("SLTI {:s},{:s},0x{:04x}",
+    LOGL_CPU(LogLevel::TRACE, "SLTI {:s},{:s},0x{:04x}",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
-                        immediate));
+                        immediate);
 
     uint32_t rsValue = regs.getRegister(rs);
     uint32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
@@ -783,10 +781,10 @@ void CPU::SLTIU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("SLTI {:s},{:s},0x{:04x}",
+    LOGL_CPU(LogLevel::TRACE, "SLTI {:s},{:s},0x{:04x}",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
-                        immediate));
+                        immediate);
 
     uint32_t rsValue = regs.getRegister(rs);
     uint32_t signExtension = ((immediate >> 15) ? 0xFFFF0000 : 0x00000000) + immediate;
@@ -811,10 +809,10 @@ void CPU::LHU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("LHU {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "LHU {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
     if (vAddr & 0x1) {
@@ -841,10 +839,10 @@ void CPU::LH() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("LH {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "LH {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x0000) | offset) + regs.getRegister(base);
 
@@ -875,10 +873,10 @@ void CPU::LWL() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("LWL {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "LWL {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
                      + regs.getRegister(base);
@@ -905,10 +903,10 @@ void CPU::LWR() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("LWR {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "LWR {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
                      + regs.getRegister(base);
@@ -935,10 +933,10 @@ void CPU::SWL() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("SWL {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "SWL {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
                      + regs.getRegister(base);
@@ -964,10 +962,10 @@ void CPU::SWR() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("SWR {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "SWR {:s},0x{:04X}({:s})",
                         regs.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
                      + regs.getRegister(base);
@@ -985,10 +983,10 @@ void CPU::XORI() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t immediate = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("XORI {:s},{:s},0x{:04X}",
+    LOGL_CPU(LogLevel::TRACE, "XORI {:s},{:s},0x{:04X}",
                         regs.getRegisterName(rt),
                         regs.getRegisterName(rs),
-                        immediate));
+                        immediate);
 
     regs.setRegister(rt, immediate ^ regs.getRegister(rs));
 }
@@ -1004,10 +1002,10 @@ void CPU::LWC2() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("LWC2 {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "LWC2 {:s},0x{:04X}({:s})",
                         gte.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
                      + regs.getRegister(base);
@@ -1033,10 +1031,10 @@ void CPU::SWC2() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("SWC2 {:s},0x{:04X}({:s})",
+    LOGL_CPU(LogLevel::TRACE, "SWC2 {:s},0x{:04X}({:s})",
                         gte.getRegisterName(rt),
                         offset,
-                        regs.getRegisterName(base)));
+                        regs.getRegisterName(base));
 
     uint32_t vAddr = (((offset >> 15) ? 0xFFFF0000 : 0x00000000) | offset)
                      + regs.getRegister(base);
@@ -1062,12 +1060,12 @@ void CPU::SLL() {
     uint8_t sa = 0x1F & (instruction >> 6);
 
     if (rt == 0 && rd == 0 && sa == 0) {
-        LOGT_CPU(std::format("NOP"));
+        LOGL_CPU(LogLevel::TRACE, "NOP");
     } else {
-        LOGT_CPU(std::format("SLL {:s},{:s},{:s}",
+        LOGL_CPU(LogLevel::TRACE, "SLL {:s},{:s},{:s}",
                             regs.getRegisterName(rd),
                             regs.getRegisterName(rt),
-                            regs.getRegisterName(sa)));
+                            regs.getRegisterName(sa));
     }
 
     regs.setRegister(rd, regs.getRegister(rt) << sa);
@@ -1079,10 +1077,10 @@ void CPU::OR() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
-    LOGT_CPU(std::format("OR {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "OR {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     regs.setRegister(rd, regs.getRegister(rs) | regs.getRegister(rt));
 }
@@ -1098,15 +1096,15 @@ void CPU::SLTU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("SLTU {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "SLTU {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     uint32_t rsValue = regs.getRegister(rs);
     uint32_t rtValue = regs.getRegister(rt);
-    LOGT_CPU(std::format(" (0x{:08x} < 0x{:08x}?)",
-                        rsValue, rtValue));
+    LOGL_CPU(LogLevel::TRACE, " (0x{:08x} < 0x{:08x}?)",
+                        rsValue, rtValue);
 
     if (rsValue < rtValue) {
         regs.setRegister(rd, 1);
@@ -1123,10 +1121,10 @@ void CPU::ADDU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("ADDU {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "ADDU {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     uint32_t rsValue = regs.getRegister(rs);
     uint32_t rtValue = regs.getRegister(rt);
@@ -1141,8 +1139,8 @@ void CPU::JR() {
     // Should be temp, right?
     uint8_t rs = 0x1F & (instruction >> 21);
 
-    LOGT_CPU(std::format("JR {:s}",
-                        regs.getRegisterName(rs)));
+    LOGL_CPU(LogLevel::TRACE, "JR {:s}",
+                        regs.getRegisterName(rs));
 
     uint32_t target = regs.getRegister(rs);
     regs.setPC(target);
@@ -1162,9 +1160,9 @@ void CPU::JALR() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("JALR {:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "JALR {:s},{:s}",
                         regs.getRegisterName(rd),
-                        regs.getRegisterName(rs)));
+                        regs.getRegisterName(rs));
 
     uint32_t target = regs.getRegister(rs);
     regs.setPC(target);
@@ -1183,10 +1181,10 @@ void CPU::AND() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("AND {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "AND {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     regs.setRegister(rd, regs.getRegister(rs) & regs.getRegister(rt));
 }
@@ -1198,10 +1196,10 @@ void CPU::ADD() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("ADD {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "ADD {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     int32_t rsValue = (int32_t)regs.getRegister(rs);
     int32_t rtValue = (int32_t)regs.getRegister(rt);
@@ -1222,10 +1220,10 @@ void CPU::SUB() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("SUB {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "SUB {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     int32_t rsValue = (int32_t)regs.getRegister(rs);
     int32_t rtValue = (int32_t)regs.getRegister(rt);
@@ -1246,10 +1244,10 @@ void CPU::SUBU() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("SUBU {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "SUBU {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     uint32_t rsValue = regs.getRegister(rs);
     uint32_t rtValue = regs.getRegister(rt);
@@ -1264,10 +1262,10 @@ void CPU::SRA() {
     uint8_t rd = 0x1F & (instruction >> 11);
     uint8_t sa = 0x1F & (instruction >> 6);
 
-    LOGT_CPU(std::format("SRA {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "SRA {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rt),
-                        regs.getRegisterName(sa)));
+                        regs.getRegisterName(sa));
 
     int32_t rtValue = (int32_t)regs.getRegister(rt);
     regs.setRegister(rd, (uint32_t)(rtValue >> sa));
@@ -1284,9 +1282,9 @@ void CPU::DIV() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
 
-    LOGT_CPU(std::format("DIV {:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "DIV {:s},{:s}",
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     int32_t rsValue = (int32_t)regs.getRegister(rs);
     int32_t rtValue = (int32_t)regs.getRegister(rt);
@@ -1314,7 +1312,7 @@ void CPU::MFLO() {
     // T: GPR[rd] <- LO
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("MFLO {:s}", regs.getRegisterName(rd)));
+    LOGL_CPU(LogLevel::TRACE, "MFLO {:s}", regs.getRegisterName(rd));
 
     regs.setRegister(rd, regs.getLo());
 }
@@ -1326,10 +1324,10 @@ void CPU::SRL() {
     uint8_t rd = 0x1F & (instruction >> 11);
     uint8_t sa = 0x1F & (instruction >> 6);
 
-    LOGT_CPU(std::format("SRL {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "SRL {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rt),
-                        regs.getRegisterName(sa)));
+                        regs.getRegisterName(sa));
 
     regs.setRegister(rd, regs.getRegister(rt) >> sa);
 }
@@ -1345,9 +1343,9 @@ void CPU::DIVU() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
 
-    LOGT_CPU(std::format("DIVU {:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "DIVU {:s},{:s}",
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     uint32_t rsValue = regs.getRegister(rs);
     uint32_t rtValue = regs.getRegister(rt);
@@ -1366,7 +1364,7 @@ void CPU::MFHI() {
     // T: GPR[rd] <- HI
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("MFHI {:s}", regs.getRegisterName(rd)));
+    LOGL_CPU(LogLevel::TRACE, "MFHI {:s}", regs.getRegisterName(rd));
 
     regs.setRegister(rd, regs.getHi());
 }
@@ -1382,15 +1380,15 @@ void CPU::SLT() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("SLT {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "SLT {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     int32_t rsValue = (int32_t)regs.getRegister(rs);
     int32_t rtValue = (int32_t)regs.getRegister(rt);
-    LOGT_CPU(std::format(" (0x{:08x} < 0x{:08x}?)",
-                        rsValue, rtValue));
+    LOGL_CPU(LogLevel::TRACE, " (0x{:08x} < 0x{:08x}?)",
+                        rsValue, rtValue);
 
     if (rsValue < rtValue) {
         regs.setRegister(rd, 1);
@@ -1406,7 +1404,7 @@ void CPU::SYSCALL() {
     //uint32_t code = 0xFFFFF & (instruction >> 6);
     // the exception handler can access "code" by manually loading the instruction
 
-    LOGT_CPU("SYSCALL");
+    LOGL_CPU(LogLevel::TRACE, "SYSCALL");
 
     generateException(EXCCODE_SYSCALL);
 }
@@ -1418,7 +1416,7 @@ void CPU::MTLO() {
     // T: LO <- GPR[rs]
     uint8_t rs = 0x1F & (instruction >> 21);
 
-    LOGT_CPU(std::format("MTLO {:s}", regs.getRegisterName(rs)));
+    LOGL_CPU(LogLevel::TRACE, "MTLO {:s}", regs.getRegisterName(rs));
 
     regs.setLo(regs.getRegister(rs));
 }
@@ -1430,7 +1428,7 @@ void CPU::MTHI() {
     // T: HI <- GPR[rs]
     uint8_t rs = 0x1F & (instruction >> 21);
 
-    LOGT_CPU(std::format("MTHI {:s}", regs.getRegisterName(rs)));
+    LOGL_CPU(LogLevel::TRACE, "MTHI {:s}", regs.getRegisterName(rs));
 
     regs.setHi(regs.getRegister(rs));
 }
@@ -1443,10 +1441,10 @@ void CPU::SLLV() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("SLLV {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "SLLV {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rt),
-                        regs.getRegisterName(rs)));
+                        regs.getRegisterName(rs));
 
     uint8_t s = regs.getRegister(rs) & 0x1F;
 
@@ -1459,10 +1457,10 @@ void CPU::NOR() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
-    LOGT_CPU(std::format("NOR {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "NOR {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     regs.setRegister(rd, ~(regs.getRegister(rs) | regs.getRegister(rt)));
 }
@@ -1475,10 +1473,10 @@ void CPU::SRAV() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("SRAV {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "SRAV {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rt),
-                        regs.getRegisterName(rs)));
+                        regs.getRegisterName(rs));
 
     uint8_t s = regs.getRegister(rs);
     int32_t rtValue = (int32_t)regs.getRegister(rt);
@@ -1493,10 +1491,10 @@ void CPU::SRLV() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("SRLV {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "SRLV {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rt),
-                        regs.getRegisterName(rs)));
+                        regs.getRegisterName(rs));
 
     uint8_t s = regs.getRegister(rs);
     uint32_t rtValue = regs.getRegister(rt);
@@ -1517,9 +1515,9 @@ void CPU::MULT() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
 
-    LOGT_CPU(std::format("MULT {:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "MULT {:s},{:s}",
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     int64_t rsValue = (int32_t)regs.getRegister(rs);
     int64_t rtValue = (int32_t)regs.getRegister(rt);
@@ -1541,9 +1539,9 @@ void CPU::MULTU() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
 
-    LOGT_CPU(std::format("MULTU {:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "MULTU {:s},{:s}",
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     uint64_t rsValue = regs.getRegister(rs);
     uint64_t rtValue = regs.getRegister(rt);
@@ -1559,10 +1557,10 @@ void CPU::XOR() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
-    LOGT_CPU(std::format("XOR {:s},{:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "XOR {:s},{:s},{:s}",
                         regs.getRegisterName(rd),
                         regs.getRegisterName(rs),
-                        regs.getRegisterName(rt)));
+                        regs.getRegisterName(rt));
 
     uint32_t rsValue = regs.getRegister(rs);
     uint32_t rtValue = regs.getRegister(rt);
@@ -1574,7 +1572,7 @@ void CPU::BREAK() {
     // Breakpoint
     // T: Breakpoint Exception
     uint8_t code = 0xFFFFF & (instruction >> 6);
-    LOGT_CPU(std::format("BREAK {:d}", code));
+    LOGL_CPU(LogLevel::TRACE, "BREAK {:d}", code);
     generateException(EXCCODE_BP);
 }
 
@@ -1589,12 +1587,12 @@ void CPU::MTC0() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("MTC0 {:s},{:d}",
+    LOGL_CPU(LogLevel::TRACE, "MTC0 {:s},{:d}",
                          regs.getRegisterName(rt),
-                         rd));
+                         rd);
 
     uint32_t data = regs.getRegister(rt);
-    LOGT_CPU(std::format(" (0x{:08X} -> CP0 {:d})",data, rd));
+    LOGL_CPU(LogLevel::TRACE, " (0x{:08X} -> CP0 {:d})",data, rd);
 
     cp0.setCP0Register(rd, data);
     // Interrupts might have been enabled by that write
@@ -1609,13 +1607,13 @@ void CPU::MFC0() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("MFC0 {:s},{:d}",
+    LOGL_CPU(LogLevel::TRACE, "MFC0 {:s},{:d}",
                         regs.getRegisterName(rt),
-                        rd));
+                        rd);
 
     uint32_t data = cp0.getCP0Register(rd);
-    LOGT_CPU(std::format(" (CP0 {:d} -0x{:08X}->)",
-                        rd, data));
+    LOGL_CPU(LogLevel::TRACE, " (CP0 {:d} -0x{:08X}->)",
+                        rd, data);
 
     regs.setRegister(rt, data);
 }
@@ -1624,7 +1622,7 @@ void CPU::CP0INST() {
     // CP0INST
     // Operation depends on function field
     funct = 0x3F & instruction;
-    LOGT_CPU(std::format("CP0_{:02X}", funct));
+    LOGL_CPU(LogLevel::TRACE, "CP0_{:02X}", funct);
     cp0.execute(instruction);
 }
 
@@ -1639,12 +1637,12 @@ void CPU::CTC2() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("CTC2 {:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "CTC2 {:s},{:s}",
                          regs.getRegisterName(rt),
-                         gte.getControlRegisterName(rd)));
+                         gte.getControlRegisterName(rd));
 
     uint32_t data = regs.getRegister(rt);
-    LOGT_CPU(std::format(" (0x{:08X} -> CP2 {:s})", data, gte.getControlRegisterName(rd)));
+    LOGL_CPU(LogLevel::TRACE, " (0x{:08X} -> CP2 {:s})", data, gte.getControlRegisterName(rd));
 
     gte.setControlRegister(rd, data);
 }
@@ -1656,12 +1654,12 @@ void CPU::MTC2() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("MTC2 {:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "MTC2 {:s},{:s}",
                          regs.getRegisterName(rt),
-                         gte.getRegisterName(rd)));
+                         gte.getRegisterName(rd));
 
     uint32_t data = regs.getRegister(rt);
-    LOGT_CPU(std::format(" (0x{:08X} -> CP2 {:s})",data, gte.getRegisterName(rd)));
+    LOGL_CPU(LogLevel::TRACE, " (0x{:08X} -> CP2 {:s})",data, gte.getRegisterName(rd));
 
     gte.setRegister(rd, data);
 }
@@ -1673,12 +1671,12 @@ void CPU::CFC2() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("CFC2 {:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "CFC2 {:s},{:s}",
                          regs.getRegisterName(rt),
-                         gte.getControlRegisterName(rd)));
+                         gte.getControlRegisterName(rd));
 
     uint32_t data = gte.getControlRegister(rd);
-    LOGT_CPU(std::format(" (CP2 {:s} -> 0x{:08X})", gte.getControlRegisterName(rd), data));
+    LOGL_CPU(LogLevel::TRACE, " (CP2 {:s} -> 0x{:08X})", gte.getControlRegisterName(rd), data);
 
     regs.setRegister(rt, data);
 }
@@ -1690,12 +1688,12 @@ void CPU::MFC2() {
     uint8_t rt = 0x1F & (instruction >> 16);
     uint8_t rd = 0x1F & (instruction >> 11);
 
-    LOGT_CPU(std::format("MFC2 {:s},{:s}",
+    LOGL_CPU(LogLevel::TRACE, "MFC2 {:s},{:s}",
                          regs.getRegisterName(rt),
-                         gte.getRegisterName(rd)));
+                         gte.getRegisterName(rd));
 
     uint32_t data = gte.getRegister(rd);
-    LOGT_CPU(std::format(" (CP2 {:s} -> 0x{:08X})", gte.getRegisterName(rd), data));
+    LOGL_CPU(LogLevel::TRACE, " (CP2 {:s} -> 0x{:08X})", gte.getRegisterName(rd), data);
 
     regs.setRegister(rt, data);
 }
@@ -1704,7 +1702,7 @@ void CPU::CP2INST() {
     // CP2INST
     // Operation depends on function field
     funct = 0x3F & instruction;
-    LOGT_CPU(std::format("GTE_{:02X}", funct));
+    LOGL_CPU(LogLevel::TRACE, "GTE_{:02X}", funct);
     gte.execute(instruction);
 }
 
@@ -1723,17 +1721,17 @@ void CPU::BLTZ() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("BLTZ {:s},{:04X}",
+    LOGL_CPU(LogLevel::TRACE, "BLTZ {:s},{:04X}",
                         regs.getRegisterName(rs),
-                        offset));
+                        offset);
 
     uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
     uint32_t target = signExtension << 2;
     uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = regs.getRegister(rs);
-    LOGT_CPU(std::format(" (0x{:08X} < 0? -0x{:08X}-> pc)",
-                        rsValue, actualTarget));
+    LOGL_CPU(LogLevel::TRACE, " (0x{:08X} < 0? -0x{:08X}-> pc)",
+                        rsValue, actualTarget);
 
     if (rsValue >> 31) {
         regs.setPC(actualTarget);
@@ -1752,17 +1750,17 @@ void CPU::BLTZAL() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("BLTZAL {:s},{:04X}",
+    LOGL_CPU(LogLevel::TRACE, "BLTZAL {:s},{:04X}",
                         regs.getRegisterName(rs),
-                        offset));
+                        offset);
 
     uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
     uint32_t target = signExtension << 2;
     uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = regs.getRegister(rs);
-    LOGT_CPU(std::format(" (0x{:08X} < 0? -0x{:08X}-> pc)",
-                        rsValue, actualTarget));
+    LOGL_CPU(LogLevel::TRACE, " (0x{:08X} < 0? -0x{:08X}-> pc)",
+                        rsValue, actualTarget);
 
     regs.setRegister(31, instructionPC + 8);
     if (rsValue >> 31) {
@@ -1781,17 +1779,17 @@ void CPU::BGEZ() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("BGEZ {:s},{:04X}",
+    LOGL_CPU(LogLevel::TRACE, "BGEZ {:s},{:04X}",
                         regs.getRegisterName(rs),
-                        offset));
+                        offset);
 
     uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
     uint32_t target = signExtension << 2;
     uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = regs.getRegister(rs);
-    LOGT_CPU(std::format(" (0x{:08X} > 0? -0x{:08X}-> pc)",
-                        rsValue, actualTarget));
+    LOGL_CPU(LogLevel::TRACE, " (0x{:08X} > 0? -0x{:08X}-> pc)",
+                        rsValue, actualTarget);
 
     if (!(rsValue >> 31)) {
         regs.setPC(actualTarget);
@@ -1809,17 +1807,17 @@ void CPU::BGEZAL() {
     uint8_t rs = 0x1F & (instruction >> 21);
     uint32_t offset = 0xFFFF & instruction;
 
-    LOGT_CPU(std::format("BGEZAL {:s},{:04X}",
+    LOGL_CPU(LogLevel::TRACE, "BGEZAL {:s},{:04X}",
                         regs.getRegisterName(rs),
-                        offset));
+                        offset);
 
     uint32_t signExtension = ((offset >> 15) ? 0xFFFF0000 : 0x00000000) + offset;
     uint32_t target = signExtension << 2;
     uint32_t actualTarget = delaySlotPC + target;
 
     uint32_t rsValue = regs.getRegister(rs);
-    LOGT_CPU(std::format(" (0x{:08X} > 0? -0x{:08X}-> pc)",
-                        rsValue, actualTarget));
+    LOGL_CPU(LogLevel::TRACE, " (0x{:08X} > 0? -0x{:08X}-> pc)",
+                        rsValue, actualTarget);
 
     regs.setRegister(31, instructionPC + 8);
     if (!(rsValue >> 31)) {

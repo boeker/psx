@@ -205,11 +205,6 @@ extern LogPack logPack;
 #define LOGL_TMR(level, ...) util::logPack.tmr_log.log<level>(__VA_ARGS__)
 #define LOGL_TTY(level, ...) util::logPack.tty_log.log<level>(__VA_ARGS__)
 
-#define LOG_CPU             MACRO_LOG(cpu)
-#define LOGW_CPU            MACRO_LOG(cpuW)
-#define LOGV_CPU            MACRO_LOG(cpuV)
-#define LOGT_CPU            MACRO_LOG(cpuT)
-
 #define LOG_CDIMG           MACRO_LOG(cdimg)
 #define LOGW_CDIMG          MACRO_LOG(cdimgW)
 #define LOGV_CDIMG          MACRO_LOG(cdimgV)
@@ -224,11 +219,6 @@ extern LogPack logPack;
 #define LOGW_DMA            MACRO_LOG(dmaW)
 #define LOGV_DMA            MACRO_LOG(dmaV)
 #define LOGT_DMA            MACRO_LOG(dmaT)
-
-#define LOG_EXC             MACRO_LOG(exceptions)
-#define LOGW_EXC            MACRO_LOG(exceptionsW)
-#define LOGV_EXC            MACRO_LOG(exceptionsV)
-#define LOGT_EXC            MACRO_LOG(exceptionsT)
 
 #define LOG_GIO             MACRO_LOG(gio)
 #define LOGW_GIO            MACRO_LOG(gioW)
