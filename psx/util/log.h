@@ -205,16 +205,6 @@ extern LogPack logPack;
 #define LOGL_TMR(level, ...) util::logPack.tmr_log.log<level>(__VA_ARGS__)
 #define LOGL_TTY(level, ...) util::logPack.tty_log.log<level>(__VA_ARGS__)
 
-#define LOG_CDIMG           MACRO_LOG(cdimg)
-#define LOGW_CDIMG          MACRO_LOG(cdimgW)
-#define LOGV_CDIMG          MACRO_LOG(cdimgV)
-#define LOGT_CDIMG          MACRO_LOG(cdimgT)
-
-#define LOG_CDROM           MACRO_LOG(cdrom)
-#define LOGW_CDROM          MACRO_LOG(cdromW)
-#define LOGV_CDROM          MACRO_LOG(cdromV)
-#define LOGT_CDROM          MACRO_LOG(cdromT)
-
 #define LOG_DMA             MACRO_LOG(dma)
 #define LOGW_DMA            MACRO_LOG(dmaW)
 #define LOGV_DMA            MACRO_LOG(dmaV)
@@ -274,11 +264,6 @@ extern LogPack logPack;
 #define LOGW_TMR            MACRO_LOG(timersW)
 #define LOGV_TMR            MACRO_LOG(timersV)
 #define LOGT_TMR            MACRO_LOG(timersT)
-
-#define LOG_TTY             MACRO_LOG(tty)
-#define LOGW_TTY            MACRO_LOG(ttyW)
-#define LOGV_TTY            MACRO_LOG(ttyV)
-#define LOGT_TTY            MACRO_LOG(ttyT)
 
 #define LOG_WRN             MACRO_LOG(warning)
 #define LOGW_WRN            MACRO_LOG(warningW)

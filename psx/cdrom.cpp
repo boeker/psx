@@ -14,8 +14,8 @@ using namespace util;
 
 namespace PSX {
 
-std::string CDROM::prependState(const std::string &str) const {
-    return std::format("[{:s}] {:s}", driveStateToString(drive_state), str);
+std::string CDROM::get_state_prefix() const {
+    return std::format("[{:s}]", driveStateToString(drive_state));
 }
 
 std::string CDROM::driveStateToString(DriveState driveState) {
@@ -142,7 +142,7 @@ void CDROM::catchUpToCPU(uint32_t cycles) {
     }
 
     if (!scheduled_responses.empty() && !waiting_for_acknowledge) {
-        LOGT_CDROM(prependState(std::format("========> Delivering Response")));
+        LOGL_DSC(LogLevel::TRACE, "{:s} ========> Delivering Response", get_state_prefix());
         ScheduledResponse response = scheduled_responses.front();
         scheduled_responses.pop_front();
         deliver_response(response);
@@ -167,7 +167,7 @@ void CDROM::deliver_response(ScheduledResponse &response) {
     }
 
     if (drive_state != old_state) {
-        LOGV_CDROM(std::format("[{:s}] -> [{:s}]", driveStateToString(old_state), driveStateToString(drive_state)));
+        LOGL_DSC(LogLevel::DEBUG, "[{:s}] -> [{:s}]", driveStateToString(old_state), driveStateToString(drive_state));
     }
 }
 
@@ -176,7 +176,7 @@ void CDROM::send_command() {
     if (pending_command && (scheduled_responses.empty() || drive_state == READING || drive_state == PLAYING)) { // Let Pause() get through
         pending_command = false;
 
-        LOGV_CDROM(prependState(std::format("Sending command 0x{:02X} to controller", command)));
+        LOGL_DSC(LogLevel::DEBUG, "{:s} Sending command 0x{:02X} to controller", get_state_prefix(), command);
         if (Bit::getBit(requestRegister, CDROM_REQUEST_SMEN)) {
             notifyAboutINT10();
         }
@@ -192,25 +192,25 @@ void CDROM::send_command() {
 
 void CDROM::notifyAboutINT1to7(uint8_t interruptNumber) {
     assert(interruptNumber >= 1 && interruptNumber <= 7);
-    LOGV_CDROM(prependState(std::format("Notifying about INT{:d}", interruptNumber)));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} Notifying about INT{:d}", get_state_prefix(), interruptNumber);
     // Only trigger if there was no interrupt before. Is this correct?
     bool wasInterrupt = interruptFlagRegister & 0x7;
     interruptFlagRegister = interruptFlagRegister | interruptNumber;
     // Check if any of the three enable bits is enabled
     uint8_t interrupt = interruptEnableRegister & interruptFlagRegister & 0x7;
     if (!wasInterrupt && interrupt) {
-        LOGV_CDROM(prependState(std::format("Issuing INT{:d}", interrupt)));
+        LOGL_DSC(LogLevel::DEBUG, "{:s} Issuing INT{:d}", get_state_prefix(), interrupt);
         bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
     }
 }
 
 void CDROM::notifyAboutINT10() {
-    LOGV_CDROM(prependState("Notifying about and issuing INT10"));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} Notifying about and issuing INT10", get_state_prefix());
     // Only trigger if there was no interrupt before. Is this correct?
     bool wasInterrupt = Bit::getBit(interruptFlagRegister, CDROM_INTERRUPT_FLAG_CLRBFWRDY);
     Bit::setBit(interruptFlagRegister, CDROM_INTERRUPT_FLAG_CLRBFWRDY);
     if (!wasInterrupt && Bit::getBit(interruptEnableRegister, CDROM_INTERRUPT_ENABLE_BFWRDY)) {
-        LOGV_CDROM(prependState("Issuing INT10"));
+        LOGL_DSC(LogLevel::DEBUG, "{:s} Issuing INT10", get_state_prefix());
         bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_CDROM);
     }
 }
@@ -229,31 +229,31 @@ template <>
 void CDROM::write(uint32_t address, uint8_t value) {
     assert ((address >= 0x1F801800) && (address < 0x1F801804));
 
-    LOGT_CDROM(prependState(std::format("0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex())));
+    LOGL_DSC(LogLevel::TRACE, "{:s} 0x{:02X} -> @0x{:08X} with index {:d}", get_state_prefix(), value, address, getIndex());
 
     if (address == 0x1F801800) { // status register
-        LOGT_CDROM(prependState(std::format("0x{:02X} -> status register", value)));
+        LOGL_DSC(LogLevel::TRACE, "{:s} 0x{:02X} -> status register", get_state_prefix(), value);
         // Only the index can be written to
         statusRegister = (statusRegister & 0xF8) | value & 0x3;
 
     } else if (address == 0x1F801801) {
         switch (getIndex()) {
             case 0: // Command Register
-                LOGT_CDROM(prependState(std::format("@0x{:08X}: 0x{:02X} -> command register", bus->cpu.instructionPC, value)));
+                LOGL_DSC(LogLevel::TRACE, "{:s} @0x{:08X}: 0x{:02X} -> command register", get_state_prefix(), bus->cpu.instructionPC, value);
                 command = value;
                 pending_command = true;
                 send_command();
                 break;
             case 1: // Sound Map Data Out
-                LOGW_CDROM(std::format("Unimplemented write to Sound Map Data Out: 0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex()));
+                LOGL_DSC(LogLevel::WARNING, "Unimplemented write to Sound Map Data Out: 0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex());
                 // TODO Implement
                 break;
             case 2: // Sound Map Coding Info
-                LOGW_CDROM(std::format("Unimplemented write to Sound Map Coding Info: 0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex()));
+                LOGL_DSC(LogLevel::WARNING, "Unimplemented write to Sound Map Coding Info: 0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex());
                 // TODO Implement
                 break;
             case 3: // Audio Volume for Right-CD-Out to Right-SPU-Input
-                LOGT_CDROM(std::format("0x{:02X} -> Audio Volume for Right-CD-Out to Right-SPU-Input", value));
+                LOGL_DSC(LogLevel::TRACE, "0x{:02X} -> Audio Volume for Right-CD-Out to Right-SPU-Input", value);
                 audioVolumeCDOutToSPUIn[3] = value;
                 break;
             default:
@@ -263,20 +263,20 @@ void CDROM::write(uint32_t address, uint8_t value) {
     } else if (address == 0x1F801802) {
         switch (getIndex()) {
             case 0: // Parameter Queue
-                LOGT_CDROM(prependState(std::format("0x{:02X} -> parameter queue", value)));
+                LOGL_DSC(LogLevel::TRACE, "{:s} 0x{:02X} -> parameter queue", get_state_prefix(), value);
                 parameter_queue.push(value);
                 break;
             case 1: // Interrupt Enable Register
-                LOGT_CDROM(prependState(std::format("0x{:02X} -> interrupt enable register", value)));
+                LOGL_DSC(LogLevel::TRACE, "{:s} 0x{:02X} -> interrupt enable register", get_state_prefix(), value);
                 interruptEnableRegister = value & 0x1F; // Bit 7 to 5 should be zero. Only use 4 to 0.
                 // Should we check and issue pending interrupts here?
                 break;
             case 2: // Audio Volume for Left-CD-Out to Left-SPU-Input
-                LOGT_CDROM(std::format("0x{:02X} -> Audio Volume for Left-CD-Out to Left-SPU-Input", value));
+                LOGL_DSC(LogLevel::TRACE, "0x{:02X} -> Audio Volume for Left-CD-Out to Left-SPU-Input", value);
                 audioVolumeCDOutToSPUIn[0] = value;
                 break;
             case 3: // Audio Volume for Right-CD-Out to Left-SPU-Input
-                LOGT_CDROM(std::format("0x{:02X} -> Audio Volume for Right-CD-Out to Left-SPU-Input", value));
+                LOGL_DSC(LogLevel::TRACE, "0x{:02X} -> Audio Volume for Right-CD-Out to Left-SPU-Input", value);
                 audioVolumeCDOutToSPUIn[2] = value;
                 break;
             default:
@@ -286,10 +286,10 @@ void CDROM::write(uint32_t address, uint8_t value) {
     } else if (address == 0x1F801803) {
         switch (getIndex()) {
             case 0: // Request Register
-                LOGT_CDROM(prependState(std::format("0x{:02X} -> request register", value)));
+                LOGL_DSC(LogLevel::TRACE, "{:s} 0x{:02X} -> request register", get_state_prefix(), value);
                 requestRegister = value;
                 if (Bit::getBit(value, CDROM_REQUEST_BFRD)) {
-                    LOGV_CDROM(prependState(std::format("Serving data queue", value)));
+                    LOGL_DSC(LogLevel::DEBUG, "{:s} Serving data queue", get_state_prefix(), value);
                     if (cd) {
                         if (!read_sector_buffers.empty()) {
                             if (current_sector_buffer) {
@@ -303,25 +303,25 @@ void CDROM::write(uint32_t address, uint8_t value) {
                             sector_offset = large_sector_size ? CD_MODE2_SYNC_BYTES : CD_MODE2_DATA_OFFSET;
                             sector_end = large_sector_size ? CD::SECTOR_SIZE : (CD::SECTOR_SIZE - 0x118);
                         } else {
-                            LOGW_CDROM(prependState(std::format("No ready sector was read, cannot serve!")));
+                            LOGL_DSC(LogLevel::WARNING, "{:s} No ready sector was read, cannot serve!", get_state_prefix());
                         }
                     }
                 } else {
-                    LOGV_CDROM(prependState(std::format("Resetting data queue", value)));
+                    LOGL_DSC(LogLevel::DEBUG, "{:s} Resetting data queue", get_state_prefix(), value);
                     sector_offset = 0;
                     sector_end = 0;
                 }
                 break;
             case 1: // Interrupt Flag Register
-                LOGT_CDROM(prependState(std::format("0x{:02X} -> interrupt flag register", value)));
+                LOGL_DSC(LogLevel::TRACE, "{:s} 0x{:02X} -> interrupt flag register", get_state_prefix(), value);
                 updateInterruptFlagRegister(value);
                 break;
             case 2: // Audio Volume for Left-CD-Out to Right-SPU-Input
-                LOGT_CDROM(std::format("0x{:02X} -> Audio Volume for Left-CD-Out to Right-SPU-Input", value));
+                LOGL_DSC(LogLevel::TRACE, "0x{:02X} -> Audio Volume for Left-CD-Out to Right-SPU-Input", value);
                 audioVolumeCDOutToSPUIn[1] = value;
                 break;
             case 3: // Audio Volume Apply Changes
-                LOGW_CDROM(std::format("Unimplemented write to Audio Volume Apply Changes: 0x{:02X}", value));
+                LOGL_DSC(LogLevel::WARNING, "Unimplemented write to Audio Volume Apply Changes: 0x{:02X}", value);
                 // TODO Implement
                 break;
             default:
@@ -330,7 +330,7 @@ void CDROM::write(uint32_t address, uint8_t value) {
         }
 
     } else {
-        LOGW_CDROM(std::format("Unimplemented write 0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex()));
+        LOGL_DSC(LogLevel::WARNING, "Unimplemented write 0x{:02X} -> @0x{:08X} with index {:d}", value, address, getIndex());
     }
 }
 
@@ -353,7 +353,7 @@ uint8_t CDROM::read(uint32_t address) {
     if (address == 0x1F801800) { // status register
         updateStatusRegister();
         value = statusRegister;
-        LOGT_CDROM(prependState(std::format("status register -> 0x{:02X}", value)));
+        LOGL_DSC(LogLevel::TRACE, "{:s} status register -> 0x{:02X}", get_state_prefix(), value);
 
     } else if (address == 0x1F801801) {
         switch (getIndex()) {
@@ -362,7 +362,7 @@ uint8_t CDROM::read(uint32_t address) {
             case 2: // Mirror of response queue
             case 3: // Mirror of response queue
                 if (response_queue.is_empty()) {
-                    LOGW_CDROM(std::format("Read from empty response queue!"));
+                    LOGL_DSC(LogLevel::WARNING, "Read from empty response queue!");
                     value = 0;
 
                 } else {
@@ -370,7 +370,7 @@ uint8_t CDROM::read(uint32_t address) {
                 }
                 // TODO Implement wrap-around of response queue
 
-                LOGT_CDROM(prependState(std::format("@0x{:08X}: response queue -> 0x{:02X}", bus->cpu.instructionPC, value)));
+                LOGL_DSC(LogLevel::TRACE, "{:s} @0x{:08X}: response queue -> 0x{:02X}", get_state_prefix(), bus->cpu.instructionPC, value);
                 break;
             default:
                 assert(false);
@@ -386,9 +386,9 @@ uint8_t CDROM::read(uint32_t address) {
                 if (has_data()) {
                     value = read_byte();
                 } else {
-                    LOGW_CDROM("Read from empty data queue!");
+                    LOGL_DSC(LogLevel::WARNING, "Read from empty data queue!");
                 }
-                LOGT_CDROM(std::format("data queue -> 0x{:02X}", value));
+                LOGL_DSC(LogLevel::TRACE, "data queue -> 0x{:02X}", value);
                 break;
             default:
                 assert(false);
@@ -400,12 +400,12 @@ uint8_t CDROM::read(uint32_t address) {
             case 0: // Interrupt Enabled Register
             case 2: // Mirror of Interrupt Enable Register
                 value = interruptEnableRegister | 0xE0; // Bits 7 to 5 unused, usually 1 on read
-                LOGT_CDROM(prependState(std::format("interrupt enable register -> 0x{:02X}", value)));
+                LOGL_DSC(LogLevel::TRACE, "{:s} interrupt enable register -> 0x{:02X}", get_state_prefix(), value);
                 break;
             case 1: // Interrupt Flag Register
             case 3: // Mirror of Interrupt Flag Register
                 value = interruptFlagRegister | 0xE0; // Bits 7 to 5 are always 1
-                LOGT_CDROM(prependState(std::format("interrupt flag register -> 0x{:02X}", value)));
+                LOGL_DSC(LogLevel::TRACE, "{:s} interrupt flag register -> 0x{:02X}", get_state_prefix(), value);
                 break;
             default:
                 assert(false);
@@ -413,10 +413,10 @@ uint8_t CDROM::read(uint32_t address) {
         }
 
     } else {
-        LOGW_CDROM(std::format("Unimplemented read @0x{:08X} with index {:d}", address, getIndex()));
+        LOGL_DSC(LogLevel::WARNING, "Unimplemented read @0x{:08X} with index {:d}", address, getIndex());
     }
 
-    LOGT_CDROM(prependState(std::format("@0x{:08X} with index {:d} -> 0x{:02X}", address, getIndex(), value)));
+    LOGL_DSC(LogLevel::TRACE, "{:s} @0x{:08X} with index {:d} -> 0x{:02X}", get_state_prefix(), address, getIndex(), value);
 
     return value;
 }
@@ -435,12 +435,12 @@ void CDROM::updateStatusRegister() {
 }
 
 void CDROM::updateInterruptFlagRegister(uint8_t value) {
-    //LOG_CDROM(prependState("Updating flag register"));
+    //LOG_CDROM("{:s} Updating flag register", get_state_prefix());
     // 7 - CHPRST: Unknown
 
     // 6 - CLRPRM: Reset Parameter Queue
     if (Bit::getBit(value, CDROM_INTERRUPT_FLAG_CLRPRM)) {
-        LOGV_CDROM(prependState(std::format("Resetting parameter queue")));
+        LOGL_DSC(LogLevel::DEBUG, "{:s} Resetting parameter queue", get_state_prefix());
         parameter_queue.clear();
         parameter_queue.clear();
     }
@@ -461,7 +461,7 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
     bool wasInterrupt = interruptFlagRegister & 0x7;
     interruptFlagRegister = interruptFlagRegister & ~(value & 0x7);
     bool isInterrupt = interruptFlagRegister & 0x7;
-    //LOG_CDROM(std::format("Was interrupt active before: {:s}, is interrupt active now: {:s}", wasInterrupt, isInterrupt));
+    //LOG_CDROM("Was interrupt active before: {:s}, is interrupt active now: {:s}", wasInterrupt, isInterrupt);
 
     // Acknowledge empties response queue, sends pending command (if there is one)
     // But what counts as an "acknowledge"?
@@ -469,7 +469,7 @@ void CDROM::updateInterruptFlagRegister(uint8_t value) {
     // And what about INT10 and INT8?
     // Let's assume that we only consider INT1...7 and that it has to be cleared completely
     if (wasInterrupt && !isInterrupt) {
-        LOGT_CDROM(prependState(std::format("Acknowledged interrupt: pending_command = {:s}", pending_command)));
+        LOGL_DSC(LogLevel::TRACE, "{:s} Acknowledged interrupt: pending_command = {:s}", get_state_prefix(), pending_command);
         waiting_for_acknowledge = false;
 
         // Clear response queue
@@ -703,12 +703,12 @@ void CDROM::unknown() {
 }
 
 void CDROM::get_stat() {
-    LOGV_CDROM(prependState(std::format("========> Getstat(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Getstat(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::get_stat_response);
 }
 
 uint8_t CDROM::get_stat_response() {
-    LOGV_CDROM(prependState(std::format("========> Getstat(): Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Getstat(): Response <========", get_state_prefix());
     //7  Play          Playing CD-DA         ;\only ONE of these bits can be set
     //6  Seek          Seeking               ; at a time (ie. Read/Play won't get
     //5  Read          Reading data sectors  ;/set until after Seek completion)
@@ -739,7 +739,7 @@ uint8_t CDROM::get_stat_response() {
 }
 
 void CDROM::set_loc() {
-    LOGV_CDROM(prependState(std::format("========> Setloc(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Setloc(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::set_loc_response);
 }
 
@@ -749,7 +749,7 @@ uint8_t CDROM::set_loc_response() {
     asect = parameter_queue.pop();
     set_loc_unprocessed = true;
 
-    LOGV_CDROM(prependState(std::format("========> Setloc(0x{:02X}, 0x{:02X}, 0x{:02X}): Response <========", amm, ass, asect)));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Setloc(0x{:02X}, 0x{:02X}, 0x{:02X}): Response <========", get_state_prefix(), amm, ass, asect);
 
     if (!cd) {
         return no_disc_response();
@@ -760,7 +760,7 @@ uint8_t CDROM::set_loc_response() {
 }
 
 void CDROM::play() {
-    LOGV_CDROM(prependState(std::format("========> Play(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Play(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::play_response);
 
     // Make sure we do not have any already read sectors remaining
@@ -772,7 +772,7 @@ void CDROM::play() {
 
 uint8_t CDROM::play_response() {
     uint8_t track = !parameter_queue.is_empty() ? parameter_queue.pop() : 0;
-    LOGV_CDROM(prependState(std::format("========> Play({:d}): Initial Response <========", track)));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Play({:d}): Initial Response <========", get_state_prefix(), track);
 
     if (!cd) {
         return no_disc_response();
@@ -796,7 +796,7 @@ uint8_t CDROM::play_response() {
 }
 
 uint8_t CDROM::play_second_response() {
-    LOGV_CDROM(prependState(std::format("========> Play(): Second Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Play(): Second Response <========", get_state_prefix());
 
     // Read sector from CD
     uint8_t buffer[CD::SECTOR_SIZE];
@@ -806,11 +806,11 @@ uint8_t CDROM::play_second_response() {
     //    unused_sector_buffers.pop_front();
 
     //} else {
-    //    LOGW_CDROM(prependState(std::format("No unused sector buffer for read, allocating new buffer!")));
+    //    LOGL_DSC(LogLevel::WARNING, "{:s} No unused sector buffer for read, allocating new buffer!", get_state_prefix());
     //    buffer = std::make_unique<uint8_t[]>(CD::SECTOR_SIZE);
     //}
 
-    LOGV_CDROM(prependState(std::format("CD is at {}", cd->get_current_position_on_disc())));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} CD is at {}", get_state_prefix(), cd->get_current_position_on_disc());
     cd->read_sector_and_advance(buffer);
     //read_sector_buffers.emplace_back(std::move(buffer));
 
@@ -862,7 +862,7 @@ uint8_t CDROM::play_second_response() {
 
 
 void CDROM::read_n_s() {
-    LOGV_CDROM(prependState(std::format("========> ReadN/S(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> ReadN/S(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::read_n_s_response);
 
     // Make sure we do not have any already read sectors remaining
@@ -873,7 +873,7 @@ void CDROM::read_n_s() {
 }
 
 uint8_t CDROM::read_n_s_response() {
-    LOGV_CDROM(prependState(std::format("========> ReadN/S(): Initial Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> ReadN/S(): Initial Response <========", get_state_prefix());
 
     if (!cd) {
         return no_disc_response();
@@ -895,7 +895,7 @@ uint8_t CDROM::read_n_s_response() {
 }
 
 uint8_t CDROM::read_n_s_second_response() {
-    LOGV_CDROM(prependState(std::format("========> ReadN/S(): Second Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> ReadN/S(): Second Response <========", get_state_prefix());
 
     // Read sector from CD
     std::unique_ptr<uint8_t[]> buffer;
@@ -904,11 +904,11 @@ uint8_t CDROM::read_n_s_second_response() {
         unused_sector_buffers.pop_front();
 
     } else {
-        LOGW_CDROM(prependState(std::format("No unused sector buffer for read, allocating new buffer!")));
+        LOGL_DSC(LogLevel::WARNING, "{:s} No unused sector buffer for read, allocating new buffer!", get_state_prefix());
         buffer = std::make_unique<uint8_t[]>(CD::SECTOR_SIZE);
     }
 
-    LOGV_CDROM(prependState(std::format("CD is at {}", cd->get_current_position_on_disc())));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} CD is at {}", get_state_prefix(), cd->get_current_position_on_disc());
     last_sector_header.was_data = cd->get_current_track_mode() != util::cue::Track::Mode::AUDIO;
     cd->read_sector_and_advance(buffer.get());
     if (last_sector_header.was_data) {
@@ -920,25 +920,25 @@ uint8_t CDROM::read_n_s_second_response() {
         last_sector_header.sub_header[1] = buffer[0x011];
         last_sector_header.sub_header[2] = buffer[0x012];
         last_sector_header.sub_header[3] = buffer[0x013];
-        LOGV_CDROM(prependState(std::format("Extracted (sub-)header: 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}",
+        LOGL_DSC(LogLevel::DEBUG, "{:s} Extracted (sub-)header: 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}, 0x{:02X}", get_state_prefix(),
                         last_sector_header.header[0], last_sector_header.header[1], last_sector_header.header[2], last_sector_header.header[3],
-                        last_sector_header.sub_header[0], last_sector_header.sub_header[1], last_sector_header.sub_header[2], last_sector_header.sub_header[3])));
+                        last_sector_header.sub_header[0], last_sector_header.sub_header[1], last_sector_header.sub_header[2], last_sector_header.sub_header[3]);
 
         uint8_t file = last_sector_header.sub_header[0];
         uint8_t channel = last_sector_header.sub_header[1];
         uint8_t submode = last_sector_header.sub_header[2];
-        LOGV_CDROM(prependState(std::format("File: 0x{:02X}, Channel: 0x{:02X}, Submode: 0x{:02X}", file, channel, submode)));
+        LOGL_DSC(LogLevel::DEBUG, "{:s} File: 0x{:02X}, Channel: 0x{:02X}, Submode: 0x{:02X}", get_state_prefix(), file, channel, submode);
 
         bool is_mode_2 = last_sector_header.header[3] == 0x02;
         bool is_audio_and_realtime = (submode & 0x44) == 0x44; // Bit 2 and 6 set
         if (is_mode_2 && is_audio_and_realtime && Bit::getBit(mode, CDROM_MODE_XA_ADPCM)) {
-        LOGV_CDROM(prependState(std::format("XA-ADPCM enabled and encountered XA-ADPCM sector")));
+        LOGL_DSC(LogLevel::DEBUG, "{:s} XA-ADPCM enabled and encountered XA-ADPCM sector", get_state_prefix());
             if (!Bit::getBit(mode, CDROM_MODE_XA_FILTER) || (file == filter_file && channel == filter_channel)) {
                 // TODO Deliver XA-ADPCM sector
-                LOGW_CDROM(prependState(std::format("XA-ADPCM playback not implemented!")));
+                LOGL_DSC(LogLevel::WARNING, "{:s} XA-ADPCM playback not implemented!", get_state_prefix());
 
             } else {
-                LOGV_CDROM(prependState(std::format("Skipping XA-ADPCM sector due to filter")));
+                LOGL_DSC(LogLevel::DEBUG, "{:s} Skipping XA-ADPCM sector due to filter", get_state_prefix());
             }
             // Do not send sector to CPU, just move buffer back
             unused_sector_buffers.emplace_back(std::move(buffer));
@@ -963,13 +963,13 @@ uint8_t CDROM::read_n_s_second_response() {
 }
 
 void CDROM::stop() {
-    LOGV_CDROM(prependState(std::format("========> Stop(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Stop(): Command <========", get_state_prefix());
     scheduled_responses.clear();
     scheduled_responses.emplace_back(&CDROM::stop_response);
 }
 
 uint8_t CDROM::stop_response() {
-    LOGV_CDROM(prependState(std::format("========> Stop(): Initial Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Stop(): Initial Response <========", get_state_prefix());
 
     if (!cd) {
         return no_disc_response();
@@ -983,7 +983,7 @@ uint8_t CDROM::stop_response() {
 }
 
 uint8_t CDROM::stop_second_response() {
-    LOGV_CDROM(prependState(std::format("========> Stop(): Second Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Stop(): Second Response <========", get_state_prefix());
 
     drive_state = MOTOR_OFF;
     push_drive_state_to_response_queue();
@@ -991,14 +991,14 @@ uint8_t CDROM::stop_second_response() {
 }
 
 void CDROM::pause() {
-    LOGV_CDROM(prependState(std::format("========> Pause(): Command <========")));
-    LOGV_CDROM(prependState(std::format("========> Pause(): Clearing Response Queue <========", command)));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Pause(): Command <========", get_state_prefix());
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Pause(): Clearing Response Queue <========", get_state_prefix(), command);
     scheduled_responses.clear();
     scheduled_responses.emplace_back(&CDROM::pause_response);
 }
 
 uint8_t CDROM::pause_response() {
-    LOGV_CDROM(prependState(std::format("========> Pause(): Initial Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Pause(): Initial Response <========", get_state_prefix());
 
     if (!cd) {
         return no_disc_response();
@@ -1012,7 +1012,7 @@ uint8_t CDROM::pause_response() {
 }
 
 uint8_t CDROM::pause_second_response() {
-    LOGV_CDROM(prependState(std::format("========> Pause(): Second Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Pause(): Second Response <========", get_state_prefix());
 
     drive_state = MOTOR_ON;
     push_drive_state_to_response_queue();
@@ -1020,12 +1020,12 @@ uint8_t CDROM::pause_second_response() {
 }
 
 void CDROM::init() {
-    LOGV_CDROM(prependState(std::format("========> Init(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Init(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::init_response, 0x13CCE);
 }
 
 uint8_t CDROM::init_response() {
-    LOGV_CDROM(prependState(std::format("========> Init(): Initial Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Init(): Initial Response <========", get_state_prefix());
 
     // TODO set mode to 0x20
     scheduled_responses.emplace_back(&CDROM::init_second_response);
@@ -1035,7 +1035,7 @@ uint8_t CDROM::init_response() {
 }
 
 uint8_t CDROM::init_second_response() {
-    LOGV_CDROM(prependState(std::format("========> Init(): Second Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Init(): Second Response <========", get_state_prefix());
 
     drive_state = MOTOR_ON;
     push_drive_state_to_response_queue();
@@ -1043,60 +1043,60 @@ uint8_t CDROM::init_second_response() {
 }
 
 void CDROM::mute() {
-    LOGV_CDROM(prependState(std::format("========> Mute(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Mute(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::mute_response);
 }
 
 uint8_t CDROM::mute_response() {
-    LOGV_CDROM(prependState(std::format("========> Mute(): Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Mute(): Response <========", get_state_prefix());
 
     // TODO Do something?
-    LOGW_CDROM(prependState(std::format("Mute() not implemented!")));
+    LOGL_DSC(LogLevel::WARNING, "{:s} Mute() not implemented!", get_state_prefix());
 
     push_drive_state_to_response_queue();
     return 3;
 }
 
 void CDROM::demute() {
-    LOGV_CDROM(prependState(std::format("========> Demute(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Demute(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::demute_response);
 }
 
 uint8_t CDROM::demute_response() {
-    LOGV_CDROM(prependState(std::format("========> Demute(): Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Demute(): Response <========", get_state_prefix());
 
     // TODO Do something?
-    LOGW_CDROM(prependState(std::format("Demute() not implemented!")));
+    LOGL_DSC(LogLevel::WARNING, "{:s} Demute() not implemented!", get_state_prefix());
 
     push_drive_state_to_response_queue();
     return 3;
 }
 
 void CDROM::set_filter() {
-    LOGV_CDROM(prependState(std::format("========> SetFilter(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> SetFilter(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::set_filter_response);
 }
 
 uint8_t CDROM::set_filter_response() {
     filter_file = parameter_queue.pop();
     filter_channel = parameter_queue.pop();
-    LOGV_CDROM(prependState(std::format("========> SetFilter(0x{:02X}, 0x{:02X}): Response <========", filter_file, filter_channel)));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> SetFilter(0x{:02X}, 0x{:02X}): Response <========", get_state_prefix(), filter_file, filter_channel);
 
     push_drive_state_to_response_queue();
     return 3;
 }
 
 void CDROM::set_mode() {
-    LOGV_CDROM(prependState(std::format("========> Setmode(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Setmode(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::set_mode_response);
 }
 
 uint8_t CDROM::set_mode_response() {
     mode = parameter_queue.pop();
-    LOGV_CDROM(prependState(std::format("========> Setmode(0x{:02X}): Response <========", mode)));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Setmode(0x{:02X}): Response <========", get_state_prefix(), mode);
 
     if (Bit::getBit(mode, CDROM_MODE_IGNORE)) {
-        LOGW_CDROM(prependState(std::format("Ignore bit set but not implemented", mode)));
+        LOGL_DSC(LogLevel::WARNING, "{:s} Ignore bit set but not implemented", get_state_prefix(), mode);
     }
 
     // TODO Handle speed, auto pause and cdda
@@ -1106,12 +1106,12 @@ uint8_t CDROM::set_mode_response() {
 }
 
 void CDROM::get_loc_l() {
-    LOGV_CDROM(prependState(std::format("========> GetLocL(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetLocL(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::get_loc_l_response);
 }
 
 uint8_t CDROM::get_loc_l_response() {
-    LOGV_CDROM(prependState(std::format("========> GetLocL(): Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetLocL(): Response <========", get_state_prefix());
 
     if (!cd || !last_sector_header.was_data) { // TODO Correct response for was not data
         return no_disc_response();
@@ -1132,12 +1132,12 @@ uint8_t CDROM::get_loc_l_response() {
 }
 
 void CDROM::get_loc_p() {
-    LOGV_CDROM(prependState(std::format("========> GetLocP(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetLocP(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::get_loc_p_response);
 }
 
 uint8_t CDROM::get_loc_p_response() {
-    LOGV_CDROM(prependState(std::format("========> GetLocP(): Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetLocP(): Response <========", get_state_prefix());
 
     if (!cd) {
         return no_disc_response();
@@ -1157,7 +1157,7 @@ uint8_t CDROM::get_loc_p_response() {
     response[7] = (disc_pos.sectors / 10) * 0x10 + (disc_pos.sectors % 10);
 
     for (uint32_t i = 0; i < 8; ++i) {
-        LOGV_CDROM(prependState(std::format("0x{:02X}", response[i])));
+        LOGL_DSC(LogLevel::DEBUG, "{:s} 0x{:02X}", get_state_prefix(), response[i]);
         response_queue.push(response[i]);
     }
 
@@ -1165,12 +1165,12 @@ uint8_t CDROM::get_loc_p_response() {
 }
 
 void CDROM::get_tn() {
-    LOGV_CDROM(prependState(std::format("========> GetTN(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetTN(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::get_tn_response);
 }
 
 uint8_t CDROM::get_tn_response() {
-    LOGV_CDROM(prependState(std::format("========> GetTN(): Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetTN(): Response <========", get_state_prefix());
 
     if (!cd) {
         return no_disc_response();
@@ -1183,13 +1183,13 @@ uint8_t CDROM::get_tn_response() {
 }
 
 void CDROM::get_td() {
-    LOGV_CDROM(prependState(std::format("========> GetTD(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetTD(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::get_td_response);
 }
 
 uint8_t CDROM::get_td_response() {
     uint8_t track = parameter_queue.pop();
-    LOGV_CDROM(prependState(std::format("========> GetTD(0x{:02X}): Response <========", track)));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetTD(0x{:02X}): Response <========", get_state_prefix(), track);
 
     if (!cd) {
         return no_disc_response();
@@ -1203,12 +1203,12 @@ uint8_t CDROM::get_td_response() {
 }
 
 void CDROM::seek_l() {
-    LOGV_CDROM(prependState(std::format("========> SeekL(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> SeekL(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::seek_l_response);
 }
 
 uint8_t CDROM::seek_l_response() {
-    LOGV_CDROM(prependState(std::format("========> SeekL(): Initial Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> SeekL(): Initial Response <========", get_state_prefix());
 
     if (!cd) {
         return no_disc_response();
@@ -1222,7 +1222,7 @@ uint8_t CDROM::seek_l_response() {
 }
 
 uint8_t CDROM::seek_l_second_response() {
-    LOGV_CDROM(prependState(std::format("========> SeekL(): Second Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> SeekL(): Second Response <========", get_state_prefix());
 
     cd->seek_to_bcd(amm, ass, asect);
     set_loc_unprocessed = false;
@@ -1233,13 +1233,13 @@ uint8_t CDROM::seek_l_second_response() {
 }
 
 void CDROM::seek_p() {
-    LOGV_CDROM(prependState(std::format("========> SeekP(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> SeekP(): Command <========", get_state_prefix());
     scheduled_responses.clear(); // Playing is stopped
     scheduled_responses.emplace_back(&CDROM::seek_p_response);
 }
 
 uint8_t CDROM::seek_p_response() {
-    LOGV_CDROM(prependState(std::format("========> SeekP(): Initial Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> SeekP(): Initial Response <========", get_state_prefix());
 
     if (!cd) {
         return no_disc_response();
@@ -1253,7 +1253,7 @@ uint8_t CDROM::seek_p_response() {
 }
 
 uint8_t CDROM::seek_p_second_response() {
-    LOGV_CDROM(prependState(std::format("========> SeekP(): Second Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> SeekP(): Second Response <========", get_state_prefix());
 
     cd->seek_to_bcd(amm, ass, asect);
     set_loc_unprocessed = false;
@@ -1264,17 +1264,17 @@ uint8_t CDROM::seek_p_second_response() {
 }
 void CDROM::test() {
     function = parameter_queue.pop();
-    LOGV_CDROM(prependState(std::format("========> Test(0x{:02X}): Command <========", function)));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Test(0x{:02X}): Command <========", get_state_prefix(), function);
     (this->*sub_functions[function])();
 }
 
 void CDROM::get_id() {
-    LOGV_CDROM(prependState(std::format("========> GetID(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetID(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::get_id_response);
 }
 
 uint8_t CDROM::get_id_response() {
-    LOGV_CDROM(prependState(std::format("========> GetID(): Initial Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetID(): Initial Response <========", get_state_prefix());
 
     if (drive_state == OPEN) {
         response_queue.push(0x11);
@@ -1307,7 +1307,7 @@ uint8_t CDROM::get_id_response() {
 }
 
 uint8_t CDROM::get_id_second_response_motor_off() {
-    LOGV_CDROM(prependState(std::format("========> GetID(): Second Response (Motor Off) <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetID(): Second Response (Motor Off) <========", get_state_prefix());
 
     response_queue.push(0x08); // Also for no disc?
     response_queue.push(0x40);
@@ -1321,7 +1321,7 @@ uint8_t CDROM::get_id_second_response_motor_off() {
 }
 
 uint8_t CDROM::get_id_second_response_mode_2() {
-    LOGV_CDROM(prependState(std::format("========> GetID(): Second Response (Licensed Disc, Mode 2) <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetID(): Second Response (Licensed Disc, Mode 2) <========", get_state_prefix());
 
     response_queue.push(0x02); // stat
     response_queue.push(0x00); // flags
@@ -1335,7 +1335,7 @@ uint8_t CDROM::get_id_second_response_mode_2() {
 }
 
 uint8_t CDROM::get_id_second_response_audio() {
-    LOGV_CDROM(prependState(std::format("========> GetID(): Second Response (Audio Disc) <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> GetID(): Second Response (Audio Disc) <========", get_state_prefix());
 
     response_queue.push(0x0A); // stat
     response_queue.push(0x90); // flags
@@ -1349,12 +1349,12 @@ uint8_t CDROM::get_id_second_response_audio() {
 }
 
 void CDROM::read_toc() {
-    LOGV_CDROM(prependState(std::format("========> ReadTOC(): Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> ReadTOC(): Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::read_toc_response);
 }
 
 uint8_t CDROM::read_toc_response() {
-    LOGV_CDROM(prependState(std::format("========> ReadTOC(): Initial Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> ReadTOC(): Initial Response <========", get_state_prefix());
     // INT3 with status first, then INT2 with status
 
     scheduled_responses.emplace_back(&CDROM::read_toc_second_response, 0x1F78A40);
@@ -1363,7 +1363,7 @@ uint8_t CDROM::read_toc_response() {
 }
 
 uint8_t CDROM::read_toc_second_response() {
-    LOGV_CDROM(prependState(std::format("========> ReadTOC(): Second Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> ReadTOC(): Second Response <========", get_state_prefix());
 
     push_drive_state_to_response_queue();
     return 2;
@@ -1374,12 +1374,12 @@ void CDROM::unknown_sf() {
 }
 
 void CDROM::function_0x20() {
-    LOGV_CDROM(prependState(std::format("========> Function 0x20: Command <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Function 0x20: Command <========", get_state_prefix());
     scheduled_responses.emplace_back(&CDROM::function_0x20_response);
 }
 
 uint8_t CDROM::function_0x20_response() {
-    LOGV_CDROM(prependState(std::format("========> Function 0x20: Response <========")));
+    LOGL_DSC(LogLevel::DEBUG, "{:s} ========> Function 0x20: Response <========", get_state_prefix());
 
     // hard-coded answer
     response_queue.push(0x99); // Year

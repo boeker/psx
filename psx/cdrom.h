@@ -85,7 +85,7 @@ private:
     static uint8_t driveStateToStatByte(DriveState driveState);
     DriveState drive_state;
 
-    std::string prependState(const std::string &str) const;
+    std::string get_state_prefix() const;
 
     uint8_t command;
     bool pending_command;

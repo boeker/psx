@@ -81,7 +81,7 @@ void CD::reset() {
 }
 
 void CD::open_cue_sheet(const std::string &filename) {
-    LOG_CDIMG(std::format("Opening cue sheet \"{:s}\"", filename));
+    LOGL_IMG(LogLevel::INFO, "Opening cue sheet \"{:s}\"", filename);
     std::filesystem::path path_to_cue_sheet(filename);
 
     cue::Sheet cue_sheet = cue::Parser::parse(filename);
@@ -96,7 +96,7 @@ void CD::open_cue_sheet(const std::string &filename) {
         uint32_t sectors_in_stream = 0;
         if (file.type == cue::File::Type::BINARY) {
             std::filesystem::path path_to_file(path_to_cue_sheet.replace_filename(file.filename));
-            LOG_CDIMG(std::format("Opening file \"{:s}\"", path_to_file.native()));
+            LOGL_IMG(LogLevel::INFO, "Opening file \"{:s}\"", path_to_file.native());
 
             std::uintmax_t size = 0;
             try {
@@ -136,7 +136,7 @@ void CD::open_cue_sheet(const std::string &filename) {
             }
 
             tracks.emplace_back(track_it->mode, track_it->number, current_position_on_disc);
-            LOG_CDIMG(std::format("Track {:d} ({:s}): {:s} on disc", track_it->number, util::cue::Track::mode_to_string(track_it->mode), Index(current_position_on_disc)));
+            LOGL_IMG(LogLevel::INFO, "Track {:d} ({:s}): {:s} on disc", track_it->number, util::cue::Track::mode_to_string(track_it->mode), Index(current_position_on_disc));
             const TrackOnDisc& track_on_disc(tracks.back());
 
             uint32_t expected_index_number = 0;
@@ -147,7 +147,7 @@ void CD::open_cue_sheet(const std::string &filename) {
                 indexes.emplace_back(track_on_disc, 0, 0, CD_TWO_SECONDS, std::make_unique<Gap>(CD_TWO_SECONDS));
                 {
                     const auto& back = indexes.back();
-                    LOG_CDIMG(std::format("Index {:d}: {:s} in track {:d}, length {:s} (Gap)", back.number, Index(back.position_in_track), back.track.number, Index(back.length)));
+                    LOGL_IMG(LogLevel::INFO, "Index {:d}: {:s} in track {:d}, length {:s} (Gap)", back.number, Index(back.position_in_track), back.track.number, Index(back.length));
                 }
                 current_position_on_disc += CD_TWO_SECONDS; // Two-second offset caused by gap
                 expected_index_number = 1; // No INDEX 00 statement
@@ -200,7 +200,7 @@ void CD::open_cue_sheet(const std::string &filename) {
                                      std::make_unique<BinaryFile>(stream, current_position_in_stream, index_length));
                 {
                     const auto& back = indexes.back();
-                    LOG_CDIMG(std::format("Index {:d}: {:s} in track {:d}, length {:s} (File at {:s})", back.number, Index(back.position_in_track), back.track.number, Index(back.length), Index(current_position_in_stream)));
+                    LOGL_IMG(LogLevel::INFO, "Index {:d}: {:s} in track {:d}, length {:s} (File at {:s})", back.number, Index(back.position_in_track), back.track.number, Index(back.length), Index(current_position_in_stream));
                 }
 
                 current_position_on_disc += index_length;
@@ -225,7 +225,7 @@ bool CD::is_audio_cd() const {
 }
 
 void CD::seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_sectors, bool audio) {
-    LOGV_CDIMG(std::format("Absolute seek to 0x{:02X},0x{:02X},0x{:02X} (BCD)", bcd_minutes, bcd_seconds, bcd_sectors));
+    LOGL_IMG(LogLevel::DEBUG, "Absolute seek to 0x{:02X},0x{:02X},0x{:02X} (BCD)", bcd_minutes, bcd_seconds, bcd_sectors);
 
     uint8_t minutes = (bcd_minutes >> 4) * 10 + (bcd_minutes & 0x0F);
     uint8_t seconds = (bcd_seconds >> 4) * 10 + (bcd_seconds & 0x0F);
@@ -234,7 +234,7 @@ void CD::seek_to_bcd(uint8_t bcd_minutes, uint8_t bcd_seconds, uint8_t bcd_secto
 }
 
 void CD::seek_to_audio_track(uint32_t track_number) {
-    LOGV_CDIMG(std::format("Absolute seek to audio track {:d}", track_number));
+    LOGL_IMG(LogLevel::DEBUG, "Absolute seek to audio track {:d}", track_number);
 
     uint32_t at_track = 0;
     for (const TrackOnDisc& track : tracks) {
@@ -246,11 +246,11 @@ void CD::seek_to_audio_track(uint32_t track_number) {
         }
     }
 
-    LOGW_CDIMG(std::format("There is no audio track {:d}!", track_number));
+    LOGL_IMG(LogLevel::WARNING, "There is no audio track {:d}!", track_number);
 }
 
 void CD::seek_to_track(uint32_t track_number) {
-    LOGV_CDIMG(std::format("Absolute seek to track {:d}", track_number));
+    LOGL_IMG(LogLevel::DEBUG, "Absolute seek to track {:d}", track_number);
 
     uint32_t at_track = 0;
     for (const TrackOnDisc& track : tracks) {
@@ -260,11 +260,11 @@ void CD::seek_to_track(uint32_t track_number) {
         }
     }
 
-    LOGW_CDIMG(std::format("There is no track {:d}!", track_number));
+    LOGL_IMG(LogLevel::WARNING, "There is no track {:d}!", track_number);
 }
 
 bool CD::read_sector_and_advance(uint8_t *buffer) {
-    LOGV_CDIMG(std::format("Reading sector into buffer"));
+    LOGL_IMG(LogLevel::DEBUG, "Reading sector into buffer");
 
     while (current_index != indexes.end()) {
         auto& file = current_index->file;
@@ -273,12 +273,12 @@ bool CD::read_sector_and_advance(uint8_t *buffer) {
 
             return true;
         } else {
-            LOGV_CDIMG(std::format("No remaining sectors for current index, moving to next one"));
+            LOGL_IMG(LogLevel::DEBUG, "No remaining sectors for current index, moving to next one");
             advance_to_next_index();
         }
     }
 
-    LOGW_CDIMG(std::format("Read from end of disc"));
+    LOGL_IMG(LogLevel::WARNING, "Read from end of disc");
     return false;
 }
 
@@ -349,16 +349,16 @@ CD::Index CD::get_index_one_of_track(uint32_t track_number) const {
 }
 
 void CD::seek_to(uint32_t sectors, bool audio) {
-    LOGV_CDIMG(std::format("Seek to {}", Index(sectors)));
+    LOGL_IMG(LogLevel::DEBUG, "Seek to {}", Index(sectors));
 
     reset_position();
 
     uint32_t remaining_sectors = sectors;
     while (current_index != indexes.end() && (remaining_sectors > 0 || (audio && current_index->track.mode != TrackOnDisc::Mode::AUDIO))) {
-        LOGV_CDIMG(std::format("At index {:d} of track {:d}", current_index->number, current_index->track.number));
+        LOGL_IMG(LogLevel::DEBUG, "At index {:d} of track {:d}", current_index->number, current_index->track.number);
 
         if (audio && current_index->track.mode != TrackOnDisc::Mode::AUDIO) {
-            LOGV_CDIMG(std::format("Skipping non-audio track"));
+            LOGL_IMG(LogLevel::DEBUG, "Skipping non-audio track");
             advance_to_next_index();
         } else if (current_index->file->get_remaining_sectors() > remaining_sectors) { // Target sector is in current index
             current_index->file->seek_by(remaining_sectors);
@@ -366,18 +366,18 @@ void CD::seek_to(uint32_t sectors, bool audio) {
 
         } else { // Target sector is in upcoming index
             remaining_sectors -= current_index->file->get_remaining_sectors();
-            LOGV_CDIMG(std::format("Advancing to next index with {:d} sectors remaining", remaining_sectors));
+            LOGL_IMG(LogLevel::DEBUG, "Advancing to next index with {:d} sectors remaining", remaining_sectors);
             advance_to_next_index();
         }
     }
 
     if (current_index == indexes.end() && remaining_sectors > 0) {
-        LOGW_CDIMG(std::format("Seek by {:d} sectors past end of disc", sectors));
+        LOGL_IMG(LogLevel::WARNING, "Seek by {:d} sectors past end of disc", sectors);
     }
 }
 
 void CD::reset_position() {
-    LOGV_CDIMG(std::format("Resetting position"));
+    LOGL_IMG(LogLevel::DEBUG, "Resetting position");
     current_index = indexes.begin();
     if (current_index != indexes.end()) {
         current_index->file->reset();
