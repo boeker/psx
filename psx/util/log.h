@@ -76,27 +76,30 @@ struct LogPack {
 
     void install_log_sink(const std::shared_ptr<LogSink>& log);
 
-    constexpr static LogLevel file_level = LogLevel::NONE;
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> bus_log; // Bus
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> dsc_log; // Disc
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> img_log; // Disc Image
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> cp0_log; // CP0
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> cpu_log; // CPU
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> dma_log; // DMA
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> exc_log; // Exceptions
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> exe_log; // Executable
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> gio_log; // Gamepad I/O
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> gpu_log; // GPU
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> gte_log; // GTE
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> int_log; // Interrupts
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> mdc_log; // MDEC
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> mem_log; // Memory
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> msc_log; // Misc
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> pad_log; // Gamepad
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> rnd_log; // Renderer
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> spu_log; // SPU
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> tmr_log; // Timers
-    NewLog<LogLevel::INFO, LogLevel::INFO, file_level> tty_log; // TTY
+    constexpr static LogLevel max_level_ui = LogLevel::WARNING;
+    constexpr static LogLevel max_level_console = LogLevel::INFO;
+    constexpr static LogLevel max_level_file = LogLevel::NONE;
+
+    NewLog<max_level_ui,   max_level_console, max_level_file> bus_log; // Bus
+    NewLog<max_level_ui,   max_level_console, max_level_file> dsc_log; // Disc
+    NewLog<max_level_ui,   max_level_console, max_level_file> img_log; // Disc Image
+    NewLog<max_level_ui,   max_level_console, max_level_file> cp0_log; // CP0
+    NewLog<max_level_ui,   max_level_console, max_level_file> cpu_log; // CPU
+    NewLog<max_level_ui,   max_level_console, max_level_file> dma_log; // DMA
+    NewLog<max_level_ui,   max_level_console, max_level_file> exc_log; // Exceptions
+    NewLog<max_level_ui,   max_level_console, max_level_file> exe_log; // Executable
+    NewLog<max_level_ui,   max_level_console, max_level_file> gio_log; // Gamepad I/O
+    NewLog<max_level_ui,   max_level_console, max_level_file> gpu_log; // GPU
+    NewLog<max_level_ui,   max_level_console, max_level_file> gte_log; // GTE
+    NewLog<max_level_ui,   max_level_console, max_level_file> int_log; // Interrupts
+    NewLog<max_level_ui,   max_level_console, max_level_file> mdc_log; // MDEC
+    NewLog<max_level_ui,   max_level_console, max_level_file> mem_log; // Memory
+    NewLog<LogLevel::INFO, max_level_console, max_level_file> msc_log; // Misc
+    NewLog<max_level_ui,   max_level_console, max_level_file> pad_log; // Gamepad
+    NewLog<max_level_ui,   max_level_console, max_level_file> rnd_log; // Renderer
+    NewLog<max_level_ui,   max_level_console, max_level_file> spu_log; // SPU
+    NewLog<max_level_ui,   max_level_console, max_level_file> tmr_log; // Timers
+    NewLog<LogLevel::INFO, max_level_console, max_level_file> tty_log; // TTY
 };
 
 extern LogPack logPack;
