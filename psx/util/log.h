@@ -205,11 +205,6 @@ extern LogPack logPack;
 #define LOGL_TMR(level, ...) util::logPack.tmr_log.log<level>(__VA_ARGS__)
 #define LOGL_TTY(level, ...) util::logPack.tty_log.log<level>(__VA_ARGS__)
 
-#define LOG_DMA             MACRO_LOG(dma)
-#define LOGW_DMA            MACRO_LOG(dmaW)
-#define LOGV_DMA            MACRO_LOG(dmaV)
-#define LOGT_DMA            MACRO_LOG(dmaT)
-
 #define LOG_GIO             MACRO_LOG(gio)
 #define LOGW_GIO            MACRO_LOG(gioW)
 #define LOGV_GIO            MACRO_LOG(gioV)
