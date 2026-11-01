@@ -40,7 +40,7 @@ void Executable::readFromFile(const std::string &file) {
     std::ifstream exeFile(file.c_str(), std::ios::binary | std::ios::ate);
     exeLength = exeFile.tellg();
     exeFile.seekg(0);
-    LOG_EXE(std::format("Opening file \"{:s}\" of size {:d}", file, exeLength));
+    LOGL_EXE(LogLevel::INFO, "Opening file \"{:s}\" of size {:d}", file, exeLength);
 
     if (!exeFile.good()) {
         throw exceptions::FileReadError("File \"" + file + "\"not found");
@@ -84,16 +84,16 @@ void Executable::parseHeader() {
     }
     header.asciiMarker = asciiMarker.str();
 
-    LOG_EXE(std::format("ASCII ID: {:s}", header.asciiID));
-    LOG_EXE(std::format("Initial PC: 0x{:08X}", header.initialPC));
-    LOG_EXE(std::format("Initial R28: 0x{:08X}", header.initialR28));
-    LOG_EXE(std::format("Destination: 0x{:08X}", header.destination));
-    LOG_EXE(std::format("File Size: 0x{:08X}", header.fileSize));
-    LOG_EXE(std::format("Memfill Start: 0x{:08X}", header.memfillStart));
-    LOG_EXE(std::format("Memfill Size: 0x{:08X}", header.memfillSize));
-    LOG_EXE(std::format("Initial R29 and R30 Base: 0x{:08X}", header.initialR2930Base));
-    LOG_EXE(std::format("Initial R29 and R30 Offset: 0x{:08X}", header.initialR2930Offset));
-    LOG_EXE(std::format("ASCII Marker: {:s}", header.asciiMarker));
+    LOGL_EXE(LogLevel::INFO, "ASCII ID: {:s}", header.asciiID);
+    LOGL_EXE(LogLevel::INFO, "Initial PC: 0x{:08X}", header.initialPC);
+    LOGL_EXE(LogLevel::INFO, "Initial R28: 0x{:08X}", header.initialR28);
+    LOGL_EXE(LogLevel::INFO, "Destination: 0x{:08X}", header.destination);
+    LOGL_EXE(LogLevel::INFO, "File Size: 0x{:08X}", header.fileSize);
+    LOGL_EXE(LogLevel::INFO, "Memfill Start: 0x{:08X}", header.memfillStart);
+    LOGL_EXE(LogLevel::INFO, "Memfill Size: 0x{:08X}", header.memfillSize);
+    LOGL_EXE(LogLevel::INFO, "Initial R29 and R30 Base: 0x{:08X}", header.initialR2930Base);
+    LOGL_EXE(LogLevel::INFO, "Initial R29 and R30 Offset: 0x{:08X}", header.initialR2930Offset);
+    LOGL_EXE(LogLevel::INFO, "ASCII Marker: {:s}", header.asciiMarker);
 }
 
 void Executable::writeToMemory() {

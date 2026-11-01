@@ -149,14 +149,14 @@ uint32_t CP0::getCP0Register(uint8_t rt) {
     assert (rt < 32);
 
     uint32_t word = cp0Registers[rt];
-    LOGT_CPU(std::format("{{{:s} -> 0x{:08X}}}", getCP0RegisterName(rt), word));
+    LOGL_CPU(LogLevel::TRACE, "{{{:s} -> 0x{:08X}}}", getCP0RegisterName(rt), word);
 
     return word;
 }
 
 void CP0::setCP0Register(uint8_t rt, uint32_t value) {
     assert (rt < 32);
-    LOGT_CPU(std::format("{{0x{:08X} -> {:s}}}", value, getCP0RegisterName(rt)));
+    LOGL_CPU(LogLevel::TRACE, "{{0x{:08X} -> {:s}}}", value, getCP0RegisterName(rt));
     cp0Registers[rt] = value;
 }
 
@@ -198,7 +198,7 @@ void CP0::RFE() {
     // Restore From Exception
     // T: SR <- SR_{31...4} || SR_{5...2}
 
-    LOGT_CP0("RFE");
+    LOGL_CP0(LogLevel::TRACE, "RFE");
 
     uint32_t sr = getCP0Register(CP0_REGISTER_SR);
     setCP0Register(CP0_REGISTER_SR, (sr & 0xFFFFFFF0) | ((sr & 0x3C) >> 2));

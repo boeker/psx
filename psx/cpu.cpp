@@ -61,7 +61,7 @@ void CPU::step() {
 
     // Executable sideloading
     if ((instructionPC & 0x1FFFFFFF) == 0x00030000 && bus->executable.loaded()) {
-        LOG_EXE("Sideloading executable");
+        LOGL_EXE(LogLevel::INFO, "Sideloading executable");
         bus->executable.writeToMemory();
     }
 
