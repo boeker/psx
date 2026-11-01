@@ -69,49 +69,49 @@ void MacroblockDecoder::extract_data_output_bits(uint32_t command) {
     data_output_signed = Bit::getBit(command, MDEC_CMD_DATA_OUTPUT_SIGNED);
     data_output_bit15 = Bit::getBit(command, MDEC_CMD_DATA_OUTPUT_BIT15);
 
-    LOGT_MDEC(std::format("Data Output Depth: {:d}", data_output_depth));
-    LOGT_MDEC(std::format("Data Output Signed: {:s}", data_output_signed));
-    LOGT_MDEC(std::format("Data Output Bit 15: {:s}", data_output_bit15));
+    LOGL_MDC(LogLevel::TRACE, "Data Output Depth: {:d}", data_output_depth);
+    LOGL_MDC(LogLevel::TRACE, "Data Output Signed: {:s}", data_output_signed);
+    LOGL_MDC(LogLevel::TRACE, "Data Output Bit 15: {:s}", data_output_bit15);
 }
 
 void MacroblockDecoder::decode_macroblock(uint32_t command) {
-    LOGT_MDEC("decode_macroblock");
+    LOGL_MDC(LogLevel::TRACE, "decode_macroblock");
     state = State::CMD_DECODE_MACROBLOCK;
     extract_data_output_bits(command);
     remaining_parameter_words = static_cast<uint16_t>(command & 0x0000'FFFF) - 1;
-    LOGT_MDEC(std::format("Remaining parameter words (one was subtracted): 0x{:04X}", remaining_parameter_words));
+    LOGL_MDC(LogLevel::TRACE, "Remaining parameter words (one was subtracted): 0x{:04X}", remaining_parameter_words);
 }
 
 void MacroblockDecoder::set_iqtab(uint32_t command) {
-    LOGT_MDEC("set_iqtab");
+    LOGL_MDC(LogLevel::TRACE, "set_iqtab");
     state = State::CMD_SET_IQTAB;
     luminance_quantization_table.clear();
     color_quantization_table.clear();
     extract_data_output_bits(command);
     if (!Bit::getBit(command, MDEC_CMD_COLOR)) {
-        LOGT_MDEC(std::format("Luminance only, setting remaining parameter words to 64/4 - 1 = 15"));
+        LOGL_MDC(LogLevel::TRACE, "Luminance only, setting remaining parameter words to 64/4 - 1 = 15");
         remaining_parameter_words = 15;
     } else {
-        LOGT_MDEC(std::format("Luminance and color, setting remaining parameter words to 128/4 - 1 = 31"));
+        LOGL_MDC(LogLevel::TRACE, "Luminance and color, setting remaining parameter words to 128/4 - 1 = 31");
         remaining_parameter_words = 31;
     }
 }
 
 void MacroblockDecoder::set_scale(uint32_t command) {
-    LOGT_MDEC("set_scale");
+    LOGL_MDC(LogLevel::TRACE, "set_scale");
     state = State::CMD_SET_SCALE;
     scale_table.clear();
     extract_data_output_bits(command);
-    LOGT_MDEC(std::format("Setting remaining parameter words to 64/2 - 1 = 31"));
+    LOGL_MDC(LogLevel::TRACE, "Setting remaining parameter words to 64/2 - 1 = 31");
     remaining_parameter_words = 31;
 }
 
 void MacroblockDecoder::no_function(uint32_t command) {
-    LOGT_MDEC("no_function");
+    LOGL_MDC(LogLevel::TRACE, "no_function");
     state = State::IDLE;
     extract_data_output_bits(command);
     remaining_parameter_words = static_cast<uint16_t>(command & 0x0000'FFFF);
-    LOGT_MDEC(std::format("Remaining parameter words: 0x{:04X}", remaining_parameter_words));
+    LOGL_MDC(LogLevel::TRACE, "Remaining parameter words: 0x{:04X}", remaining_parameter_words);
 }
 
 template<std::input_iterator ITER, std::sentinel_for<ITER> SENT>
@@ -122,35 +122,35 @@ void MacroblockDecoder::trace_values_as_table(ITER begin, SENT end, uint32_t wid
         for (uint32_t i = 0; i < width && it != end; ++i, ++it) {
             ss << std::format("0x{:0{}X}", static_cast<std::make_unsigned_t<std::iter_value_t<ITER>>>(*it), 2 * sizeof(std::iter_value_t<ITER>)) << ((i < width - 1) ? ", " : ",");
         }
-        LOGT_MDEC(ss.str());
+        LOGL_MDC(LogLevel::TRACE, "{:s}", ss.str());
         ss.str(std::string());
     }
 }
 
 void MacroblockDecoder::decode_collected_blocks() {
-    LOGT_MDEC("Decoding collected blocks");
+    LOGL_MDC(LogLevel::TRACE, "Decoding collected blocks");
 
     // Dump encoding information
-    LOGT_MDEC(std::format("Data Output Depth: {:d}", data_output_depth));
-    LOGT_MDEC(std::format("Data Output Signed: {:s}", data_output_signed));
-    LOGT_MDEC(std::format("Data Output Bit 15: {:s}", data_output_bit15));
+    LOGL_MDC(LogLevel::TRACE, "Data Output Depth: {:d}", data_output_depth);
+    LOGL_MDC(LogLevel::TRACE, "Data Output Signed: {:s}", data_output_signed);
+    LOGL_MDC(LogLevel::TRACE, "Data Output Bit 15: {:s}", data_output_bit15);
 
     // Dump tables
-    LOGT_MDEC(std::format("Luminance Quantization Table ({:d} bytes):", luminance_quantization_table.size()));
+    LOGL_MDC(LogLevel::TRACE, "Luminance Quantization Table ({:d} bytes):", luminance_quantization_table.size());
     trace_values_as_table(luminance_quantization_table.cbegin(), luminance_quantization_table.cend());
-    LOGT_MDEC(std::format("Color Quantization Table ({:d} bytes):", color_quantization_table.size()));
+    LOGL_MDC(LogLevel::TRACE, "Color Quantization Table ({:d} bytes):", color_quantization_table.size());
     trace_values_as_table(color_quantization_table.cbegin(), color_quantization_table.cend());
-    LOGT_MDEC(std::format("Scale Table ({:d} halfwords):", scale_table.size()));
+    LOGL_MDC(LogLevel::TRACE, "Scale Table ({:d} halfwords):", scale_table.size());
     trace_values_as_table(scale_table.cbegin(), scale_table.cend());
 
     // Dump input blocks
-    //LOGT_MDEC(std::format("Block Input Queue ({:d} halfwords):", data_input_queue.size()));
+    //LOGL_MDC(LogLevel::TRACE, "Block Input Queue ({:d} halfwords):", data_input_queue.size());
     //std::stringstream ss;
     //for (uint16_t value : data_input_queue) {
     //    ss << std::format("0x{:02X}", value);
 
     //    if (value == MDEC_END_OF_BLOCK) {
-    //        LOGT_MDEC(ss.str());
+    //        LOGL_MDC(LogLevel::TRACE, "{:s}", ss.str());
     //        ss.str(std::string());
     //    } else {
     //        ss << ", ";
@@ -158,7 +158,7 @@ void MacroblockDecoder::decode_collected_blocks() {
     //}
     //// Check if input ended without end-of-block marker
     //if (!ss.str().empty()) {
-    //    LOGW_MDEC(std::format("Macroblock input ended without end-of-block marker: {:s}", ss.str()));
+    //    LOGL_MDC(LogLevel::WARNING, "Macroblock input ended without end-of-block marker: {:s}", ss.str());
     //}
 
     // Decompress and combine blocks into macroblocks
@@ -169,14 +169,14 @@ void MacroblockDecoder::decode_collected_blocks() {
             // TODO Decode
             if (data_output_depth == 0) { // 4bit: 8 * 8 * 4 bit values = 16 halfwords
                 // TODO: Replace dummy data
-                LOGW_MDEC(std::format("4 bit macroblocks not implemented: producing dummy macroblock"));
+                LOGL_MDC(LogLevel::WARNING, "4 bit macroblocks not implemented: producing dummy macroblock");
                 for (uint32_t i = 0; i < 16; ++i) {
                     data_output_queue.push_back(0x48CF);
                 }
 
             } else { // 8 bit: 8 * 8 * 8 bit values = 32 halfwords
                 // TODO: Replace dummy data
-                LOGW_MDEC(std::format("8 bit macroblocks not implemented: producing dummy macroblock"));
+                LOGL_MDC(LogLevel::WARNING, "8 bit macroblocks not implemented: producing dummy macroblock");
                 for (uint32_t i = 0; i < 32; ++i) {
                     data_output_queue.push_back(0x7FFF);
                 }
@@ -190,44 +190,44 @@ void MacroblockDecoder::decode_collected_blocks() {
         std::vector<uint8_t> macroblock_r, macroblock_g, macroblock_b;
 
         while (true) {
-            LOGT_MDEC(std::format("Decoding and uncompressing block Cr"));
+            LOGL_MDC(LogLevel::TRACE, "Decoding and uncompressing block Cr");
             std::vector<int32_t> cr_uncomp, cb_uncomp, y1_uncomp, y2_uncomp, y3_uncomp, y4_uncomp;
             if (!decode_next_block_stepwise(color_quantization_table, cr)) {
                 break;
             }
             idct(cr_uncomp, cr);
 
-            LOGT_MDEC(std::format("Decoding and uncompressing block Cb"));
+            LOGL_MDC(LogLevel::TRACE, "Decoding and uncompressing block Cb");
             if (!decode_next_block_stepwise(color_quantization_table, cb)) {
-                LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
+                LOGL_MDC(LogLevel::WARNING, "Not enough RLE-encoded blocks to decode next macroblock");
                 break;
             }
             idct(cb_uncomp, cb);
 
-            LOGT_MDEC(std::format("Decoding and uncompressing block Y1"));
+            LOGL_MDC(LogLevel::TRACE, "Decoding and uncompressing block Y1");
             if (!decode_next_block_stepwise(luminance_quantization_table, y1)) {
-                LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
+                LOGL_MDC(LogLevel::WARNING, "Not enough RLE-encoded blocks to decode next macroblock");
                 break;
             }
             idct(y1_uncomp, y1);
 
-            LOGT_MDEC(std::format("Decoding and uncompressing block Y2"));
+            LOGL_MDC(LogLevel::TRACE, "Decoding and uncompressing block Y2");
             if (!decode_next_block_stepwise(luminance_quantization_table, y2)) {
-                LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
+                LOGL_MDC(LogLevel::WARNING, "Not enough RLE-encoded blocks to decode next macroblock");
                 break;
             }
             idct(y2_uncomp, y2);
 
-            LOGT_MDEC(std::format("Decoding and uncompressing block Y3"));
+            LOGL_MDC(LogLevel::TRACE, "Decoding and uncompressing block Y3");
             if (!decode_next_block_stepwise(luminance_quantization_table, y3)) {
-                LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
+                LOGL_MDC(LogLevel::WARNING, "Not enough RLE-encoded blocks to decode next macroblock");
                 break;
             }
             idct(y3_uncomp, y3);
 
-            LOGT_MDEC(std::format("Decoding and uncompressing block Y4"));
+            LOGL_MDC(LogLevel::TRACE, "Decoding and uncompressing block Y4");
             if (!decode_next_block_stepwise(luminance_quantization_table, y4)) {
-                LOGW_MDEC(std::format("Not enough RLE-encoded blocks to decode next macroblock"));
+                LOGL_MDC(LogLevel::WARNING, "Not enough RLE-encoded blocks to decode next macroblock");
                 break;
             }
             idct(y4_uncomp, y4);
@@ -243,7 +243,7 @@ void MacroblockDecoder::decode_collected_blocks() {
 
             if (data_output_depth == 2) { // 24 bit: 16 * 16 * 24 bit values = 384 halfwords
 
-                LOGT_MDEC(std::format("Writing macroblock as 24 bit colors"));
+                LOGL_MDC(LogLevel::TRACE, "Writing macroblock as 24 bit colors");
                 std::vector<uint8_t> macroblock;
                 assert(macroblock_r.size() == 256);
                 assert(macroblock_g.size() == 256);
@@ -258,7 +258,7 @@ void MacroblockDecoder::decode_collected_blocks() {
                 }
 
             } else { // 15 bit: 16 * 16 * 16 bit values = 256 halfwords
-                LOGT_MDEC(std::format("Writing macroblock as 15 bit colors"));
+                LOGL_MDC(LogLevel::TRACE, "Writing macroblock as 15 bit colors");
                 std::vector<uint8_t> macroblock;
                 assert(macroblock_r.size() == 256);
                 assert(macroblock_g.size() == 256);
@@ -296,7 +296,7 @@ int16_t MacroblockDecoder::clamp(int32_t value) {
 }
 
 bool MacroblockDecoder::read_next_block(std::vector<uint16_t>& block) {
-    LOGT_MDEC(std::format("Reading RLE-encoded block"));
+    LOGL_MDC(LogLevel::TRACE, "Reading RLE-encoded block");
     assert(block.empty());
 
     // Read the next block from the input queue. Do not decode.
@@ -316,7 +316,7 @@ bool MacroblockDecoder::read_next_block(std::vector<uint16_t>& block) {
 
     if (data_input_queue.empty()) {
         // We did not end with an end-of-block marker. This is wrong!
-        LOGW_MDEC(std::format("RLE-encoded block ended unexpectedly"));
+        LOGL_MDC(LogLevel::WARNING, "RLE-encoded block ended unexpectedly");
         return false;
     }
 
@@ -325,14 +325,14 @@ bool MacroblockDecoder::read_next_block(std::vector<uint16_t>& block) {
     data_input_queue.pop_front();
 
     // Trace for debugging purposes
-    LOGT_MDEC(std::format("Read RLE-encoded block:"));
+    LOGL_MDC(LogLevel::TRACE, "Read RLE-encoded block:");
     trace_values_as_table(block.cbegin(), block.cend());
 
     return true;
 }
 
 void MacroblockDecoder::rle_decode_block(std::vector<int16_t>& decoded_block, const std::vector<uint16_t>& encoded_block) {
-    LOGT_MDEC(std::format("RLE-decoding block"));
+    LOGL_MDC(LogLevel::TRACE, "RLE-decoding block");
     assert(decoded_block.empty());
     assert(!encoded_block.empty());
 
@@ -370,19 +370,19 @@ void MacroblockDecoder::rle_decode_block(std::vector<int16_t>& decoded_block, co
     decoded_block.push_back(quantization_factor);
 
     // Trace for debugging purposes
-    LOGT_MDEC(std::format("RLE-decoded block (with appended quantization_factor):"));
+    LOGL_MDC(LogLevel::TRACE, "RLE-decoded block (with appended quantization_factor):");
     trace_values_as_table(decoded_block.cbegin(), decoded_block.cend());
 }
 
 void MacroblockDecoder::zagzig_block(std::vector<int16_t>& zagzig_block, const std::vector<int16_t>& zigzag_block) {
-    LOGT_MDEC(std::format("Zagzigging block"));
+    LOGL_MDC(LogLevel::TRACE, "Zagzigging block");
     assert(zagzig_block.empty());
     assert(zigzag_block.size() == 64 + 1);
 
     int16_t quantization_factor = zigzag_block[64];
 
     if (quantization_factor == 0) {
-        LOGT_MDEC(std::format("Quantization factor is zero, not zagzigging"));
+        LOGL_MDC(LogLevel::TRACE, "Quantization factor is zero, not zagzigging");
         zagzig_block.insert(zagzig_block.end(), zigzag_block.cbegin(), zigzag_block.cend());
     } else {
         for (uint32_t i = 0; i < 64; ++i) {
@@ -393,12 +393,12 @@ void MacroblockDecoder::zagzig_block(std::vector<int16_t>& zagzig_block, const s
     }
 
     // Trace for debugging purposes
-    LOGT_MDEC(std::format("Zagzigged block:"));
+    LOGL_MDC(LogLevel::TRACE, "Zagzigged block:");
     trace_values_as_table(zagzig_block.cbegin(), zagzig_block.cend());
 }
 
 void MacroblockDecoder::dequantize_block(const std::vector<uint8_t>& q_table, std::vector<int16_t>& dequantized_block, const std::vector<int16_t>& quantized_block) {
-    LOGT_MDEC(std::format("De-quantizing block"));
+    LOGL_MDC(LogLevel::TRACE, "De-quantizing block");
     assert(dequantized_block.empty());
     assert(quantized_block.size() == 64 + 1);
 
@@ -416,12 +416,12 @@ void MacroblockDecoder::dequantize_block(const std::vector<uint8_t>& q_table, st
     }
 
     // Trace for debugging purposes
-    LOGT_MDEC(std::format("De-quantized block:"));
+    LOGL_MDC(LogLevel::TRACE, "De-quantized block:");
     trace_values_as_table(dequantized_block.cbegin(), dequantized_block.cend());
 }
 
 bool MacroblockDecoder::decode_next_block_stepwise(const std::vector<uint8_t>& q_table, std::vector<int16_t>& block) {
-    LOGT_MDEC(std::format("Decoding RLE-encoded block step by step"));
+    LOGL_MDC(LogLevel::TRACE, "Decoding RLE-encoded block step by step");
     assert(block.empty());
 
     std::vector<uint16_t> next_block;
@@ -447,7 +447,7 @@ bool MacroblockDecoder::decode_next_block(const std::vector<uint8_t>& quant, std
         return false;
     }
 
-    LOGT_MDEC(std::format("Decoding RLE-encoded block"));
+    LOGL_MDC(LogLevel::TRACE, "Decoding RLE-encoded block");
     buffer.resize(64);
 
     // DCT halfword
@@ -488,7 +488,7 @@ bool MacroblockDecoder::decode_next_block(const std::vector<uint8_t>& quant, std
 
     if (data_input_queue.empty()) {
         // We did not end with an end-of-block marker. This is wrong!
-        LOGW_MDEC(std::format("RLE-encoded block ended unexpectedly"));
+        LOGL_MDC(LogLevel::WARNING, "RLE-encoded block ended unexpectedly");
         return false;
     }
 
@@ -503,7 +503,7 @@ bool MacroblockDecoder::decode_next_block(const std::vector<uint8_t>& quant, std
     }
 
     // Trace for debugging purposes
-    LOGT_MDEC(std::format("Decoded block (quantization_factor = 0x{:04X}):", quantization_factor));
+    LOGL_MDC(LogLevel::TRACE, "Decoded block (quantization_factor = 0x{:04X}):", quantization_factor);
     trace_values_as_table(++buffer.cbegin(), buffer.cend());
 
     return true;
@@ -511,7 +511,7 @@ bool MacroblockDecoder::decode_next_block(const std::vector<uint8_t>& quant, std
 
 void MacroblockDecoder::idct(std::vector<int32_t>& result, std::vector<int16_t>& block) {
     // Computes IDCT^T * B * IDCT, where IDCT is the IDCT matrix and B the block
-    LOGT_MDEC(std::format("Performing IDCT"));
+    LOGL_MDC(LogLevel::TRACE, "Performing IDCT");
 
     assert(block.size() == 64);
     result.resize(64);
@@ -542,7 +542,7 @@ void MacroblockDecoder::idct(std::vector<int32_t>& result, std::vector<int16_t>&
     }
 
     // Trace for debugging purposes
-    LOGT_MDEC(std::format("Performed IDCT:"));
+    LOGL_MDC(LogLevel::TRACE, "Performed IDCT:");
     trace_values_as_table(result.cbegin(), result.cend());
 }
 
@@ -555,7 +555,7 @@ int16_t MacroblockDecoder::clamp_color(int32_t value) {
 void MacroblockDecoder::yuv_to_rgb(std::vector<uint8_t>& r, std::vector<uint8_t>& g, std::vector<uint8_t>& b,
                                    const std::vector<int32_t>& cr, const std::vector<int32_t>& cb, const std::vector<int32_t>& y_block,
                                    uint8_t x_offset, uint8_t y_offset) {
-    LOGT_MDEC(std::format("Converting YUV blocks to (part of) RGB macroblock (offset {:d}, {:d})", x_offset, y_offset));
+    LOGL_MDC(LogLevel::TRACE, "Converting YUV blocks to (part of) RGB macroblock (offset {:d}, {:d})", x_offset, y_offset);
     r.resize(16 * 16);
     g.resize(16 * 16);
     b.resize(16 * 16);
@@ -587,12 +587,12 @@ void MacroblockDecoder::yuv_to_rgb(std::vector<uint8_t>& r, std::vector<uint8_t>
         }
     }
 
-    LOGT_MDEC(std::format("Converted YUV blocks to (part of) RGB macroblock:"));
-    LOGT_MDEC("Macroblock (red):");
+    LOGL_MDC(LogLevel::TRACE, "Converted YUV blocks to (part of) RGB macroblock:");
+    LOGL_MDC(LogLevel::TRACE, "Macroblock (red):");
     trace_values_as_table(r.cbegin(), r.cend(), 16);
-    LOGT_MDEC("Macroblock (green):");
+    LOGL_MDC(LogLevel::TRACE, "Macroblock (green):");
     trace_values_as_table(g.cbegin(), g.cend(), 16);
-    LOGT_MDEC("Macroblock (blue):");
+    LOGL_MDC(LogLevel::TRACE, "Macroblock (blue):");
     trace_values_as_table(b.cbegin(), b.cend(), 16);
 }
 
@@ -640,7 +640,7 @@ bool MacroblockDecoder::data_out_request() const {
 void MacroblockDecoder::process(uint32_t value) {
     if (state == State::IDLE) { // Has to be a command
         uint8_t command_num = value >> MDEC_CMD_CMD0;
-        LOGT_MDEC(std::format("Executing command #{:d}", command_num));
+        LOGL_MDC(LogLevel::TRACE, "Executing command #{:d}", command_num);
 
         switch (command_num) {
             case 1:
@@ -660,13 +660,13 @@ void MacroblockDecoder::process(uint32_t value) {
     } else {
         switch (state) {
             case State::CMD_DECODE_MACROBLOCK:
-                LOGT_MDEC(std::format("Received macroblock value 0x{:08X}", value));
+                LOGL_MDC(LogLevel::TRACE, "Received macroblock value 0x{:08X}", value);
                 data_input_queue.push_back(value & 0xFFFF);
                 data_input_queue.push_back((value >> 16) & 0xFFFF);
 
                 break;
             case State::CMD_SET_IQTAB:
-                LOGT_MDEC(std::format("Received iqtab value 0x{:08X}", value));
+                LOGL_MDC(LogLevel::TRACE, "Received iqtab value 0x{:08X}", value);
                 if (luminance_quantization_table.size() < 64) {
                     luminance_quantization_table.push_back(value & 0xFF);
                     luminance_quantization_table.push_back((value >> 8) & 0xFF);
@@ -680,7 +680,7 @@ void MacroblockDecoder::process(uint32_t value) {
                 }
                 break;
             case State::CMD_SET_SCALE:
-                LOGT_MDEC(std::format("Received scale value 0x{:08X}", value));
+                LOGL_MDC(LogLevel::TRACE, "Received scale value 0x{:08X}", value);
                 scale_table.push_back(value & 0xFFFF);
                 scale_table.push_back((value >> 16) & 0xFFFF);
                 break;
@@ -690,7 +690,7 @@ void MacroblockDecoder::process(uint32_t value) {
 
         --remaining_parameter_words;
         if (remaining_parameter_words == 0xFFFF) { // The stored value is minus one
-            LOGT_MDEC(std::format("Received last parameter word"));
+            LOGL_MDC(LogLevel::TRACE, "Received last parameter word");
             if (state == State::CMD_DECODE_MACROBLOCK) {
                 decode_collected_blocks();
             }
@@ -706,7 +706,7 @@ uint16_t MacroblockDecoder::read() {
         value = data_output_queue.front();
         data_output_queue.pop_front();
     } else {
-        LOGW_MDEC("Read from MDEC, but output queue is empty!");
+        LOGL_MDC(LogLevel::WARNING, "Read from MDEC, but output queue is empty!");
     }
 
     return value;
@@ -716,33 +716,33 @@ template <>
 void MacroblockDecoder::write(uint32_t address, uint32_t value) {
     assert(address == 0x1F80'1820 || address == 0x1F80'1824);
 
-    LOGT_MDEC(std::format("Write to MDEC: 0x{:08X} --> @0x{:08X}", value, address));
+    LOGL_MDC(LogLevel::TRACE, "Write to MDEC: 0x{:08X} --> @0x{:08X}", value, address);
 
     if (address == 0x1F80'1820) { // Command/Parameter Register
-        LOGT_MDEC(std::format("Write to Command Register: 0x{:08X}", value));
+        LOGL_MDC(LogLevel::TRACE, "Write to Command Register: 0x{:08X}", value);
         process(value);
 
     } else { // 0x1F80'1824: Control/Reset Register
-        LOGT_MDEC(std::format("Write to Control Register: 0x{:08X}", value));
+        LOGL_MDC(LogLevel::TRACE, "Write to Control Register: 0x{:08X}", value);
         if (Bit::getBit(value, MDEC_CONTROL_RESET)) {
             reset();
-            LOGV_MDEC("Reset MDEC");
+            LOGL_MDC(LogLevel::DEBUG, "Reset MDEC");
             assert(get_status_register() == 0x8004'0000);
         }
         data_in_enabled = Bit::getBit(value, MDEC_CONTROL_ENABLE_DATA_IN_REQ);
         if (data_in_enabled) {
-            LOGV_MDEC("Enable data in");
+            LOGL_MDC(LogLevel::DEBUG, "Enable data in");
         } else {
-            LOGV_MDEC("Disable data in");
+            LOGL_MDC(LogLevel::DEBUG, "Disable data in");
         }
         data_out_enabled = Bit::getBit(value, MDEC_CONTROL_ENABLE_DATA_OUT_REQ);
         if (data_out_enabled) {
-            LOGV_MDEC("Enable data out");
+            LOGL_MDC(LogLevel::DEBUG, "Enable data out");
         } else {
-            LOGV_MDEC("Disable data out");
+            LOGL_MDC(LogLevel::DEBUG, "Disable data out");
         }
 
-        LOGV_MDEC(std::format("Status Register: {:s}", get_status_register_explanation(get_status_register())));
+        LOGL_MDC(LogLevel::DEBUG, "Status Register: {:s}", get_status_register_explanation(get_status_register()));
     }
 }
 
@@ -760,17 +760,17 @@ template <>
 uint32_t MacroblockDecoder::read(uint32_t address) {
     assert(address == 0x1F80'1820 || address == 0x1F80'1824);
 
-    LOGT_MDEC(std::format("Read from MDEC: @0x{:08X}", address));
+    LOGL_MDC(LogLevel::TRACE, "Read from MDEC: @0x{:08X}", address);
 
     uint32_t value = 0;
     if (address == 0x1F80'1820) { // Command/Parameter Register
-        LOGW_MDEC("Unimplemented read from Data Register");
+        LOGL_MDC(LogLevel::WARNING, "Unimplemented read from Data Register");
     } else { // 0x1F80'1824: Control/Reset Register
         value = get_status_register();
-        LOGV_MDEC(std::format("Read from Status Register: {:s}", get_status_register_explanation(value)));
+        LOGL_MDC(LogLevel::DEBUG, "Read from Status Register: {:s}", get_status_register_explanation(value));
     }
 
-    LOGT_MDEC(std::format("--> 0x{:08X}", value));
+    LOGL_MDC(LogLevel::TRACE, "--> 0x{:08X}", value);
 
     return value;
 }

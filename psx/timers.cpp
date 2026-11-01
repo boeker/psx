@@ -238,13 +238,13 @@ void Timers::checkResetValue() {
             current[N] = 0;
         }
         Bit::setBit(mode[N], TIMER_MODE_REACHED_TARGET_VALUE); // Bit 11 marks reached target value, reset after reading
-        //LOGT_TMR(std::format("Timer {:d} reached target value", N));
+        //LOGL_TMR(LogLevel::TRACE, "Timer {:d} reached target value", N);
         handleInterrupt<N>();
 
     } else if (!Bit::getBit(mode[N], TIMER_MODE_RESET_COUNTER_TO_0000) && (current[N] >= 0xFFFF)) { // Reset after counter reaches 0xFFFF
         current[N] = current[N] % 0xFFFF; // Use mod to avoid loosing counts (if current is stricly larger than 0xFFFF)
         Bit::setBit(mode[N], TIMER_MODE_REACHED_FFFF_VALUE); // Bit 12 marks reached 0xFFFF, reset after reading
-        //LOGT_TMR(std::format("Timer {:d} reached 0xFFFF", N));
+        //LOGL_TMR(LogLevel::TRACE, "Timer {:d} reached 0xFFFF", N);
         handleInterrupt<N>();
     }
 }
@@ -259,7 +259,7 @@ void Timers::handleInterrupt() {
                 && Bit::getBit(mode[N], TIMER_MODE_INTERRUPT_REQUEST)) {
                 Bit::clearBit(mode[N], TIMER_MODE_INTERRUPT_REQUEST);
                 oneShotFired[N] = true;
-                LOG_TMR(std::format("Timer {:d} is issuing interrupt in repeat mode", N));
+                LOGL_TMR(LogLevel::INFO, "Timer {:d} is issuing interrupt in repeat mode", N);
                 bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_TMR0 + N);
 
             } else if (Bit::getBit(mode[N], TIMER_MODE_IRQ_ONCE_REPEAT_MODE) && oneShotFired[N]) { // Toggle back from 0 to 1 (if we toggled to 0 before)
@@ -276,7 +276,7 @@ void Timers::handleInterrupt() {
             if (Bit::getBit(mode[N], TIMER_MODE_INTERRUPT_REQUEST)) {
                 Bit::clearBit(mode[N], TIMER_MODE_INTERRUPT_REQUEST);
                 resetPulse[N] = true;
-                LOG_TMR(std::format("Timer {:d} is issuing interrupt in pulse mode", N));
+                LOGL_TMR(LogLevel::INFO, "Timer {:d} is issuing interrupt in pulse mode", N);
                 bus->interrupts.notifyAboutInterrupt(INTERRUPT_BIT_TMR0 + N);
             }
         }
@@ -292,12 +292,12 @@ void Timers::write(uint32_t address, uint16_t value) {
     assert (number <= 2);
 
     if (noNumberAddress == 0x1F801100) { // Current value
-        LOGT_TMR(std::format("Write to timer: 0x{:08X} -> @0x{:08X}: timer {:d} current value", value, address, number));
+        LOGL_TMR(LogLevel::TRACE, "Write to timer: 0x{:08X} -> @0x{:08X}: timer {:d} current value", value, address, number);
         current[number] = value;
 
     } else if (noNumberAddress == 0x1F801104) { // Mode
-        LOGT_TMR(std::format("Write to timer: 0x{:08X} -> @0x{:08X}: timer {:d} mode", value, address, number));
-        LOGT_TMR(std::format("Timer {:d} current value: 0x{:08X}: ", number, current[number]));
+        LOGL_TMR(LogLevel::TRACE, "Write to timer: 0x{:08X} -> @0x{:08X}: timer {:d} mode", value, address, number);
+        LOGL_TMR(LogLevel::TRACE, "Timer {:d} current value: 0x{:08X}: ", number, current[number]);
         uint32_t before = mode[number];
         mode[number] = (before & (0x7 << TIMER_MODE_INTERRUPT_REQUEST)) | Bit::getBits<10>(value);
         if (Bit::getBit(value, TIMER_MODE_INTERRUPT_REQUEST)) { // Interrupt Request? 1 -> No, i.e., writing 1 resets interrupt request. 0 cannot be written.
@@ -307,15 +307,15 @@ void Timers::write(uint32_t address, uint16_t value) {
         oneShotFired[number] = false;
         startConditionMet[number] = false;
 
-        LOGT_TMR(std::format("Timer {:d} mode before write: {:s}", number, getModeExplanation(before)));
-        LOGT_TMR(std::format("Timer {:d} mode after write: {:s}", number, getModeExplanation(mode[number])));
+        LOGL_TMR(LogLevel::TRACE, "Timer {:d} mode before write: {:s}", number, getModeExplanation(before));
+        LOGL_TMR(LogLevel::TRACE, "Timer {:d} mode after write: {:s}", number, getModeExplanation(mode[number]));
 
     } else if (noNumberAddress == 0x1F801108) { // Target value
-        LOGT_TMR(std::format("Write to timer: 0x{:08X} -> @0x{:08X}: timer {:d} target value", value, address, number));
+        LOGL_TMR(LogLevel::TRACE, "Write to timer: 0x{:08X} -> @0x{:08X}: timer {:d} target value", value, address, number);
         target[number] = value;
 
     } else {
-        LOG_TMR(std::format("Invalid write to Timer: write 0x{:08X} -> @0x{:08X}", value, address));
+        LOGL_TMR(LogLevel::INFO, "Invalid write to Timer: write 0x{:08X} -> @0x{:08X}", value, address);
     }
 }
 
@@ -338,23 +338,23 @@ uint16_t Timers::read(uint32_t address) {
     uint16_t value = 0;
     if (noNumberAddress == 0x1F801100) { // Current value
         value = current[number];
-        LOGT_TMR(std::format("Read from timer: @0x{:08X} -0x{:08X}->: timer {:d} current value", address, value, number));
-        LOGT_TMR(std::format("At PC 0x{:08X}", bus->cpu.regs.getPC()));
+        LOGL_TMR(LogLevel::TRACE, "Read from timer: @0x{:08X} -0x{:08X}->: timer {:d} current value", address, value, number);
+        LOGL_TMR(LogLevel::TRACE, "At PC 0x{:08X}", bus->cpu.regs.getPC());
 
     } else if (noNumberAddress == 0x1F801104) { // Mode
         value = mode[number];
-        LOGT_TMR(std::format("Read from timer: @0x{:08X} -0x{:08X}->: timer {:d} mode", address, value, number));
+        LOGL_TMR(LogLevel::TRACE, "Read from timer: @0x{:08X} -0x{:08X}->: timer {:d} mode", address, value, number);
         Bit::clearBit(mode[number], TIMER_MODE_REACHED_TARGET_VALUE); // Bit 11 is reset on read
         Bit::clearBit(mode[number], TIMER_MODE_REACHED_FFFF_VALUE); // Bit 12 is reset on read
-        LOGT_TMR(std::format("Timer {:d} mode before read: {:s}", number, getModeExplanation(value)));
-        LOGT_TMR(std::format("Timer {:d} mode after read: {:s}", number, getModeExplanation(mode[number])));
+        LOGL_TMR(LogLevel::TRACE, "Timer {:d} mode before read: {:s}", number, getModeExplanation(value));
+        LOGL_TMR(LogLevel::TRACE, "Timer {:d} mode after read: {:s}", number, getModeExplanation(mode[number]));
 
     } else if (noNumberAddress == 0x1F801108) { // Target value
         value = target[number];
-        LOGT_TMR(std::format("Read from timer: @0x{:08X} -0x{:08X}->: timer {:d} target value", address, value, number));
+        LOGL_TMR(LogLevel::TRACE, "Read from timer: @0x{:08X} -0x{:08X}->: timer {:d} target value", address, value, number);
 
     } else {
-        LOG_TMR(std::format("Invalid read to Timer: write 0x{:08X} -> @0x{:08X}", value, address));
+        LOGL_TMR(LogLevel::INFO, "Invalid read to Timer: write 0x{:08X} -> @0x{:08X}", value, address);
     }
 
     return value;

@@ -171,14 +171,14 @@ uint32_t GTE::getRegister(uint8_t rt) {
     assert (rt < 32);
     uint32_t word = get_register_as_uint32_t(rt);
 
-    LOGT_GTE(std::format("{{register {:d} ({:s}) -> 0x{:08X}}}", rt, getRegisterName(rt), word));
+    LOGL_GTE(LogLevel::TRACE, "{{register {:d} ({:s}) -> 0x{:08X}}}", rt, getRegisterName(rt), word);
 
     return word;
 }
 
 void GTE::setRegister(uint8_t rt, uint32_t value) {
     assert (rt < 32);
-    LOGT_GTE(std::format("{{0x{:08X} -> register {:d} ({:s})}}", value, rt, getRegisterName(rt)));
+    LOGL_GTE(LogLevel::TRACE, "{{0x{:08X} -> register {:d} ({:s})}}", value, rt, getRegisterName(rt));
 
     set_register_from_uint32_t(rt, value);
 }
@@ -187,14 +187,14 @@ uint32_t GTE::getControlRegister(uint8_t rt) {
     assert (rt < 32);
     uint32_t word = get_control_register_as_uint32_t(rt);
 
-    LOGT_GTE(std::format("{{control register {:d} ({:s}) -> 0x{:08X}}}", rt, getControlRegisterName(rt), word));
+    LOGL_GTE(LogLevel::TRACE, "{{control register {:d} ({:s}) -> 0x{:08X}}}", rt, getControlRegisterName(rt), word);
 
     return word;
 }
 
 void GTE::setControlRegister(uint8_t rt, uint32_t value) {
     assert (rt < 32);
-    LOGT_GTE(std::format("{{0x{:08X} -> control register {:d} ({:s})}}", value, rt, getControlRegisterName(rt)));
+    LOGL_GTE(LogLevel::TRACE, "{{0x{:08X} -> control register {:d} ({:s})}}", value, rt, getControlRegisterName(rt));
 
     set_control_register_from_uint32_t(rt, value);
 }
@@ -943,7 +943,7 @@ void GTE::UNKCP2() {
 
 void GTE::RTPS() {
     // Perspective Transformation (Single)
-    LOGT_GTE(std::format("RTPS"));
+    LOGL_GTE(LogLevel::TRACE, "RTPS");
 
     set_mac1(sign_extend1(sign_extend1((get_trx() << 12) + get_rt11() * get_vx0()) + get_rt12() * get_vy0()) + get_rt13() * get_vz0(), sf * 12);
     set_mac2(sign_extend2(sign_extend2((get_try() << 12) + get_rt21() * get_vx0()) + get_rt22() * get_vy0()) + get_rt23() * get_vz0(), sf * 12);
@@ -969,7 +969,7 @@ void GTE::RTPS() {
 
 void GTE::RTPT() {
     // Perspective Transformation (Triple)
-    LOGT_GTE(std::format("RTPT"));
+    LOGL_GTE(LogLevel::TRACE, "RTPT");
 
     // V0
     set_mac1(sign_extend1(sign_extend1((get_trx() << 12) + get_rt11() * get_vx0()) + get_rt12() * get_vy0()) + get_rt13() * get_vz0(), sf * 12);
@@ -1039,7 +1039,7 @@ void GTE::RTPT() {
 }
 
 void GTE::MVMVA() {
-    LOGT_GTE(std::format("MVMVA"));
+    LOGL_GTE(LogLevel::TRACE, "MVMVA");
 
     int64_t m11, m12, m13, m21, m22, m23, m31, m32, m33;
     uint8_t mvmva_matrix = (instruction >> 17) & 0x3; // 0 = Rotation, 1 = Light, 2 = Color, 3 = Reserved
@@ -1171,7 +1171,7 @@ void GTE::MVMVA() {
 
 void GTE::DCPL() {
     // Depth Cue Color Light
-    LOGT_GTE(std::format("DCPL"));
+    LOGL_GTE(LogLevel::TRACE, "DCPL");
 
     int64_t temp1 = (get_r() * get_ir1()) << 4;
     int64_t temp2 = (get_g() * get_ir2()) << 4;
@@ -1200,7 +1200,7 @@ void GTE::DCPL() {
 
 void GTE::DPCS() {
     // Depth Cue (Single)
-    LOGT_GTE(std::format("DPCS"));
+    LOGL_GTE(LogLevel::TRACE, "DPCS");
 
     int64_t temp1 = get_r() << 16;
     int64_t temp2 = get_g() << 16;
@@ -1229,7 +1229,7 @@ void GTE::DPCS() {
 
 void GTE::DPCT() {
     // Depth Cue (Triple)
-    LOGT_GTE(std::format("DPCT"));
+    LOGL_GTE(LogLevel::TRACE, "DPCT");
 
     // Read color values from RGB0 instead of RGBC
     int64_t temp1 = get_r0() << 16;
@@ -1306,7 +1306,7 @@ void GTE::DPCT() {
 }
 
 void GTE::INTPL() {
-    LOGT_GTE(std::format("INTPL"));
+    LOGL_GTE(LogLevel::TRACE, "INTPL");
 
     int64_t temp1 = get_ir1() << 12;
     int64_t temp2 = get_ir2() << 12;
@@ -1334,7 +1334,7 @@ void GTE::INTPL() {
 }
 
 void GTE::SQR() {
-    LOGT_GTE(std::format("SQR"));
+    LOGL_GTE(LogLevel::TRACE, "SQR");
 
     set_mac1((get_ir1() * get_ir1()) >> (sf * 12));
     set_mac2((get_ir2() * get_ir2()) >> (sf * 12));
@@ -1348,7 +1348,7 @@ void GTE::SQR() {
 
 void GTE::NCS() {
     // Normal Color (Single)
-    LOGT_GTE(std::format("NCS"));
+    LOGL_GTE(LogLevel::TRACE, "NCS");
 
     set_mac1(sign_extend1(get_l11() * get_vx0() + get_l12() * get_vy0()) + get_l13() * get_vz0(), sf * 12);
     set_mac2(sign_extend2(get_l21() * get_vx0() + get_l22() * get_vy0()) + get_l23() * get_vz0(), sf * 12);
@@ -1373,7 +1373,7 @@ void GTE::NCS() {
 
 void GTE::NCT() {
     // Normal Color (Triple)
-    LOGT_GTE(std::format("NCT"));
+    LOGL_GTE(LogLevel::TRACE, "NCT");
 
     set_mac1(sign_extend1(get_l11() * get_vx0() + get_l12() * get_vy0()) + get_l13() * get_vz0(), sf * 12);
     set_mac2(sign_extend2(get_l21() * get_vx0() + get_l22() * get_vy0()) + get_l23() * get_vz0(), sf * 12);
@@ -1438,7 +1438,7 @@ void GTE::NCT() {
 
 void GTE::NCDS() {
     // Normal Color Depth Cue (Single)
-    LOGT_GTE(std::format("NCDS"));
+    LOGL_GTE(LogLevel::TRACE, "NCDS");
 
     set_mac1(sign_extend1(get_l11() * get_vx0() + get_l12() * get_vy0()) + get_l13() * get_vz0(), sf * 12);
     set_mac2(sign_extend2(get_l21() * get_vx0() + get_l22() * get_vy0()) + get_l23() * get_vz0(), sf * 12);
@@ -1481,7 +1481,7 @@ void GTE::NCDS() {
 
 void GTE::NCDT() {
     // Normal Color Depth Cue (Triple)
-    LOGT_GTE(std::format("NCDT"));
+    LOGL_GTE(LogLevel::TRACE, "NCDT");
 
     set_mac1(sign_extend1(get_l11() * get_vx0() + get_l12() * get_vy0()) + get_l13() * get_vz0(), sf * 12);
     set_mac2(sign_extend2(get_l21() * get_vx0() + get_l22() * get_vy0()) + get_l23() * get_vz0(), sf * 12);
@@ -1600,7 +1600,7 @@ void GTE::NCDT() {
 
 void GTE::NCCS() {
     // Normal Color Color (Single)
-    LOGT_GTE(std::format("NCCS"));
+    LOGL_GTE(LogLevel::TRACE, "NCCS");
 
     set_mac1(sign_extend1(get_l11() * get_vx0() + get_l12() * get_vy0()) + get_l13() * get_vz0(), sf * 12);
     set_mac2(sign_extend2(get_l21() * get_vx0() + get_l22() * get_vy0()) + get_l23() * get_vz0(), sf * 12);
@@ -1632,7 +1632,7 @@ void GTE::NCCS() {
 
 void GTE::NCCT() {
     // Normal Color Color (Triple)
-    LOGT_GTE(std::format("NCCT"));
+    LOGL_GTE(LogLevel::TRACE, "NCCT");
 
     set_mac1(sign_extend1(get_l11() * get_vx0() + get_l12() * get_vy0()) + get_l13() * get_vz0(), sf * 12);
     set_mac2(sign_extend2(get_l21() * get_vx0() + get_l22() * get_vy0()) + get_l23() * get_vz0(), sf * 12);
@@ -1718,7 +1718,7 @@ void GTE::NCCT() {
 
 void GTE::CDP() {
     // Color Depth Cue
-    LOGT_GTE(std::format("CDP"));
+    LOGL_GTE(LogLevel::TRACE, "CDP");
 
     set_mac1(sign_extend1(sign_extend1((get_rbk() << 12) + get_lr1() * get_ir1()) + get_lr2() * get_ir2()) + get_lr3() * get_ir3(), sf * 12);
     set_mac2(sign_extend2(sign_extend2((get_gbk() << 12) + get_lg1() * get_ir1()) + get_lg2() * get_ir2()) + get_lg3() * get_ir3(), sf * 12);
@@ -1754,7 +1754,7 @@ void GTE::CDP() {
 
 void GTE::CC() {
     // Color Color
-    LOGT_GTE(std::format("CC"));
+    LOGL_GTE(LogLevel::TRACE, "CC");
 
     set_mac1(sign_extend1(sign_extend1((get_rbk() << 12) + get_lr1() * get_ir1()) + get_lr2() * get_ir2()) + get_lr3() * get_ir3(), sf * 12);
     set_mac2(sign_extend2(sign_extend2((get_gbk() << 12) + get_lg1() * get_ir1()) + get_lg2() * get_ir2()) + get_lg3() * get_ir3(), sf * 12);
@@ -1779,13 +1779,13 @@ void GTE::CC() {
 
 void GTE::NCLIP() {
     // Normal Clipping
-    LOGT_GTE(std::format("NCLIP"));
+    LOGL_GTE(LogLevel::TRACE, "NCLIP");
     set_mac0(get_sx0() * (get_sy1() - get_sy2()) + get_sx1() * (get_sy2() - get_sy0()) + get_sx2() * (get_sy0() - get_sy1()));
 }
 
 void GTE::AVSZ3() {
     // Average of three Z values
-    LOGT_GTE(std::format("AVSZ3"));
+    LOGL_GTE(LogLevel::TRACE, "AVSZ3");
 
     set_mac0(get_zsf3() * (get_sz1() + get_sz2() + get_sz3()));
     set_otz(get_mac0() >> 12);
@@ -1793,14 +1793,14 @@ void GTE::AVSZ3() {
 
 void GTE::AVSZ4() {
     // Average of four Z values
-    LOGT_GTE(std::format("AVSZ4"));
+    LOGL_GTE(LogLevel::TRACE, "AVSZ4");
 
     set_mac0(get_zsf4() * (get_sz0() + get_sz1() + get_sz2() + get_sz3()));
     set_otz(get_mac0() >> 12);
 }
 
 void GTE::OP() {
-    LOGT_GTE(std::format("OP"));
+    LOGL_GTE(LogLevel::TRACE, "OP");
 
     set_mac1((get_ir3() * get_rt22() - get_ir2() * get_rt33()) >> (sf * 12));
     set_mac2((get_ir1() * get_rt33() - get_ir3() * get_rt11()) >> (sf * 12));
@@ -1812,7 +1812,7 @@ void GTE::OP() {
 }
 
 void GTE::GPF() {
-    LOGT_GTE(std::format("GPF"));
+    LOGL_GTE(LogLevel::TRACE, "GPF");
 
     set_mac1((get_ir1() * get_ir0()) >> (sf * 12));
     set_mac2((get_ir2() * get_ir0()) >> (sf * 12));
@@ -1830,7 +1830,7 @@ void GTE::GPF() {
 }
 
 void GTE::GPL() {
-    LOGT_GTE(std::format("GPL"));
+    LOGL_GTE(LogLevel::TRACE, "GPL");
 
     set_mac1(((get_mac1() << (sf * 12)) + get_ir1() * get_ir0()), sf * 12);
     set_mac2(((get_mac2() << (sf * 12)) + get_ir2() * get_ir0()), sf * 12);
@@ -1847,7 +1847,7 @@ void GTE::GPL() {
 }
 
 void GTE::UNOFF() {
-    LOG_GTE(std::format("Unimplemented command: UNOFF"));
+    LOGL_GTE(LogLevel::INFO, "Unimplemented command: UNOFF");
     //TODO
 }
 

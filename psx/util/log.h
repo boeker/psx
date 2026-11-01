@@ -205,51 +205,6 @@ extern LogPack logPack;
 #define LOGL_TMR(level, ...) util::logPack.tmr_log.log<level>(__VA_ARGS__)
 #define LOGL_TTY(level, ...) util::logPack.tty_log.log<level>(__VA_ARGS__)
 
-#define LOG_GTE             MACRO_LOG(gte)
-#define LOGW_GTE            MACRO_LOG(gteW)
-#define LOGV_GTE            MACRO_LOG(gteV)
-#define LOGT_GTE            MACRO_LOG(gteT)
-
-#define LOG_INT             MACRO_LOG(interrupts)
-#define LOGW_INT            MACRO_LOG(interruptsW)
-#define LOGV_INT            MACRO_LOG(interruptsV)
-#define LOGT_INT            MACRO_LOG(interruptsT)
-
-#define LOG_MDEC            MACRO_LOG(mdec)
-#define LOGW_MDEC           MACRO_LOG(mdecW)
-#define LOGV_MDEC           MACRO_LOG(mdecV)
-#define LOGT_MDEC           MACRO_LOG(mdecT)
-
-#define LOG_MEM             MACRO_LOG(memory)
-#define LOGW_MEM            MACRO_LOG(memoryW)
-#define LOGV_MEM            MACRO_LOG(memoryV)
-#define LOGT_MEM            MACRO_LOG(memoryT)
-
-#define LOG_MISC            MACRO_LOG(misc)
-#define LOGW_MISC           MACRO_LOG(miscW)
-#define LOGV_MISC           MACRO_LOG(miscV)
-#define LOGT_MISC           MACRO_LOG(miscT)
-
-#define LOG_PAD             MACRO_LOG(pad)
-#define LOGW_PAD            MACRO_LOG(padW)
-#define LOGV_PAD            MACRO_LOG(padV)
-#define LOGT_PAD            MACRO_LOG(padT)
-
-#define LOG_SPU             MACRO_LOG(spu)
-#define LOGW_SPU            MACRO_LOG(spuW)
-#define LOGV_SPU            MACRO_LOG(spuV)
-#define LOGT_SPU            MACRO_LOG(spuT)
-
-#define LOG_TMR             MACRO_LOG(timers)
-#define LOGW_TMR            MACRO_LOG(timersW)
-#define LOGV_TMR            MACRO_LOG(timersV)
-#define LOGT_TMR            MACRO_LOG(timersT)
-
-#define LOG_WRN             MACRO_LOG(warning)
-#define LOGW_WRN            MACRO_LOG(warningW)
-#define LOGV_WRN            MACRO_LOG(warningV)
-#define LOGT_WRN            MACRO_LOG(warningT)
-
 }
 
 #endif
